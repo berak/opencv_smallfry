@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Webcam Face Detection</title>
+  
+<style>
+#container {
+    margin: 0px auto;
+    width: 320px;
+    height: 240px;
+    border: 10px #333 solid;
+}
+#videoElement {
+    width: 320px;
+    height: 240px;
+    background-color: #666;
+    visibility:hidden;
+}
+</style>
+</head>
+  
+<body>
+    <div id="container">
+        <canvas id="can"  height="240" width="320"></canvas>
+    </div>
+    <div align="center" id="co">
+
+    </div>
+    <video autoplay="true" id="videoElement">     
+    </video>
+</body>
+
+<script type='text/javascript' src='js/ccv.js'></script>
+<script type='text/javascript' src='js/face.js'></script>
+<script>
+    var video  = document.getElementById("videoElement");
+    var canvas = document.getElementById("can");
+    var ctx    = canvas.getContext("2d");
+    ctx.strokeStyle = "purple";
+
+    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia || navigator.oGetUserMedia;
+    if (navigator.getUserMedia) {
+        navigator.getUserMedia({video: true}, function(stream) { video.src = window.URL.createObjectURL(stream); }, alert);     
+        video.addEventListener('play', function() {
+            vidInterval = setInterval(fdetect,1000);
+        });
+    }
+
+    function fdetect() {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // could even do without hte grayscale, but this is faster and gives better detection
+        var comp = ccv.detect_objects({ "canvas" : (ccv.grayscale(ccv.pre(canvas))),
+                                        "cascade" : cascade,
+                                        "interval" : 5,
+                                        "min_neighbors" : 1 });     
+        for (var i = 0; i < comp.length; i++) 
+            ctx.strokeRect(comp[i].x, comp[i].y,comp[i].width, comp[i].height);
+    }
+
+</script>
+</html>
