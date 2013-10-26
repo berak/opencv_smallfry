@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 {
     namedWindow("win",1);
     setMouseCallback("win",onmouse);
-    VideoCapture cap("../HHParticleFilter/recording_mask.avi"); 
+    VideoCapture cap(0); 
     while(cap.isOpened())
     {
         Mat imag, show;
