@@ -87,9 +87,9 @@ def read_images(path, sz=None):
             z.append(subdirname)
     return [X,y,z]
 
-def retrain( imgpath, model ) :
+def retrain( imgpath, model,sz ) :
     # read in the image data. This must be a valid path!
-    X,y,names = read_images(imgpath)
+    X,y,names = read_images(imgpath,sz)
     if len(X) == 0:
         print "image path borked", imgpath
         return [[],[],[]]
@@ -112,6 +112,8 @@ if __name__ == "__main__":
     print "  press 't' to retrain the model (if you appended faces there)"
     imgdir = sys.argv[1]
 
+    # default face size
+    face_size=(90,90)
     # open the webcam
     cam = cv2.VideoCapture(0)
     if ( not cam.isOpened() ):
@@ -132,7 +134,7 @@ if __name__ == "__main__":
     model = cv2.createLBPHFaceRecognizer()
     
     # train it from faces in the imgdir:
-    images,labels,names = retrain(imgdir,model)
+    images,labels,names = retrain(imgdir,model,face_size)
     print "trained:",len(images),"images",len(names),"persons"
     
     while True:
@@ -145,14 +147,15 @@ if __name__ == "__main__":
         # roi will keep the cropped face image ( if there was one )
         roi = None
         for x, y, w, h in rects:
-            roi = gray[y:y+h, x:x+h]
+            # crop & resize it 
+            roi = cv2.resize( gray[y:y+h, x:x+h], face_size)
             # give some visual feedback for the cascade detection
             cv2.rectangle(img, (x,y),(x+w,y+h), (255, 0, 0))
             if len(images)>0:
                 # model.predict is going to return the predicted label and
                 # the associated confidence:
                 [p_label, p_confidence] = model.predict(np.asarray(roi))
-                cv2.putText( img, "%s %.2f" % (names[p_label], p_confidence),(x,y), cv2.FONT_HERSHEY_PLAIN,1.3, (0,200,0))
+                cv2.putText( img, "%s %.2f" % (names[p_label], p_confidence),(x+10,y+20), cv2.FONT_HERSHEY_PLAIN,1.3, (0,200,0))
             break # use only 1st detected
 
         cv2.imshow('facedetect', img)
@@ -176,6 +179,6 @@ if __name__ == "__main__":
             cv2.imwrite(path,roi)
         # if enough new data was collected, retrain it 
         if (k == 116): # 't' pressed
-            images,labels,names = retrain(imgdir,model)
+            images,labels,names = retrain(imgdir,model,face_size)
             print "trained:",len(images),"images",len(names),"persons"
                          
