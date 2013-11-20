@@ -73,6 +73,8 @@ def read_images(path, sz=None):
             for filename in os.listdir(subject_path):
                 try:
                     im = cv2.imread(os.path.join(subject_path, filename), cv2.IMREAD_GRAYSCALE)
+                    if (len(im)==0):
+                        continue # not an image                        
                     # resize to given size (if given)
                     if (sz is not None):
                         im = cv2.resize(im, sz)
@@ -87,6 +89,11 @@ def read_images(path, sz=None):
             z.append(subdirname)
     return [X,y,z]
 
+
+
+# reload the images & retrain the model.
+# note, that lbp would give you the possibility of 
+# just updating the model with additonal data instead.
 def retrain( imgpath, model,sz ) :
     # read in the image data. This must be a valid path!
     X,y,names = read_images(imgpath,sz)
@@ -100,20 +107,30 @@ def retrain( imgpath, model,sz ) :
     model.train(np.asarray(X), np.asarray(y, dtype=np.int32))
     return [X,y,names]
 
+
+
 if __name__ == "__main__":
     # You'll need the path to your image folder, also we need to find 
     # a haar/lbpcascade for detecting faces, e.g. opencv\data\haarcascades\haarcascade_frontalface_alt2.xml
     if len(sys.argv) < 3:
         print "USAGE: facerec_online.py </path/to/images> <path/to/cascadefile>"
         sys.exit()
+        
     print "  press 'esc' to quit"
     print "  press 'a' to append a new face to the database"
-    print "      (you'll be prompted for a name)"
+    print "      (you'll be prompted for a name on the console)"
     print "  press 't' to retrain the model (if you appended faces there)"
+    
+    # create the img folder, if nessecary
     imgdir = sys.argv[1]
+    try:
+        os.mkdir(imgdir)
+    except:
+        pass # dir already existed
 
-    # default face size
+    # default face size, all faces in the db need to be the same.
     face_size=(90,90)
+    
     # open the webcam
     cam = cv2.VideoCapture(0)
     if ( not cam.isOpened() ):
@@ -128,9 +145,10 @@ if __name__ == "__main__":
          sys.exit()         
     print "cascade:",sys.argv[2]
     
-    # Create the Eigenfaces model. We are going to use the default
+    # Create the model. We are going to use the default
     # parameters for this simple example, please read the documentation
-    # for thresholding:
+    #model = cv2.createEigenFaceRecognizer()
+    #model = cv2.createFisherFaceRecognizer()
     model = cv2.createLBPHFaceRecognizer()
     
     # train it from faces in the imgdir:
@@ -148,7 +166,7 @@ if __name__ == "__main__":
         roi = None
         for x, y, w, h in rects:
             # crop & resize it 
-            roi = cv2.resize( gray[y:y+h, x:x+h], face_size)
+            roi = cv2.resize( gray[y:y+h, x:x+h], face_size )
             # give some visual feedback for the cascade detection
             cv2.rectangle(img, (x,y),(x+w,y+h), (255, 0, 0))
             if len(images)>0:
@@ -161,8 +179,10 @@ if __name__ == "__main__":
         cv2.imshow('facedetect', img)
 
         k = cv2.waitKey(5) & 0xFF
+        
         # bailout on 'esc'
         if k == 27: break
+       
         # 'a' pressed, add person to the database
         if (k == 97) and (roi!=None): 
             print "please input the name: "
@@ -177,7 +197,8 @@ if __name__ == "__main__":
             path=os.path.join(dirname,"%d.png" %(rand.uniform(0,10000)))
             print "added:",path
             cv2.imwrite(path,roi)
-        # if enough new data was collected, retrain it 
+        
+        # if enough new data was collected, retrain the model
         if (k == 116): # 't' pressed
             images,labels,names = retrain(imgdir,model,face_size)
             print "trained:",len(images),"images",len(names),"persons"
