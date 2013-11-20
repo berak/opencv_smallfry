@@ -60,10 +60,11 @@ def read_images(path, sz=None):
         sz: A tuple with the size Resizes
 
     Returns:
-        A list [X,y]
+        A list [X,y,z]
 
             X: The images, which is a Python list of numpy arrays.
             y: The corresponding labels (the unique number of the subject, person) in a Python list.
+            z: A list of person-names, indexed by label
     """
     c = 0
     X,y,z = [], [], []
