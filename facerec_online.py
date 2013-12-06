@@ -99,7 +99,7 @@ def retrain( imgpath, model,sz ) :
     # read in the image data. This must be a valid path!
     X,y,names = read_images(imgpath,sz)
     if len(X) == 0:
-        print "image path borked", imgpath
+        print "image path empty", imgpath
         return [[],[],[]]
     # Learn the model. Remember our function returns Python lists,
     # so we use np.asarray to turn them into NumPy lists to make
@@ -174,7 +174,9 @@ if __name__ == "__main__":
                 # model.predict is going to return the predicted label and
                 # the associated confidence:
                 [p_label, p_confidence] = model.predict(np.asarray(roi))
-                cv2.putText( img, "%s %.2f" % (names[p_label], p_confidence),(x+10,y+20), cv2.FONT_HERSHEY_PLAIN,1.3, (0,200,0))
+                name = "unknown"
+                if p_label != -1 : names[p_label]
+                cv2.putText( img, "%s %.2f" % (name, p_confidence),(x+10,y+20), cv2.FONT_HERSHEY_PLAIN,1.3, (0,200,0))
             break # use only 1st detected
 
         cv2.imshow('facedetect', img)
