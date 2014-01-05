@@ -4,9 +4,9 @@
    * press 'space' to run snake algo
 */
 
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/legacy.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/legacy/legacy.hpp"
 #include <iostream>
 using namespace cv;
 using namespace std;
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     while(1) {
         int k = waitKey(30);
         Mat m = 255 - img; //img.clone();
-        Mat mg; cvtColor(m,mg,COLOR_BGR2GRAY);
+        Mat mg; cvtColor(m,mg,CV_BGR2GRAY);
 
         if ( k == 27 ) 
             break;
