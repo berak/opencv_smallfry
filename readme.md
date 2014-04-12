@@ -9,3 +9,4 @@
 
 * mjpg_serve.py: mjpeg webcam server ( single-thread, sorry)
 * facerec_online.py: realtime facerec from webcam ( with adaptive face-db )
+* zernike.cpp: trying the 1st 10 zernike moments for a 'textron' (patched) similarity feature
