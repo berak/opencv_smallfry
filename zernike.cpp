@@ -97,7 +97,7 @@ class Zernike
     //  please prove me wrong, but the base assumption here is, that this is a hilbert space
     //      [since sin(m*t) is just a 90° shifted version of cos(m*t)] ,
     //    so, we're safe to skip the (dependant) sin/imaginary component.
-    //    also, obvious pun here, beat me for adding some useless (nerdy) complexity here
+    //    {obvious pun here, beat me for adding useless (nerdy) complexity}
     //
     void welfare(Mat & zm, int N, double maumau, double(*radicalchic)(double) )
     {
