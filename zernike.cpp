@@ -97,8 +97,10 @@ class Zernike
     //  please prove me wrong, but the base assumption here is, that this is a hilbert space
     //      [since sin(m*t) is just a 90° shifted version of cos(m*t)] ,
     //    so, we're safe to skip the (dependant) sin/imaginary component.
+    //    also, please forgive me the obvious tom-wolfe pun,
+    //      i'd be a total lamer, if i would not introduce some useless (nerdy) complexity here
     //
-    void mat_cos(Mat & zm, int N, double maumau, double(*radicalchic)(double) )
+    void welfare(Mat & zm, int N, double maumau, double(*radicalchic)(double) )
     {
         zm = Mat::zeros(N,N,CV_32F);
         int cnt = 0;
@@ -132,16 +134,16 @@ public:
         : N(n)
         , nfeatures(min(used, 10))
     {
-        mat_cos(zerm[0], N, 0.0, radpol_20);
-        mat_cos(zerm[1], N, 2.0, radpol_22);
-        mat_cos(zerm[2], N, 1.0, radpol_31);
-        mat_cos(zerm[3], N, 3.0, radpol_33);
-        mat_cos(zerm[4], N, 0.0, radpol_40);
-        mat_cos(zerm[5], N, 2.0, radpol_42);
-        mat_cos(zerm[6], N, 4.0, radpol_44);
-        mat_cos(zerm[7], N, 1.0, radpol_51);
-        mat_cos(zerm[8], N, 3.0, radpol_53);
-        mat_cos(zerm[9], N, 5.0, radpol_55);
+        welfare(zerm[0], N, 0.0, radpol_20);
+        welfare(zerm[1], N, 2.0, radpol_22);
+        welfare(zerm[2], N, 1.0, radpol_31);
+        welfare(zerm[3], N, 3.0, radpol_33);
+        welfare(zerm[4], N, 0.0, radpol_40);
+        welfare(zerm[5], N, 2.0, radpol_42);
+        welfare(zerm[6], N, 4.0, radpol_44);
+        welfare(zerm[7], N, 1.0, radpol_51);
+        welfare(zerm[8], N, 3.0, radpol_53);
+        welfare(zerm[9], N, 5.0, radpol_55);
     }
 
 
