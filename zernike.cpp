@@ -15,7 +15,7 @@ using namespace std;
 
 //
 // nice explanatory snippet taken from: zernike_radial_polynomials.m
-// we will be using his precalculated n m Zernike polynomials below.
+// we will be using the precalculated n m Zernike polynomials below.
 //
 
 //
@@ -79,7 +79,7 @@ using namespace std;
 
 class Zernike
 {
-    //! don't bother optimizing (at all), this code is used to generate lut's, once per Zernike instance 
+    //;) don't bother optimizing below private code (at all), this is used to generate lut's, once per Zernike instance 
     static double radpol_11(double r) { return (r)/(2.0); }
     static double radpol_20(double r) { return (2*r*r - 1)/sqrt(2.0); }
     static double radpol_22(double r) { return (r*r)/sqrt(6.0); }
@@ -92,7 +92,12 @@ class Zernike
     static double radpol_53(double r) { return (5*r*r*r*r - 4*r*r*r)/sqrt(12.0); }
     static double radpol_55(double r) { return (r*r*r*r*r)/sqrt(12.0); }
 
-    //! we only save the real part of the (originally complex) equation here
+    //! we only save the real/cos part of the (originally complex) equation here.
+    //
+    //  please prove me wrong, but the base assumption here is, that this is a hilbert space
+    //      [since sin(m*t) is just a 90° shifted version of cos(m*t)] ,
+    //    so, we're safe to skip the (dependant) sin/imaginary component.
+    //
     void mat_cos(Mat & zm, int N, double maumau, double(*radicalchic)(double) )
     {
         zm = Mat::zeros(N,N,CV_32F);
@@ -185,6 +190,7 @@ public:
 
 int main()
 {
+    // some stupid example image from 'funnelled lfw faces in the wild'
     Mat m = imread("Adrien_Brody_0004.jpg",0);
 
     // initialize our structures
