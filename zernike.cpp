@@ -8,9 +8,13 @@ using namespace cv;
 using namespace std;
 
 
+//
+// this code tries to apply zernike moments to a (patched) image as a 'textron' similarity measure
+//
+
 
 //
-// nice explanative snippet taken from: zernike_radial_polynomials.m
+// nice explanatory snippet taken from: zernike_radial_polynomials.m
 // we will be using his precalculated n m Zernike polynomials below.
 //
 
@@ -24,6 +28,8 @@ using namespace std;
 //   Way, C.-C., Paramesran, R., and Mukandan, R., A comparative analysis of algorithms for fast computation of Zernike moments, Pattern Recognition 36 (2003) 731-742.
 //   It uses radial polynomials of fixed order p with a varying index q to
 //   compute Zernike moments
+//
+//
 //  What are Zernike polynomials?
 //    The radial Zernike polynomials are the radial portion of the
 //    Zernike functions, which are an orthogonal basis on the unit
@@ -56,17 +62,18 @@ using namespace std;
 // 
 
 
-
 //
+// to calculate the ZernikeMoment of a given patch image, 
 // this implementation (loosely) follows the pseudocode example in figure 3 of
 //   "Anovel approach to the fast computation of Zernikemoments" [Sun-Kyoo Hwang,Whoi-Yul Kim] 2006
 //
 // since the radial zernike polynomials as well as rho and theta 
 //   are 'constant' for a given patchsize (or say, independant of our image),
-//   we can cache a Mat with (radial*cos(m*theta)) for each of our 10 or so moments,
-//   so calculating the ZernikeMoment of a patch boils down to a NxN matrix-mult and a sum over that
+//   we can cache a Mat with the (radial*cos(m*theta)) term for each of our 10 or so moments,
+//   so calculating the ZernikeMoment of a patch (in a later stage) 
+//   boils down to a NxN matrix-mult, and a sum over that
 //
-// omitting the 1st 2 polynomials above(imho, they don't add much gain),
+// omitting the 1st 2 polynomials above(since they don't add much gain),
 //   so this has 10 moments
 //
 
@@ -139,15 +146,17 @@ public:
     //
     void compute_patch( const Mat & patch, Mat & features )
     {
-        for ( int i=0; i<nfeatures; i++ ) {
+        for (int i=0; i<nfeatures; i++) 
+        {
             Mat c;
-            multiply(patch,zerm[i], c);
+            multiply(patch, zerm[i], c); // per element
             features.push_back(float(sum(c)[0]));
         }
     }
 
     //
-    //! calculates an nfeatures*N*N feature vec per image
+    //! calculates an nfeatures*N*N feature vec per image, 
+    //!  the (L2)norm of it will be our distance metrics for comparing images.
     //
     void compute( const Mat & img, Mat & features )
     {       
@@ -159,6 +168,8 @@ public:
 
         // the trick with the precalculated (radial*cos(m*theta)) term requires a fixed patch size,
         // so let's try to 'equalize' differently sized images here
+        //   downside: this puts a penalty on (small) input images < NxN ,
+        //      please let me know, if you find something better here.
         cv::resize(m, m, Size(N*N, N*N));
 
         for (int i=0; i<N; i++) 
