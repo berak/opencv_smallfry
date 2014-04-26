@@ -6,7 +6,7 @@
 struct opencv_db 
 {
 		//! host,user,pw will be 0 in case of local connection(sqlite,slimxml)
-		virtual bool open( const char * db, const char * host, const char * user, const char * pw ) = 0;
+        virtual bool open( const char * db, const char * host, const char * user, const char * pw ) = 0;
 
         virtual bool exec( const char * statement ) = 0;
 

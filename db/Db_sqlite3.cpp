@@ -17,59 +17,59 @@ private:
 
     sqlite3 * sqlite;
 
-	bool _error( const char * fn, const char * txt="" )
-	{
-		const char * err = sqlite3_errmsg( this->sqlite );
+    bool _error( const char * fn, const char * txt="" )
+    {
+        const char * err = sqlite3_errmsg( this->sqlite );
         if ( !strcmp(err,"not an error") )
             return true;
-		cerr << format( "%-18s(%s) ( %s )", fn, txt, err ) << endl;
-		return false; 
-	}
+        cerr << format( "%-18s(%s) ( %s )", fn, txt, err ) << endl;
+        return false; 
+    }
     #define RROR(r) if ( (r) != SQLITE_OK ) { return _error(__FUNCTION__); }
     #define RAII(r) raii<sqlite3_stmt> ras(r,sqlite3_finalize);
 
 public:
-	Sqlite3Db() 
+    Sqlite3Db() 
         : sqlite(0)
-	{
+    {
         // printf( "<sqlite %s>\n", sqlite3_libversion() );
-	}
+    }
 
-	~Sqlite3Db() 
-	{
-		close();
-	}
+    ~Sqlite3Db() 
+    {
+        close();
+    }
 
-	virtual bool open( const char * db, const char * host, const char * user, const char * pw ) 
-	{
-		if ( this->sqlite ) 
+    virtual bool open( const char * db, const char * host, const char * user, const char * pw ) 
+    {
+        if ( this->sqlite ) 
             return _error(__FUNCTION__, "close running connection first");
 
         RROR( sqlite3_open( db, &this->sqlite ) );
-		return true; 
-	}
+        return true; 
+    }
 
-	virtual bool close() 
-	{
-		if ( ! this->sqlite ) 
+    virtual bool close() 
+    {
+        if ( ! this->sqlite ) 
             return false;
-		RROR( sqlite3_close(this->sqlite) );
-		this->sqlite = 0;
-		return true;
-	}
+        RROR( sqlite3_close(this->sqlite) );
+        this->sqlite = 0;
+        return true;
+    }
 
 
     virtual bool exec( const char * statement ) 
-	{
+    {
         if ( ! this->sqlite ) 
-			return _error(__FUNCTION__,"DB_CLOSED");
+            return _error(__FUNCTION__,"DB_CLOSED");
 
         sqlite3_stmt *stmt;
         RROR( sqlite3_prepare_v2(this->sqlite,statement,strlen(statement)+1, &stmt,0) );
         RAII( stmt );
         RROR( sqlite3_step(stmt) );
-		return true;
-	}
+        return true;
+    }
 
 
 
