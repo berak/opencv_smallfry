@@ -12,10 +12,12 @@ using namespace cv;
 using namespace std;
 
 //
-// it connects to the default port(3306)
+// we're only using stuff from the base mysql dirto here, no further adapter required
+// names are restricted to 64 chars
 // the blobsize is restricted to 4mb
 // prepared statements look noisy, but allow more control,
 //   so we can avoid escaped text and have a real binary storage instead.
+// it connects to the default port(3306)
 //
 struct MysqlDb : opencv_db
 {
@@ -58,14 +60,16 @@ struct MysqlDb : opencv_db
 
     virtual bool create( const std::string & table ) 
     { 
-        return exec(format("create table %s (name VARCHAR(30) UNIQUE, t INTEGER, w INTEGER, h INTEGER, pix MEDIUMBLOB);", table.c_str()).c_str()); 
+        return exec(format("create table %s (name VARCHAR(64) UNIQUE, t INTEGER, w INTEGER, h INTEGER, pix MEDIUMBLOB);", table.c_str()).c_str()); 
     }
     virtual bool drop  ( const std::string & table ) 
     { 
         return exec(format("drop table %s;",table.c_str()).c_str()); 
     } 
 
-    static int _stmt_close(MYSQL_STMT * s) { return mysql_stmt_close(s); }
+    static int _stmt_close(MYSQL_STMT *s) {
+        mysql_stmt_close(s); return 0; 
+    }
     virtual bool write( const std::string & table, const std::string & name, const cv::Mat & mat ) 
     { 
         int t = mat.type();
@@ -74,7 +78,7 @@ struct MysqlDb : opencv_db
         string q = format("insert into %s values(?, ?, ?, ?, ?);", table.c_str());
 
         MYSQL_STMT * stmt = mysql_stmt_init(mysql);
-        raii<MYSQL_STMT> ras(stmt, _stmt_close);
+        raii<MYSQL_STMT> ras(stmt,_stmt_close);
 
         if ( ! stmt )
             return _error("write init statement");
@@ -113,8 +117,9 @@ struct MysqlDb : opencv_db
     { 
         MYSQL_STMT * stmt = mysql_stmt_init(mysql);
         raii<MYSQL_STMT> ras(stmt,_stmt_close);
-
-        string q = format("select name,t,w,h,pix from %s where name = '%s';",table.c_str(),name.c_str());
+        
+        // no need to read the name again.
+        string q = format("select t,w,h,pix from %s where name = '%s';",table.c_str(),name.c_str());
         if ( ! stmt )
             return _error("read init statement",q.c_str());
 
@@ -126,24 +131,20 @@ struct MysqlDb : opencv_db
 
         vector<char> d(4*1024*1204); // FIXME: 4mb enough?
         int t=0,w=0,h=0;
-        char _name[30]={0};
-        MYSQL_BIND bind[5] = {0};
-        bind[0].buffer_type= MYSQL_TYPE_STRING;
-        bind[0].buffer= (void*)_name;
-        bind[0].buffer_length= 30;
+        MYSQL_BIND bind[4] = {0};
+
+        bind[0].buffer_type= MYSQL_TYPE_LONG;
+        bind[0].buffer= (void*)(&t);
 
         bind[1].buffer_type= MYSQL_TYPE_LONG;
-        bind[1].buffer= (void*)(&t);
+        bind[1].buffer= (void*)(&w);
 
         bind[2].buffer_type= MYSQL_TYPE_LONG;
-        bind[2].buffer= (void*)(&w);
+        bind[2].buffer= (void*)(&h);
 
-        bind[3].buffer_type= MYSQL_TYPE_LONG;
-        bind[3].buffer= (void*)(&h);
-
-        bind[4].buffer_type= MYSQL_TYPE_BLOB;
-        bind[4].buffer= (void*)(&d[0]);
-        bind[4].buffer_length= d.size();
+        bind[3].buffer_type= MYSQL_TYPE_BLOB;
+        bind[3].buffer= (void*)(&d[0]);
+        bind[3].buffer_length= d.size();
 
         if ( mysql_stmt_bind_result(stmt,bind) ) 
             return _error("read bind result",q.c_str()); 

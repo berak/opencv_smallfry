@@ -65,7 +65,7 @@ public:
             return _error(__FUNCTION__,"DB_CLOSED");
 
         sqlite3_stmt *stmt;
-        RROR( sqlite3_prepare_v2(this->sqlite,statement,strlen(statement)+1, &stmt,0) );
+        RROR( sqlite3_prepare_v2(this->sqlite,statement,strlen(statement)+1, &stmt,0) );       
         RAII( stmt );
         RROR( sqlite3_step(stmt) );
         return true;
