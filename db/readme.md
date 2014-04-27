@@ -1,6 +1,6 @@
-## various c/c++ opencv key(name) - value(cv::Mat) datastore adapters
+#### various c/c++ opencv key(name) - value(cv::Mat) datastore adapters
 
-as various platforms don't come with a filesystem (or only an ephemeral one, think heroku)
+as most cloud based platforms don't come with a filesystem (or only an ephemeral one, think heroku)
 
     sqlite3
     mysql

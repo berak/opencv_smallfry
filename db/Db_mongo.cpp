@@ -17,12 +17,15 @@ struct MongoDb : opencv_db
 {
     mongo_connection conn[1];
     string db;
+    int port;
 
-    MongoDb() 
+    MongoDb(int port=27017)
+        : port(port)
     {
         #ifdef _WIN32
             WSADATA out; 
-            WSAStartup(MAKEWORD(2,2), &out); 
+            int r =  WSAStartup(MAKEWORD(2,2), &out); 
+            cerr << r << endl;
         #endif
     }
 
@@ -31,8 +34,6 @@ struct MongoDb : opencv_db
         bson b;
         mongo_cmd_get_last_error(conn,db.c_str(),&b);
         bson_print(&b);
-        //const char * err = mysql_error(mysql);
-        //if ( err ) cerr << err;
         if ( foo ) cerr << " in " << foo;
         if ( bar ) cerr << " : " << bar;
         cerr << endl;
@@ -43,9 +44,22 @@ struct MongoDb : opencv_db
     virtual bool open( const char * db, const char * host, const char * user, const char * pw ) 
     {
         this->db = db;
+        // mongo can't resolve hostnames, so i have to.
+        string ip = host;
+        unsigned long i_addr = ::inet_addr( host );
+        if ( i_addr == INADDR_NONE ) 
+        {   
+            HOSTENT *hostentry  = ::gethostbyname( host );
+            if ( hostentry )
+                i_addr =  *(unsigned long *)hostentry->h_addr_list[0];
+
+            ip = format("%d.%d.%d.%d", i_addr & 0xFF, (i_addr >> 8) & 0xFF,  (i_addr >> 16) & 0xFF, (i_addr >> 24) & 0xFF);	
+        }	
+        cerr << ip << endl;
+
         mongo_connection_options opts = {0};  
-        strcpy(opts.host, host);
-        opts.port = 27017;
+        strcpy(opts.host, ip.c_str());
+        opts.port = port;
 
         if ( mongo_connect( conn , &opts ) )
             return _error("failed to connect");
@@ -91,7 +105,7 @@ struct MongoDb : opencv_db
         mongo_insert( conn , ns.c_str() , &b );
         bson_destroy(&b);
 
-        return true; 
+        return true; // aww, rrly, this can't go wrong ever ?
     }
 
     virtual bool read ( const std::string & table, const std::string & name, cv::Mat & mat ) 
@@ -134,4 +148,4 @@ struct MongoDb : opencv_db
 };
 
 
-Ptr<opencv_db> createMongoDb() { return makePtr<MongoDb>(); }
+Ptr<opencv_db> createMongoDb(int port=27017) { return makePtr<MongoDb>(port); }
