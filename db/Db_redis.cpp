@@ -19,23 +19,23 @@ struct RedisDb : opencv_db
     int port;
     int sock;
 
-    int readline( char *line ) {
-	    int nb = 0;
-	    line[0] = 0;
-	    while(true) 
-	    {
-		    int b = Birds::ReadByte(sock);
-		    if ( b < 0 )
-			    break;
-		    if ( b == '\r' )
-			    continue;
-		    if ( b == '\n' )
-			    break;
-		    line[nb] = b;
-		    nb ++;
-	    }
-	    line[nb]=0;
-	    return nb;
+    int _readline( char *line ) {
+        int nb = 0;
+        line[0] = 0;
+        while(true) 
+        {
+            int b = Birds::ReadByte(sock);
+            if ( b < 0 )
+                break;
+            if ( b == '\r' )
+                continue;
+            if ( b == '\n' )
+                break;
+            line[nb] = b;
+            nb ++;
+        }
+        line[nb]=0;
+        return nb;
     }
     bool _error( const char *a=0, const char *b=0 )
     {
@@ -48,7 +48,7 @@ struct RedisDb : opencv_db
     bool _result()
     {
         char line[500];
-        readline(line);
+        _readline(line);
         if ( line[0]!='+' || line[2]!='K' )
             return _error(line);
         return true;
@@ -67,17 +67,17 @@ struct RedisDb : opencv_db
 
     virtual bool open( const char * db, const char * host, const char * user, const char * pw ) 
     {
-    	sock = Birds::Client((char*)host,port);
+        sock = Birds::Client((char*)host,port);
 
         if ( sock < 0 )
             return _error("connecting to ", host );
 
         if ( pw && pw[0] ) 
-	    {
+        {
             string msg(format("auth %s\r\n", pw ));
             if ( Birds::Write(sock,(char*)msg.c_str(),0)<1 ) 
                 return false;
-	    }
+        }
         if ( ! _result() )
             return false;
 
@@ -86,7 +86,7 @@ struct RedisDb : opencv_db
         sscanf(db,"%i",&dbn);
         if ( dbn > -1 )
         {
-		    string mes = format(
+            string mes = format(
                 "*2\r\n"
                 "$6\r\n"
                 "SELECT\r\n"
@@ -148,16 +148,16 @@ struct RedisDb : opencv_db
 
         int t=0,w=0,h=0,nb=0;
         char line[600];
-        readline(line);
+        _readline(line);
         if ( line[0]!='*' || line[1]!='4' )
             return _error("key not found : ",key.c_str());
-        readline(line);//$1
-        readline(line); t=atoi(line);
-        readline(line);//$1
-        readline(line); w=atoi(line);
-        readline(line);//$1
-        readline(line); h=atoi(line);
-        readline(line); nb=atoi(line+1);
+        _readline(line);//$1
+        _readline(line); t=atoi(line);
+        _readline(line);//$1
+        _readline(line); w=atoi(line);
+        _readline(line);//$1
+        _readline(line); h=atoi(line);
+        _readline(line); nb=atoi(line+1);
         if ( nb<1 ) 
             return _error("protocol error, expected: $num_bytes : ", line);
 
@@ -167,7 +167,7 @@ struct RedisDb : opencv_db
         {
             *d++ = Birds::ReadByte(sock); // TODO: read blocks
         }
-        readline(line); // flush last readline
+        _readline(line); // flush last linebreak
         return !mat.empty(); 
     }
 

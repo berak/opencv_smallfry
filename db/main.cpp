@@ -16,7 +16,7 @@ extern Ptr<opencv_db> createMemDb();
 
 int main()
 {
-    Ptr<opencv_db> db = createRedisDb(6739);//10099);
+    //Ptr<opencv_db> db = createRedisDb(6739);//10099);
     //db->open("0","gateway-1.simpleredis.com","paula","ie6ec0aebd513fd4e917ccb2a77e45c7bbc771760z");
 
     Ptr<opencv_db> db = createRedisDb(10252);//10099);
