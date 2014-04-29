@@ -19,6 +19,9 @@ int main()
     Ptr<opencv_db> db = createRedisDb(6739);//10099);
     //db->open("0","gateway-1.simpleredis.com","paula","ie6ec0aebd513fd4e917ccb2a77e45c7bbc771760z");
 
+    Ptr<opencv_db> db = createRedisDb(10252);//10099);
+    db->open("0","pearlfish.redistogo.com","berak","42763cc09a3998b89a0d09b0dcfde249");
+
     //Ptr<opencv_db> db = createSqlite3Db();
     //bool ok = db->open("ocv.sqlite",0,0,0);
     //Ptr<opencv_db> db = createFsDb();
