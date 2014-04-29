@@ -6,7 +6,6 @@
 * html5: facedetect from webcam in browser ( using liu liu's js code )
 * zoom: zooming in/out of highgui window
 * vibe.cpp: ViBe background separation
-
 * mjpg_serve.py: mjpeg webcam server ( single-thread, sorry)
 * facerec_online.py: realtime facerec from webcam ( with adaptive face-db )
-* zernike.cpp: trying the 1st 10 zernike moments for a 'textron' (patched) similarity feature
+* db: serialize cv::Mat to some popular databases.

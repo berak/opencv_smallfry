@@ -19,7 +19,8 @@ struct RedisDb : opencv_db
     int port;
     int sock;
 
-    int _readline( char *line ) {
+    int _readline( char *line ) 
+    {
         int nb = 0;
         line[0] = 0;
         while(true) 
@@ -44,7 +45,6 @@ struct RedisDb : opencv_db
         cerr << endl;
         return false;
     }
-
     bool _result()
     {
         char line[500];
@@ -106,8 +106,8 @@ struct RedisDb : opencv_db
         string t = format("%d",mat.type());
         string w = format("%d",mat.cols);
         string h = format("%d",mat.rows);
-        int numbytes=mat.total() * mat.elemSize();
-        // my 'precompiled statement' looks pretty much like gnu assembler ;)
+        int numbytes = mat.total() * mat.elemSize();
+        // my 'prepared statements' look pretty much like gnu assembler ;)
         string stmt_pre = format(
             "*6\r\n"
             "$5\r\n"

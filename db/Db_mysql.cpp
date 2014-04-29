@@ -1,7 +1,9 @@
 #include "opencv2/core/core.hpp"
 #include "opencv_db.h"
 
-#include <windows.h> // TODO: bad enough that SOCKET is missing from mysql.h, but do i need all of windows.h?
+#ifdef _WIN32
+ #include <windows.h> // TODO: bad enough that SOCKET is missing from mysql.h, but do i need all of windows.h?
+#endif
 extern "C" {
  #include "mysql.h"
 }
