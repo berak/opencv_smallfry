@@ -5,6 +5,7 @@ as most cloud based platforms don't come with a filesystem (or only an ephemeral
     sqlite3
     mysql
     mongo/bson
+    redis ;)
 
 trying to store binary data, (not text with escaped zeros, or b64)
 

@@ -2,7 +2,7 @@
 #include "opencv_db.h"
 
 extern "C" {
- #include "mongo.h"
+ #include "mongo.h" // shame, my 1.4 is pretty outdated.
 }
 
 #include <cstdio>
@@ -73,7 +73,7 @@ struct MongoDb : opencv_db
 
     virtual bool exec( const char * statement ) 
     { 
-        return true; 
+        return true; // TODO: would be nice to send js here
     }
 
     virtual bool create( const std::string & table ) 

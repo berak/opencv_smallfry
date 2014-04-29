@@ -10,15 +10,15 @@ using namespace std;
 extern Ptr<opencv_db> createSqlite3Db();
 extern Ptr<opencv_db> createMysqlDb();
 extern Ptr<opencv_db> createMongoDb(int port=27017);
+extern Ptr<opencv_db> createRedisDb(int port=6307);
 extern Ptr<opencv_db> createFsDb();
 extern Ptr<opencv_db> createMemDb();
 
 int main()
 {
-    Ptr<opencv_db> db = createMongoDb();//10099);
-    db->open("moloch","localhost",0,0);
-    //db->open("moloch","paulo.mongohq.com",0,0);
-    //db->open("moloch","paulo.mongohq.com","paula","17z17z17z");
+    Ptr<opencv_db> db = createRedisDb(6739);//10099);
+    //db->open("0","gateway-1.simpleredis.com","paula","ie6ec0aebd513fd4e917ccb2a77e45c7bbc771760z");
+
     //Ptr<opencv_db> db = createSqlite3Db();
     //bool ok = db->open("ocv.sqlite",0,0,0);
     //Ptr<opencv_db> db = createFsDb();
@@ -30,10 +30,9 @@ int main()
     //ok = db->create(table);
     Mat m;
     m = imread("../../demo/tuna.jpg",1);
-    //ok = db->write(table,"tuna",m);
-    
-    //m = imread("../../demo/lena.jpg",1);
-    //ok = db->write(table,"lena",m);
+    ////ok = db->write(table,"tuna",m);   
+    ////m = imread("../../demo/lena.jpg",1);
+    ////ok = db->write(table,"lena",m);
 
     vector<int> prm; prm.push_back(IMWRITE_PNG_COMPRESSION); prm.push_back(2);
     vector<uchar> mb; imencode(".png",m,mb,prm);
@@ -43,10 +42,10 @@ int main()
     ok = db->write(table,"eye",md);
     
     Mat m2;
-    //ok = db->read(table,"tuna_x",m2);
-    //if ( ok && m2.rows )
-    //    imshow("success!",m2), waitKey();
-    //
+    ok = db->read(table,"eye",m2);
+    if ( ok && m2.rows )
+        imshow("success!",m2), waitKey();
+    
     //ok = db->read(table,"lena",m2);
     //if ( ok && m2.rows )
     //    imshow("success!",m2), waitKey();

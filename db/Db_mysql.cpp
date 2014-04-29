@@ -1,7 +1,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv_db.h"
 
-#include <windows.h> // FIXME: bad enough that SOCKET is missing from mysql.h, but do i need all of windows.h?
+#include <windows.h> // TODO: bad enough that SOCKET is missing from mysql.h, but do i need all of windows.h?
 extern "C" {
  #include "mysql.h"
 }
@@ -12,7 +12,7 @@ using namespace cv;
 using namespace std;
 
 //
-// we're only using stuff from the base mysql dirto here, no further adapter required
+// we're only using stuff from the base mysql distro here, no further adapters required
 // names are restricted to 64 chars
 // the blobsize is restricted to 4mb
 // prepared statements look noisy, but allow more control,
@@ -39,8 +39,6 @@ struct MysqlDb : opencv_db
 
     virtual bool open( const char * db, const char * host, const char * user, const char * pw ) 
     {
-        cout << mysql_get_client_info() << endl;
-
         if ( ! mysql ) 
             return _error("open");
 
@@ -67,9 +65,7 @@ struct MysqlDb : opencv_db
         return exec(format("drop table %s;",table.c_str()).c_str()); 
     } 
 
-    static int _stmt_close(MYSQL_STMT *s) {
-        mysql_stmt_close(s); return 0; 
-    }
+    static int _stmt_close(MYSQL_STMT *s) {  mysql_stmt_close(s); return 0; }
     virtual bool write( const std::string & table, const std::string & name, const cv::Mat & mat ) 
     { 
         int t = mat.type();
@@ -129,7 +125,7 @@ struct MysqlDb : opencv_db
         if ( mysql_stmt_execute(stmt) )
             return _error("read mysql_stmt_execute",q.c_str());
 
-        vector<char> d(4*1024*1204); // FIXME: 4mb enough?
+        vector<char> d(4*1024*1204); // TODO: 4mb enough?
         int t=0,w=0,h=0;
         MYSQL_BIND bind[4] = {0};
 
