@@ -37,9 +37,9 @@ int main()
     ////m = imread("../../demo/lena.jpg",1);
     ////ok = db->write(table,"lena",m);
 
-    vector<int> prm; prm.push_back(IMWRITE_PNG_COMPRESSION); prm.push_back(2);
-    vector<uchar> mb; imencode(".png",m,mb,prm);
-    ok = db->write(table,"tuna.png",Mat(mb));
+    //vector<int> prm; prm.push_back(IMWRITE_PNG_COMPRESSION); prm.push_back(2);
+    //vector<uchar> mb; imencode(".png",m,mb,prm);
+    //ok = db->write(table,"tuna.png",Mat(mb));
 
     Mat md = Mat::eye(3,4,CV_64F);
     ok = db->write(table,"eye",md);

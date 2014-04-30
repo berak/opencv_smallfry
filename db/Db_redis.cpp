@@ -49,7 +49,7 @@ struct RedisDb : opencv_db
     {
         char line[500];
         _readline(line);
-        if ( line[0]!='+' || line[2]!='K' )
+        if ( (line[0]!='+' || line[2]!='K') && (line[0]!=':') )
             return _error(line);
         return true;
     }
@@ -171,7 +171,8 @@ struct RedisDb : opencv_db
         return !mat.empty(); 
     }
 
-    virtual bool close() { 
+    virtual bool close() 
+    { 
         return Birds::Close(sock)!=0;
     }
 };
