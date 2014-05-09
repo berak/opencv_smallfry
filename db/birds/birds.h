@@ -16,7 +16,7 @@ namespace Birds
 
     char ReadByte(int sock);
     char * Read(int sock);
-    char * Read( int sock, char *buffer, int & len );
+    char * Read(int sock, char *buffer, int & len);
 
     char * Error();
     

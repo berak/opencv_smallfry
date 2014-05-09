@@ -62,7 +62,7 @@ struct RedisDb : opencv_db
         return _result();
     }
 
-    RedisDb(int port=6307) : port(port),sock(-1) {}
+    RedisDb(int port=6379) : port(port),sock(-1) {}
     ~RedisDb() { close();}
 
     virtual bool open( const char * db, const char * host, const char * user, const char * pw ) 
@@ -100,9 +100,9 @@ struct RedisDb : opencv_db
     }
 
 
-    virtual bool write( const std::string & table, const std::string & name, const cv::Mat & mat ) 
+    virtual bool write( const char * table, const char * name, const cv::Mat & mat ) 
     { 
-        string key = table + "." + name;
+        string key = format("%s.%s",table,name);
         string t = format("%d",mat.type());
         string w = format("%d",mat.cols);
         string h = format("%d",mat.rows);
@@ -131,9 +131,9 @@ struct RedisDb : opencv_db
         return _result();
     }
 
-    virtual bool read ( const std::string & table, const std::string & name, cv::Mat & mat ) 
+    virtual bool read ( const char * table, const char * name, cv::Mat & mat ) 
     { 
-        string key = table + "." + name;
+        string key = format("%s.%s",table,name);
         string stmt_pre = format(
             "*4\r\n"
             "$6\r\n"

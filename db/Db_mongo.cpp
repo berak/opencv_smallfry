@@ -76,25 +76,25 @@ struct MongoDb : opencv_db
         return true; // TODO: would be nice to send js here
     }
 
-    virtual bool create( const std::string & table ) 
+    virtual bool create( const char * table ) 
     { 
         return true; // we don't have to explicitly create collections
     }
-    virtual bool drop  ( const std::string & table ) 
+    virtual bool drop  ( const char * table ) 
     { 
         bson b;
-        return (mongo_cmd_drop_collection( conn, db.c_str(), table.c_str(),&b)==0); 
+        return (mongo_cmd_drop_collection( conn, db.c_str(), table,&b)==0); 
     } 
 
-    virtual bool write( const std::string & table, const std::string & name, const cv::Mat & mat ) 
+    virtual bool write( const char * table, const char * name, const cv::Mat & mat ) 
     { 
-        string ns = db + "." + table;
+        string ns = db + format(".%s", table);
 
         bson_buffer bb;
         bson_buffer_init( & bb );
 
         bson_append_new_oid( &bb, "_id" );
-        bson_append_string( &bb , "n" , name.c_str() );
+        bson_append_string( &bb , "n" , name );
         bson_append_int( &bb , "t" , mat.type() );
         bson_append_int( &bb , "w" , mat.cols );
         bson_append_int( &bb , "h" , mat.rows );
@@ -108,16 +108,16 @@ struct MongoDb : opencv_db
         return true; // aww, rrly, this can't go wrong ever ?
     }
 
-    virtual bool read ( const std::string & table, const std::string & name, cv::Mat & mat ) 
+    virtual bool read ( const char * table, const char * name, cv::Mat & mat ) 
     { 
         bson_buffer bb;
         bson_buffer_init( & bb );
-        bson_append_string( &bb , "n" , name.c_str() );
+        bson_append_string( &bb , "n" , name );
 
         bson b;
         bson_from_buffer(&b, &bb);
 
-        string ns = db + "." + table;
+        string ns = db + format(".%s", table);
         mongo_cursor * cursor = mongo_find( conn , ns.c_str() , &b , 0 , 1 , 0 , 0 );
         mongo_cursor_next(cursor);
         {

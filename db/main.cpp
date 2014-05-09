@@ -13,24 +13,25 @@ extern Ptr<opencv_db> createMongoDb(int port=27017);
 extern Ptr<opencv_db> createRedisDb(int port=6307);
 extern Ptr<opencv_db> createFsDb();
 extern Ptr<opencv_db> createMemDb();
+extern Ptr<opencv_db> createPostgresDb();
 
 int main()
 {
-    //Ptr<opencv_db> db = createRedisDb(6739);//10099);
-    //db->open("0","gateway-1.simpleredis.com","paula","ie6ec0aebd513fd4e917ccb2a77e45c7bbc771760z");
-
-    Ptr<opencv_db> db = createRedisDb(10252);//10099);
-    db->open("0","pearlfish.redistogo.com","berak","42763cc09a3998b89a0d09b0dcfde249");
-
+    //Ptr<opencv_db> db = createPostgresDb();//10099);
+    //bool ok = db->open("p4p4","localhost","postgres","p1p2p3p4");
+    Ptr<opencv_db> db = createRedisDb(6379);//10099);
+    bool ok = db->open("0","gateway-1.simpleredis.com","paula","i8418d75a28c360a38c8d886b2c62410c56452890z");
     //Ptr<opencv_db> db = createSqlite3Db();
     //bool ok = db->open("ocv.sqlite",0,0,0);
     //Ptr<opencv_db> db = createFsDb();
     //bool ok = db->open(0,0,0,0);
 
+    cerr << "1 " << ok << endl;
+    if ( ! ok ) return 1;
     char * table = "img4";
-    bool ok = false;
     //ok = db->drop(table);
-    //ok = db->create(table);
+    ok = db->create(table);
+    cerr << table << " " << ok << endl;
     Mat m;
     m = imread("../../demo/tuna.jpg",1);
     ////ok = db->write(table,"tuna",m);   
@@ -43,9 +44,13 @@ int main()
 
     Mat md = Mat::eye(3,4,CV_64F);
     ok = db->write(table,"eye",md);
+    cerr << "2 " << ok << endl;
+    if ( ! ok ) return 2; 
     
     Mat m2;
     ok = db->read(table,"eye",m2);
+    cerr << "3 " << ok << endl;
+    if ( ! ok ) return 3;
     if ( ok && m2.rows )
         imshow("success!",m2), waitKey();
     
@@ -54,6 +59,8 @@ int main()
     //    imshow("success!",m2), waitKey();
     //
     ok = db->read(table,"tuna.png",m2);
+    cerr << "4 " << ok << endl;
+    if ( ! ok ) return 4;
     if ( ok && m2.rows ) {
         m2 = imdecode(m2,1);
         if ( ok && m2.rows )
