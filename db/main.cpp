@@ -17,13 +17,13 @@ extern Ptr<opencv_db> createPostgresDb();
 
 int main()
 {
-    //Ptr<opencv_db> db = createPostgresDb();//10099);
-    //bool ok = db->open("p4p4","localhost","postgres","p1p2p3p4");
-    Ptr<opencv_db> db = createRedisDb(6379);//10099);
-    bool ok = db->open("0","gateway-1.simpleredis.com","paula","ib58a1c19e9c3b4c6c6c775d1d9887f9fb52fb57cz");
+    Ptr<opencv_db> db = createPostgresDb();//10099);
+    bool ok = db->open("p4p4","localhost","postgres","p1p2p3p4");
+    //Ptr<opencv_db> db = createRedisDb(6379);//10099);
+    //bool ok = db->open("0","gateway-1.simpleredis.com","paula","ib58a1c19e9c3b4c6c6c775d1d9887f9fb52fb57cz");
     //Ptr<opencv_db> db = createSqlite3Db();
     //bool ok = db->open("ocv.sqlite",0,0,0);
-    //Ptr<opencv_db> db = createFsDb();
+    //Ptr<opencv_db> db = createMemDb();
     //bool ok = db->open(0,0,0,0);
 
     cerr << "1 " << ok << endl;

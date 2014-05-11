@@ -13,14 +13,14 @@
     #include <windows.h>
     #include <time.h>
     #define socklen_t     int
-    #define PORT	      unsigned long
+    #define PORT          unsigned long
     #define ADDRPOINTER   int*
     struct _INIT_W32DATA
     {
-	   WSADATA w;
-	   _INIT_W32DATA() {	WSAStartup( MAKEWORD( 2, 1 ), &w ); }
+       WSADATA w;
+       _INIT_W32DATA() {    WSAStartup( MAKEWORD( 2, 1 ), &w ); }
     } _init_once;
-#else		/* ! win32 */
+#else        /* ! win32 */
     #include <unistd.h>
     #include <sys/time.h>
     #include <sys/types.h>
@@ -28,10 +28,10 @@
     #include <netdb.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
-    #define PORT	    unsigned short
-    #define SOCKET	  int
-    #define HOSTENT	 struct hostent
-    #define SOCKADDR	struct sockaddr
+    #define PORT        unsigned short
+    #define SOCKET      int
+    #define HOSTENT     struct hostent
+    #define SOCKADDR    struct sockaddr
     #define SOCKADDR_IN  struct sockaddr_in
     #define ADDRPOINTER  unsigned int*
     #define INVALID_SOCKET -1
@@ -48,7 +48,7 @@ namespace Birds
     {
         _errbuf[0]=0;
         SOCKADDR_IN   address;
-        SOCKET	   me = ::socket (AF_INET, SOCK_STREAM, IPPROTO_TCP) ;
+        SOCKET       me = ::socket (AF_INET, SOCK_STREAM, IPPROTO_TCP) ;
         if ( ( me ) == INVALID_SOCKET )
         {
             sprintf(_errbuf, "%s() error : couldn't create socket !", __FUNCTION__ );
@@ -60,7 +60,7 @@ namespace Birds
             HOSTENT *hostentry  = ::gethostbyname( host );
             if ( hostentry )
                 i_addr =  *(unsigned long *)hostentry->h_addr_list[0];
-        }		
+        }        
         if ( i_addr == INADDR_NONE )
         {
             sprintf(_errbuf, "%s() error : couldn't resolve hostname '%s' !", __FUNCTION__, host );
@@ -139,7 +139,7 @@ namespace Birds
         _errbuf[0]=0;
         
         SOCKET      sock        = ::socket (AF_INET, SOCK_STREAM, IPPROTO_TCP) ;
-        SOCKADDR_IN address;	   
+        SOCKADDR_IN address;       
         address.sin_addr.s_addr = INADDR_ANY;
         address.sin_family      = AF_INET;
         address.sin_port        = ::htons(port);
@@ -164,7 +164,7 @@ namespace Birds
     int Accept( int sock ) 
     {
         socklen_t   addrlen = sizeof(SOCKADDR);
-        SOCKADDR_IN address = {0};	   
+        SOCKADDR_IN address = {0};       
         SOCKET      client  = ::accept( sock,  (SOCKADDR*)&address, &addrlen );
         if ( client == SOCKET_ERROR )
         {
@@ -181,10 +181,10 @@ namespace Birds
     //
     int Select( int sock, int timeout )
     {
-		fd_set rread;
-		FD_ZERO( &rread );
-		FD_SET( sock, &rread );	
-	
+        fd_set rread;
+        FD_ZERO( &rread );
+        FD_SET( sock, &rread );    
+    
         timeval to = {0,timeout};
         return ::select( sock+1, &rread, NULL, NULL, &to );
     }
@@ -195,10 +195,10 @@ namespace Birds
     //
     int Select( int sock, int timeout, int(*cb)(int s,char *mess) )
     {
-		fd_set master;
-		FD_ZERO( &master );
-		FD_SET( sock, &master );	
-	    int maxfd = sock+1;
+        fd_set master;
+        FD_ZERO( &master );
+        FD_SET( sock, &master );    
+        int maxfd = sock+1;
         
         while( true )
         {
@@ -208,7 +208,7 @@ namespace Birds
             if ( ::select( maxfd, &rread, NULL, NULL, &to ) > 0 )
             {
                 #ifdef _WIN32
-				for ( int i=0; i<rread.fd_count; i++ )
+                for ( int i=0; i<rread.fd_count; i++ )
                 {
                     int s = rread.fd_array[i];
                 #else
@@ -248,7 +248,7 @@ namespace Birds
                 cb(-1,".idle");
             }
         }
-		return 0;
+        return 0;
     }
 }
 
@@ -289,10 +289,10 @@ int main( int argc, char **argv )
 int main( int argc, char **argv )
 {
     int serv = Birds::Server(4444);
-	while ( serv > -1 ) {
+    while ( serv > -1 ) {
         int c = Birds::Accept(serv);
         if (c == -1) { break; }
-		char * h = Birds::Read(c);
+        char * h = Birds::Read(c);
         if (h) {
             char body[200];
             sprintf(body, "<B><I>;) [%d %d]</I></B>",serv,c);
@@ -301,10 +301,10 @@ int main( int argc, char **argv )
             sprintf(resp, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s",l,body);
             Birds::Write(c, resp, strlen(resp));
             printf(resp);
-        }			
-		Birds::Close(c);
+        }            
+        Birds::Close(c);
     }
-	Birds::Close(serv);
+    Birds::Close(serv);
 }
 #endif
 
