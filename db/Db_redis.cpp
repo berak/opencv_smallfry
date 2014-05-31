@@ -177,4 +177,4 @@ struct RedisDb : opencv_db
     }
 };
 
-Ptr<opencv_db> createRedisDb(int port=6307) { return makePtr<RedisDb>(port); }
+Ptr<opencv_db> createRedisDb(int port=6379) { return makePtr<RedisDb>(port); }

@@ -10,7 +10,7 @@ using namespace std;
 extern Ptr<opencv_db> createSqlite3Db();
 extern Ptr<opencv_db> createMysqlDb();
 extern Ptr<opencv_db> createMongoDb(int port=27017);
-extern Ptr<opencv_db> createRedisDb(int port=6307);
+extern Ptr<opencv_db> createRedisDb(int port=6379);
 extern Ptr<opencv_db> createFsDb();
 extern Ptr<opencv_db> createMemDb();
 extern Ptr<opencv_db> createPostgresDb();
