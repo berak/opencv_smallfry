@@ -10,3 +10,4 @@
 * mjpg_serve.cpp: mjpeg webcam server ( single-thread, but multi client )
 * facerec_online.py: realtime facerec from webcam ( with adaptive face-db )
 * db: serialize cv::Mat to some popular databases.
+* latent: quick test with the latentsvm detector for people

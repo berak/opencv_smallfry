@@ -160,7 +160,8 @@ public:
                 if ( client == SOCKET_ERROR )
                 {
                     cerr << "error : couldn't accept connection on sock " << sock<< " !" << endl;
-                    return release();
+                    return false;
+                    //return release();
                 }
                 maxfd=(maxfd>client?maxfd:client);
                 FD_SET( client, &master );
@@ -193,6 +194,8 @@ public:
     }
 };
 
+
+
 int main()
 {
     VideoCapture cap;
@@ -213,7 +216,7 @@ int main()
         wri.write(frame);
 
         imshow("lalala",frame);
-        int k = waitKey(40); // simulate some work
+        int k = waitKey(10); 
         if ( k==27 )
             break;
     }
