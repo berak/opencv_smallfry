@@ -29,19 +29,17 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/imgproc/imgproc_c.h" // cvSmooth
 #include <iostream>
 
 //#include <omp.h>
 
 
 using namespace std;
+using namespace cv;
 using namespace CVLAB;
 
 
-void Dbrief::getDbriefDescriptors(vector< bitset<DESC_LEN> >& descriptors,
-                              const vector<cv::KeyPoint>& kpts,
-                              const cv::Mat & img)
+void Dbrief::getDescriptors(const Mat& img, const vector<KeyPoint>& kpts, Mat& descriptors)
 {
     // Make sure that input image contains only one color channel:
     assert(img.channels() == 1);
@@ -53,27 +51,47 @@ void Dbrief::getDbriefDescriptors(vector< bitset<DESC_LEN> >& descriptors,
     descriptors.resize(kpts.size());
 
     // Allocate memory for the box smoothed image
-    allocateBoxSmoothedImage(img);
+    if (img.cols != boxSmoothedImage.cols && img.rows != boxSmoothedImage.rows) 
+    {
+        boxSmoothedImage.create(img.rows, img.cols, CV_32FC1);
+    }
 
     // Calculate the box smoothed image:
-    cv::blur(img, boxSmoothedImage, cv::Size(KERNEL_SIZE, KERNEL_SIZE));
+    blur(img, boxSmoothedImage, Size(KERNEL_SIZE, KERNEL_SIZE));
 
     // Iterate over keypoints:
     //#pragma omp parallel for shared(img)
-    for (unsigned int i = 0; i < kpts.size(); ++i)
+    for (size_t i=0; i<kpts.size(); ++i)
     {
-        getDbriefDescriptor(descriptors[i], kpts[i], img);
+        bitset<DESC_LEN> desc;
+        getDbriefDescriptor(desc, kpts[i], img);
+
+        // make 4 uchars from each bitset
+        for (size_t j=0; j<DESC_LEN; j+=8)
+        {
+            uchar byte=0;
+            byte |=  desc.at(j+0);
+            byte |= (desc.at(j+1) << 1);
+            byte |= (desc.at(j+2) << 2);
+            byte |= (desc.at(j+3) << 3);
+            byte |= (desc.at(j+4) << 4);
+            byte |= (desc.at(j+5) << 5);
+            byte |= (desc.at(j+6) << 6);
+            byte |= (desc.at(j+7) << 7);
+            descriptors.push_back(byte);
+        }
     }
+    descriptors = descriptors.reshape(1,kpts.size());
 }
 
-bool Dbrief::isKeypointInsideSubImage(const cv::KeyPoint& kpt, const int width, const int height)
+bool Dbrief::isKeypointInsideSubImage(const KeyPoint& kpt, const int width, const int height)
 {
     return
         SUBIMAGE_LEFT <= kpt.pt.x  &&  kpt.pt.x < SUBIMAGE_RIGHT(width) &&
         SUBIMAGE_TOP  <= kpt.pt.y  &&  kpt.pt.y < SUBIMAGE_BOTTOM(height);
 }
 
-bool Dbrief::validateKeypoints(const vector<cv::KeyPoint>& kpts, int im_w, int im_h)
+bool Dbrief::validateKeypoints(const vector<KeyPoint>& kpts, int im_w, int im_h)
 {
     for (unsigned int i = 0; i < kpts.size(); ++i)
         if ( !isKeypointInsideSubImage(kpts[i], im_w, im_h) )
@@ -82,17 +100,10 @@ bool Dbrief::validateKeypoints(const vector<cv::KeyPoint>& kpts, int im_w, int i
   return true;
 }
 
-void Dbrief::allocateBoxSmoothedImage(const cv::Mat & img)
-{
-    if (img.cols != boxSmoothedImage.cols && img.rows != boxSmoothedImage.rows) 
-    {
-        boxSmoothedImage.create(img.rows, img.cols, CV_32FC1);
-    }
-}
-void Dbrief::getDbriefDescriptor(bitset<DESC_LEN>& desc, cv::KeyPoint kpt, const cv::Mat & img)
+void Dbrief::getDbriefDescriptor(bitset<DESC_LEN>& desc, KeyPoint kpt, const Mat & img)
 {
     // cheap cast for fast access:
-    cv::Mat_<float> iD(boxSmoothedImage);
+    Mat_<float> iD(boxSmoothedImage);
 
     // Hold the pointer to the top left corner of the patch to be analysed
     const int KX = int(kpt.pt.x);

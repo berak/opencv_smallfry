@@ -26,13 +26,16 @@
 #pragma once
 
 #include <vector>
+using std::vector;
+
 #include <bitset>
+using std::bitset;
 
 #include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
 #include "opencv2/features2d/features2d.hpp"
 
-using namespace std;
+using cv::Mat;
+using cv::KeyPoint;
 
 namespace CVLAB 
 {
@@ -83,11 +86,11 @@ namespace CVLAB
     static const int SUBIMAGE_LEFT = IMAGE_PADDING_LEFT;
     static const int SUBIMAGE_TOP = IMAGE_PADDING_TOP;
 
-    // Returns the Hamming Distance between two dbrief descriptors
-    inline int HAMMING_DISTANCE(const bitset<DESC_LEN>& d1, const bitset<DESC_LEN>& d2)
-    {
-    return (d1 ^ d2).count();
-    }
+    //// Returns the Hamming Distance between two dbrief descriptors
+    //inline int HAMMING_DISTANCE(const bitset<DESC_LEN>& d1, const bitset<DESC_LEN>& d2)
+    //{
+    //return (d1 ^ d2).count();
+    //}
 
     // Returns the width of the subimage shown in the figure above given the original image width:
     inline int SUBIMAGE_WIDTH(const int width)
@@ -117,25 +120,23 @@ namespace CVLAB
     class Dbrief {
     public:
 
-        // Given keypoint kpt and image img, returns the dbrief descriptor desc
-        void getDbriefDescriptor(bitset<DESC_LEN>& desc, cv::KeyPoint kpt, const cv::Mat & img);
 
         // Given keypoints kpts and image img, returns dbrief descriptors descs
-        void getDbriefDescriptors(vector< bitset<DESC_LEN> >& descriptors, const vector<cv::KeyPoint>& kpts, const cv::Mat & img);
+        void getDescriptors(const Mat& img, const vector<KeyPoint>& kpts, Mat& descriptors); // opencv like
 
     private:
 
-        // Allocate space for storing box smoothed image
-        void allocateBoxSmoothedImage(const cv::Mat & img);
+        // Given keypoint kpt and image img, returns the dbrief descriptor desc
+        void getDbriefDescriptor(bitset<DESC_LEN>& desc, KeyPoint kpt, const Mat & img);
 
         // Checks if the tests locations for the keypoints in kpts lie inside an im_w x im_h image:
-        bool validateKeypoints(const vector< cv::KeyPoint >& kpts, int im_w, int im_h);
+        bool validateKeypoints(const vector<KeyPoint>& kpts, int im_w, int im_h);
 
         // Returns true if kpt is inside the subimage
-        bool isKeypointInsideSubImage(const cv::KeyPoint& kpt, const int width, const int height);
+        bool isKeypointInsideSubImage(const KeyPoint& kpt, const int width, const int height);
 
         // the image smoothed with a box filter
-        cv::Mat boxSmoothedImage;
+        Mat boxSmoothedImage;
 
     };
 
