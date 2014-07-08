@@ -71,15 +71,19 @@ void Dbrief::getDescriptors(const Mat& img, const vector<KeyPoint>& kpts, Mat& d
         {
             uchar byte=0;
             byte |=  desc.at(j+0);
-            byte |= (desc.at(j+1) << 1);
-            byte |= (desc.at(j+2) << 2);
-            byte |= (desc.at(j+3) << 3);
-            byte |= (desc.at(j+4) << 4);
-            byte |= (desc.at(j+5) << 5);
-            byte |= (desc.at(j+6) << 6);
-            byte |= (desc.at(j+7) << 7);
+            byte |= (desc.at(j+1)<< 1);
+            byte |= (desc.at(j+2)<< 2);
+            byte |= (desc.at(j+3)<< 3);
+            byte |= (desc.at(j+4)<< 4);
+            byte |= (desc.at(j+5)<< 5);
+            byte |= (desc.at(j+6)<< 6);
+            byte |= (desc.at(j+7)<< 7);
             descriptors.push_back(byte);
+            cerr << int(byte) << " " ;
         }
+        cerr << "\t";
+        for (size_t j=0; j<DESC_LEN; j+=1) cerr << desc.at(j);
+        cerr << endl;
     }
     descriptors = descriptors.reshape(1,kpts.size());
 }
