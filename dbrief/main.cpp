@@ -22,7 +22,8 @@ double match( const Mat & desc1, const Mat & desc2, vector<DMatch> &matches )
     for (size_t i=0; i<matches.size(); i++)
     {
         d += matches[i].distance;
-        cerr << i << "\t" <<  matches[i].queryIdx << "\t" <<  matches[i].trainIdx << "\t" <<  matches[i].distance << endl;
+        cerr << i << "\t" <<  matches[i].queryIdx << "\t" <<  matches[i].trainIdx << "\t" <<  matches[i].distance;
+        cerr << "\t" <<  desc1.row(matches[i].queryIdx) <<  desc2.row(matches[i].trainIdx) << endl;
     }
     return d/matches.size();
 }
