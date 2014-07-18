@@ -10,7 +10,7 @@ using namespace std;
 
 int main()
 {
-    vector<String> fn(1,"person.xml");
+    vector<String> fn(1,"person.xml"); // from itseez/opencv_data repo
     LatentSvmDetector late;
     bool ok = late.load(fn);
     if ( ! ok ) 
@@ -18,7 +18,7 @@ int main()
         return 1;
     }
     //VideoCapture cap("E:/code/opencv/samples/gpu/768x576.avi");
-    VideoCapture cap("D:/video/keep/Stranger.Than.Paradise.1984.Jim.Jarmusch.DVDRip.Xvid.ShareHair.avi");
+    VideoCapture cap("D:/video/keep/Stranger.Than.Paradise.1984.Jim.Jarmusch.avi");
     int frameid=31310;
     cap.set(cv::CAP_PROP_POS_FRAMES, frameid );
     while(cap.isOpened())
