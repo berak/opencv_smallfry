@@ -14,3 +14,4 @@
 * dbrief: c++, opencv2.x port of http://cvlab.epfl.ch/research/detect/dbrief
 * bow.py: 2.4.9 can do BOW in python now 
 * hep.cpp: playing with http://dismac.dii.unipg.it/hep/index.html
+* chili: opencv c++ remote playground running on [heroku](http://sugarcoatedchili.herokuapp.com/)
