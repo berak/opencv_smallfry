@@ -56,16 +56,18 @@ code_post="""
 
 style="""
 <style>
-body,iframe,textarea,table,input,button,select,option,scrollbar,input[type="file"],div,.but{
-  font-family: Arial, "MS Trebuchet", sans-serif;  font-size: 12;
-  background-color: #292929;   color:#aaa;
-  border-color:#777;  border-style:solid;  border-width:2;
-  margin: 5 5 5 5;
-}
-a{ text-decoration: none;  color:#888; }
-a:hover{  color:#ddd; }
-body{  margin: 15 15 15 15;  border: 0; }
-textarea,pre{  font-family: Lucida Console; }
+    body,iframe,textarea,table,input,button,select,option,scrollbar,input[type="file"],div,.but{
+      font-family: Arial, "MS Trebuchet", sans-serif;  font-size: 12;
+      background-color: #292929;   color:#aaa;
+      border-color:#777;  border-style:solid;  border-width:2;
+      margin: 5 5 5 5;
+      -moz-appearance: none;
+    }
+    a{ text-decoration: none;  color:#888; }
+    a:hover{  color:#ddd; }
+    select { text-indent: 0.01px;    text-overflow: ''; editable: true; 
+    body{  margin: 15 15 15 15;  border: 0; }
+    textarea,pre{  font-family: Lucida Console; }
 </style>
 """
 
@@ -74,7 +76,7 @@ def write_faq():
     faq = [
         ["what is it ?", "an online opencv c++ compiler,<br> meant as an interactive pastebin,<br> or a quick tryout without installing anything locally."],
         ["what can i do ?", "e.g. load an image into ocv, manipulate it, show the result."],
-        ["does it stay alive ?", "for some short time."],
+        ["does it stay alive ?", "for some short time. (heroku will shut it down after some minutes. there is no database, so be quick !)"],
         ["any additional help ?", "<a href=answers.opencv.org>answers.opencv.org</a>, <a href=docs.opencv.org>docs.opencv.org</a>, #opencv on freenode"],
         ["opencv version ?", "2.4.9."],
         ["do i need opencv installed ?", "no, it's all in the cloud.<br>minimal knowledge of the opencv c++ api is sure helpful."],
@@ -82,10 +84,10 @@ def write_faq():
         ["is there gpu support of any kind, like ocl or cuda ?", "none of it atm. <br>(heroku even seems to support ocl, but i'm too lazy to try that atm.)"],
         ["does it do c++11 ?", "it supports -std=c++0x only.<br>we're running on g++ (Ubuntu 4.4.3-4ubuntu5.1) 4.4.3."],
         ["where are the cascades ?", "in './ocv/share/OpenCV/haarcascades', './ocv/share/OpenCV/lbpcascades'"],
-        ["i want to program in c.","oh, please don't try. the c-api died in 2010.<br> may it rip.<br> stop living under a rock.<br>"],
-        ["may i ..?", "just be responsible."],
+        ["i want to program in c.","oh, no.<br>"],
     ]
     data = '<html><head>\n'
+    data +='<title>faq</title>'
     data += style
     data += '</head><body><div id="titles"><ul>\n'
     for f in faq:    
