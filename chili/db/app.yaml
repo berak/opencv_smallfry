@@ -1,0 +1,10 @@
+application: sugarcoatedchili
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+- url: /res
+  static_dir: res
+- url: .*
+  script: main.py

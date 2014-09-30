@@ -1,9 +1,9 @@
 #
-# what is it ? an interactive opencv c++ compiler.
+# what is it ? an interactive opencv c++ (and java !) compiler.
 #
 
-import sys, socket, threading, time, datetime, os
-import subprocess, urllib2
+import sys, socket, threading, time, datetime, os, random
+import subprocess, urllib, urllib2
 from cgi import parse_qs, escape
 from wsgiref.simple_server import make_server
 try:
@@ -12,9 +12,28 @@ except ImportError:
     from StringIO import StringIO as BytesIO
 
 
-shares = {} # /share/172635 : [image_url, string with c++ code]
+code_java_pre="""
+import org.opencv.core.*;
+import org.opencv.highgui.*;
+import org.opencv.imgproc.*;
+import org.opencv.video.*;
+import org.opencv.objdetect.*;
+class SimpleSample {
+    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+    public static void main(String[] args) {
+        Mat ocv = Highgui.imread("input.img",-1);
+        if ( ocv.empty() )
+            ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
+"""
+code_java_post="""
+        ;;
+        Highgui.imwrite("output.png", ocv);
+        System.exit(0); // to break out of the ant shell.
+    }
+}
+"""
 
-code_pre="""
+code_cpp_pre="""
 #include "opencv2/contrib/contrib.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/nonfree/features2d.hpp"
@@ -29,26 +48,20 @@ code_pre="""
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/video/background_segm.hpp"
 using namespace cv;
-
 #include <algorithm>
 #include <iostream>
+#include <numeric>
 #include <bitset>
-#include <set>
 #include <map>
 using namespace std;
-
 int main()
 {
-    Mat ocv(8,8,CV_8UC3,Scalar(40,40,40));
+    Mat ocv = imread("input.img",-1);
+    if ( ocv.empty() )
+        ocv = Mat(8,8,CV_8UC3,Scalar(40,40,40));
 """
-
-code_comm = """
-// ocv = Mat(100,100,CV_8UC3,Scalar(0,200,200));
-// cvtColor(ocv,ocv,CV_BGR2HSV);
-// cout << ocv.type() << " " << ocv.rows << endl;
-"""
-
-code_post="""
+code_cpp_post="""
+    ;;
     imwrite("output.png", ocv);
     return 0;
 }
@@ -56,16 +69,14 @@ code_post="""
 
 style="""
 <style>
-    body,iframe,textarea,table,input,button,select,option,scrollbar,input[type="file"],div,.but{
+    body,iframe,textarea,table,input,button,select,option,scrollbar,div{
       font-family: Arial, "MS Trebuchet", sans-serif;  font-size: 12;
-      background-color: #292929;   color:#aaa;
+      background-color: #333;   color:#aaa;
       border-color:#777;  border-style:solid;  border-width:2;
       margin: 5 5 5 5;
-      -moz-appearance: none;
     }
     a{ text-decoration: none;  color:#888; }
     a:hover{  color:#ddd; }
-    select { text-indent: 0.01px;    text-overflow: ''; editable: true; 
     body{  margin: 15 15 15 15;  border: 0; }
     textarea,pre{  font-family: Lucida Console; }
 </style>
@@ -74,17 +85,18 @@ style="""
 
 def write_faq():
     faq = [
-        ["what is it ?", "an online opencv c++ compiler,<br> meant as an interactive pastebin,<br> or a quick tryout without installing anything locally."],
+        ["what is it ?", "an online opencv c++ / java compiler,<br> meant as an interactive pastebin,<br> or a quick tryout without installing anything locally.<br> basically, your code is running inside some shim, like int main(){/*your code*/}"],
         ["what can i do ?", "e.g. load an image into ocv, manipulate it, show the result."],
-        ["does it stay alive ?", "for some short time. (heroku will shut it down after some minutes. there is no database, so be quick !)"],
         ["any additional help ?", "<a href=answers.opencv.org>answers.opencv.org</a>, <a href=docs.opencv.org>docs.opencv.org</a>, #opencv on freenode"],
         ["opencv version ?", "2.4.9."],
         ["do i need opencv installed ?", "no, it's all in the cloud.<br>minimal knowledge of the opencv c++ api is sure helpful."],
         ["no video ?", "no, unfortunately. you can download / manipulate exactly 1 image only (the one named 'ocv')"],
-        ["is there gpu support of any kind, like ocl or cuda ?", "none of it atm. <br>(heroku even seems to support ocl, but i'm too lazy to try that atm.)"],
+        ["is there gpu support of any kind, like ocl or cuda ?", "none of it atm. <br>(heroku even seems to support ocl, but i'm too lazy to try that now.)"],
         ["does it do c++11 ?", "it supports -std=c++0x only.<br>we're running on g++ (Ubuntu 4.4.3-4ubuntu5.1) 4.4.3."],
         ["where are the cascades ?", "in './ocv/share/OpenCV/haarcascades', './ocv/share/OpenCV/lbpcascades'"],
-        ["i want to program in c.","oh, no.<br>"],
+        ["examples ?", "Mat m = Mat::ones(4,4,5);\r\ncerr << m << endl;"],
+        ["i want to program in c.","oh, no.(but try java ;)"],
+        #["src code ?","https://github.com/berak/opencv_smallfry/tree/master/chili"],
     ]
     data = '<html><head>\n'
     data +='<title>faq</title>'
@@ -132,13 +144,13 @@ def write_page( code, result, link='',img='',input_url='' ):
     data += '</head><body><table border=0 width="100%"><tr><td>\n'
     data += '<form action="/run" method=post>\n'
     data += '<textarea rows=1 cols=80 id="url" name="url" title="you can load an image (from an url) into the predefined Mat ocv here">%s</textarea>\n' % input_url
-    data += '<textarea rows=35 cols=80 id="txt" name="txt" title="Mat \'ocv\' is predefined, it will get loaded and saved.">\n'
+    data += '<textarea rows=35 cols=80 id="txt" name="txt" title="Mat \'ocv\' is predefined, it will get loaded and shown.">\n'
     data += code
     data += '</textarea><br>\n<input type=submit value="run" id="run">\n'
     if link: data +='&nbsp;&nbsp;&nbsp;<a href="%s">%s</a>\n' % (link,link)
     data += '</form></td><td>\n'
     data += "<b><a href='/faq' style='color: #666; font-size: 16;' title='what is this ?'>?</a></b><br><br>"
-    if input_url: data += "<img src='" + input_url + "' title='"+input_url+"'>&nbsp;<!--heiliger st florian, verschon mein haus, zuend andre an-->"
+    if input_url: data += "<img src='" + input_url + "' title='"+input_url+"'>&nbsp;"
     data += img
     data += result
     data += '</td></tr></table>\n</body></html>\n'
@@ -166,10 +178,9 @@ def run_prog( bot_command ):
             if not z : return d
             d +=  z 
 
-    data = ''
-    data += collect(bot.stdout)
+    data  = collect(bot.stdout)
     data += collect(bot.stderr)
-    data = data.replace("<","&lt;").replace(">","&gt;")
+    data  = data.replace("<","&lt;").replace(">","&gt;")
     bot.wait()
     return '<pre>' + data + '</pre>'
 
@@ -180,28 +191,42 @@ def _remove(x):
     except: pass
 
 
-def run_code( code, input_img='' ):
+def run_cpp( code ):
     # save code
     f = open("cv.cpp","wb")
-    f.write(code_pre)
-    if input_img:
-        f.write("   ocv = imread(\"%s\",-1);" % input_img )
+    f.write(code_cpp_pre)
     f.write(code)
-    f.write(code_post)
+    f.write(code_cpp_post)
     f.close()
 
     # start bot
-    build_log = run_prog( "bash build.cv.sh" )
-    data  = run_prog( "./cv" )
+    data  = run_prog( "bash build.cv.sh" )
     data += "<hr NOSHADE>"
-    data += build_log
+    data += run_prog( "./cv" )
     _remove("cv")
     return data
 
 
+def run_java( code ):
+    # save code
+    f = open("src/SimpleSample.java","wb")
+    f.write(code_java_pre)
+    f.write(code)
+    f.write(code_java_post)
+    f.close()
+    _remove("output.png")
 
-# global share_id
-start_id=0
+    # start (ant) bot
+    return run_prog( "bash build.java.sh" )
+
+
+def check_code(code):
+    if code.find("System.") >=0  : return "java"
+    if code.find("Core.")   >=0  : return "java"
+    if code.find("Highgui.")>=0  : return "java"
+    if code.find("Imgproc.")>=0  : return "java"
+    return "cpp"
+
 
 #
 # top level page choices:
@@ -213,58 +238,59 @@ start_id=0
 #/output.png
 #
 def application(environ, start_response):
-    global start_id
-    url = environ['PATH_INFO'];
+    code = ''
+    input_img = ''
+    input_url = ''
+    share_url = ''
 
-    # the environment variable CONTENT_LENGTH may be empty or missing
+    url = environ['PATH_INFO'];
     try:
        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
     except (ValueError):
        request_body_size = 0
     request_body = environ['wsgi.input'].read(request_body_size)
     d = parse_qs(request_body)
-    print d
-    code = ''
-    input_img = ''
-    input_url = ''
-    share_url = ''
     if len(d): 
         code = d.get('txt', '')
         if code: code = code[0]
         input_url = d.get('url', '')
         if input_url: input_url = input_url[0];
-
-    err = "404 SORRY"
-    data = "<br><p><br><h5>Sorry, we could not retrieve %s.</h5>" % url
+    data = ""
+    err = "200 OK"
     content = "text/html"
     if url == "/":
         data = write_page('','')
-        err = "200 OK"
     elif url == "/faq":
         data = write_faq()
-        err = "200 OK"
     elif url.startswith(b'/share') :
         try:
-            input_url, code = shares[url]
+            key = url.split("/")[2]
+            txt = urllib2.urlopen("http://sugarcoatedchili.appspot.com/"+key).read()
+            lll = txt.find('\r\n')
+            input_url = txt[0:lll]
+            code = txt[lll+2:]
         except: pass
         data = write_page(code,'',url,'',input_url)
-        err = "200 OK"
     elif url.startswith(b'/run') :
-        start_id += 1
-        share_url = "/share/%04d" % start_id
-        shares[share_url] = [input_url, code]
+        key = str(int(random.random()*100000))
+        dat = urllib.urlencode({"key":key,"code":code,"img":input_url})
+        req = urllib2.Request("http://sugarcoatedchili.appspot.com/up",dat)
+        res = urllib2.urlopen(req)
+        #res.read() # !! reading the thank_you msg will cost ~5secs extra.
         if input_url:
             _remove(input_img)
             input_img = url_image(input_url)
-        result = run_code(code, input_img)
-        data = write_page(code, result, share_url, '<img src="output.png" title="Mat ocv">', input_url)
-        err = "200 OK"
+        lang = check_code(code)
+        if lang == "cpp":
+            result = run_cpp(code)
+        if lang == "java":
+            result = run_java(code)
+        data = write_page(code, result, "/share/" + key, '<img src="output.png" title="Mat ocv(here\'s your output)">', input_url)
     elif url == '/output.png' or url == '/share/output.png' :
-        f=open('output.png','rb')
+        f = open('output.png','rb')
         data = f.read()
         f.close()
         content = "image/png"
-        err = "200 OK"
     start_response( err, [ ("Content-Type", content), ("Content-Length", str(len(data))) ] )
     return iter([data])
 
