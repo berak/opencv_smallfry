@@ -12,7 +12,8 @@ except ImportError:
     from StringIO import StringIO as BytesIO
 
 
-code_java_pre="""
+code_java_pre_24="""
+import java.util.*;
 import org.opencv.core.*;
 import org.opencv.highgui.*;
 import org.opencv.imgproc.*;
@@ -25,15 +26,37 @@ class SimpleSample {
         if ( ocv.empty() )
             ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
 """
-code_java_post="""
+code_java_pre_30="""
+import java.util.*;
+import org.opencv.core.*;
+import org.opencv.imgcodecs.*;
+import org.opencv.imgproc.*;
+import org.opencv.video.*;
+import org.opencv.objdetect.*;
+import org.opencv.features2d.*;
+class SimpleSample {
+    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+    public static void main(String[] args) {
+        Mat ocv = Imgcodecs.imread("input.img",-1);
+        if ( ocv.empty() )
+            ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
+"""
+code_java_post_24="""
         ;;
         Highgui.imwrite("output.png", ocv);
         System.exit(0); // to break out of the ant shell.
     }
 }
 """
+code_java_post_30="""
+        ;;
+        Imgcodecs.imwrite("output.png", ocv);
+        System.exit(0); // to break out of the ant shell.
+    }
+}
+"""
 
-code_cpp_pre="""
+code_cpp_pre_24="""
 #include "opencv2/contrib/contrib.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/nonfree/features2d.hpp"
@@ -47,6 +70,28 @@ code_cpp_pre="""
 #include "opencv2/video/video.hpp"
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/video/background_segm.hpp"
+using namespace cv;
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <bitset>
+#include <map>
+using namespace std;
+int main()
+{
+    Mat ocv = imread("input.img",-1);
+    if ( ocv.empty() )
+        ocv = Mat(8,8,CV_8UC3,Scalar(40,40,40));
+"""
+code_cpp_pre_30="""
+#include "opencv2/core.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/features2d.hpp"
+#include "opencv2/objdetect.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/ml.hpp"
+#include "opencv2/photo.hpp"
+#include "opencv2/video.hpp"
 using namespace cv;
 #include <algorithm>
 #include <iostream>
@@ -89,7 +134,7 @@ def write_faq():
         ["what can i do ?", "e.g. load an image into ocv, manipulate it, show the result."],
         ["any additional help ?", "<a href=answers.opencv.org>answers.opencv.org</a>, <a href=docs.opencv.org>docs.opencv.org</a>, #opencv on freenode"],
         ["opencv version ?", "2.4.9."],
-        ["do i need opencv installed ?", "no, it's all in the cloud.<br>minimal knowledge of the opencv c++ api is sure helpful."],
+        ["do i need opencv installed ?", "no, it's all in the cloud.<br>minimal knowledge of the opencv c++/java api is sure helpful."],
         ["no video ?", "no, unfortunately. you can download / manipulate exactly 1 image only (the one named 'ocv')"],
         ["is there gpu support of any kind, like ocl or cuda ?", "none of it atm. <br>(heroku even seems to support ocl, but i'm too lazy to try that now.)"],
         ["does it do c++11 ?", "it supports -std=c++0x only.<br>we're running on g++ (Ubuntu 4.4.3-4ubuntu5.1) 4.4.3."],
@@ -138,24 +183,35 @@ def url_image(u):
 # form buttons     | compile results
 #                  | help link
 #
+
+
+i_js = """
+    var canvas = document.getElementById('input_url');
+    canvas.onmousemove = function (evt) {
+        canvas.title = '(' + (evt.clientX - canvas.x) + ',' + (evt.clientY - canvas.y) + ')'
+    }    
+"""
+
 def write_page( code, result, link='',img='',input_url='' ):
     data = '<html><head>\n'
     data += style
     data += '</head><body><table border=0 width="100%"><tr><td>\n'
-    data += '<form action="/run" method=post>\n'
+    data += '<form action="/run" method=post name="f0">\n'
     data += '<textarea rows=1 cols=80 id="url" name="url" title="you can load an image (from an url) into the predefined Mat ocv here">%s</textarea>\n' % input_url
     data += '<textarea rows=35 cols=80 id="txt" name="txt" title="Mat \'ocv\' is predefined, it will get loaded and shown.">\n'
     data += code
-    data += '</textarea><br>\n<input type=submit value="run" id="run">\n'
+    data += '</textarea><br>\n'
+    data += '<input type=submit value="run 2.4" id="run24">\n'
+    data += '<input type=button value="run 3.0" id="run30" onClick="document.f0.action=\'/run30\';document.f0.submit();">\n'
     if link: data +='&nbsp;&nbsp;&nbsp;<a href="%s">%s</a>\n' % (link,link)
     data += '</form></td><td>\n'
     data += "<b><a href='/faq' style='color: #666; font-size: 16;' title='what is this ?'>?</a></b><br><br>"
-    if input_url: data += "<img src='" + input_url + "' title='"+input_url+"'>&nbsp;"
+    if input_url: data += "<img src='" + input_url + "' title='"+input_url+"' id='input_url'>&nbsp;"
     data += img
     data += result
-    data += '</td></tr></table>\n</body></html>\n'
+    data += '</td></tr></table>\n</body>\n'
+    data += '<script>'+i_js+'</script></html>\n'
     return data
-
 
 
 #
@@ -167,8 +223,7 @@ def run_prog( bot_command ):
             bot_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            shell=True,
-        )
+            shell=True)
     except: pass
 
     def collect(out):
@@ -191,33 +246,45 @@ def _remove(x):
     except: pass
 
 
-def run_cpp( code ):
+def run_cpp( code, v30 ):
     # save code
     f = open("cv.cpp","wb")
-    f.write(code_cpp_pre)
+    if v30:
+        f.write(code_cpp_pre_30)
+    else:
+        f.write(code_cpp_pre_24)
     f.write(code)
     f.write(code_cpp_post)
     f.close()
 
     # start bot
-    data  = run_prog( "bash build.cv.sh" )
+    script = "bash build.cv.sh"
+    if v30: script = "bash build.cv.30.sh"
+    data  = run_prog( script )
     data += "<hr NOSHADE>"
     data += run_prog( "./cv" )
     _remove("cv")
     return data
 
 
-def run_java( code ):
+def run_java( code,v30 ):
     # save code
     f = open("src/SimpleSample.java","wb")
-    f.write(code_java_pre)
-    f.write(code)
-    f.write(code_java_post)
+    if v30:
+        f.write(code_java_pre_30)
+        f.write(code)
+        f.write(code_java_post_30)
+    else:
+        f.write(code_java_pre_24)
+        f.write(code)
+        f.write(code_java_post_24)
     f.close()
     _remove("output.png")
 
     # start (ant) bot
-    return run_prog( "bash build.java.sh" )
+    script = "bash build.java.sh"
+    if v30: script = "bash build.java.30.sh"
+    return run_prog( script )
 
 
 def check_code(code):
@@ -281,10 +348,11 @@ def application(environ, start_response):
             _remove(input_img)
             input_img = url_image(input_url)
         lang = check_code(code)
+        v30  = url.find("30") > 0
         if lang == "cpp":
-            result = run_cpp(code)
+            result = run_cpp(code,v30)
         if lang == "java":
-            result = run_java(code)
+            result = run_java(code,v30)
         data = write_page(code, result, "/share/" + key, '<img src="output.png" title="Mat ocv(here\'s your output)">', input_url)
     elif url == '/output.png' or url == '/share/output.png' :
         f = open('output.png','rb')

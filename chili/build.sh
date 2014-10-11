@@ -38,6 +38,7 @@ cd sugar
 git clone git@github.com:berak/sugarcoatedchili.git  # git/ssh url !!
 cp ../ocv.tgz sugarcoatedchili
 cd sugarcoatedchili
+git add ocv.tgz
 git commit -a -m "ocv.tgz"
 git push
 cd ..

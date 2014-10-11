@@ -1,5 +1,7 @@
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/core/core.hpp"
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
 #include "opencv_db.h"
 
 #include <cstdio>
@@ -18,7 +20,7 @@ extern Ptr<opencv_db> createPostgresDb();
 int main()
 {
     Ptr<opencv_db> db = createPostgresDb();//10099);
-    bool ok = db->open("p4p4","localhost","postgres","p1p2p3p4");
+    bool ok = db->open("p4p4","localhost","p4p4","p4p4p4p4");
     //Ptr<opencv_db> db = createRedisDb(6379);//10099);
     //bool ok = db->open("0","gateway-1.simpleredis.com","paula","ib58a1c19e9c3b4c6c6c775d1d9887f9fb52fb57cz");
     //Ptr<opencv_db> db = createSqlite3Db();
@@ -29,20 +31,12 @@ int main()
     cerr << "1 " << ok << endl;
     if ( ! ok ) return 1;
     char * table = "img4";
-    //ok = db->drop(table);
+    ok = db->drop(table);
+    cerr << "drop  " << table << " " << ok << endl;
     ok = db->create(table);
-    cerr << table << " " << ok << endl;
-    Mat m;
-    m = imread("../../demo/tuna.jpg",1);
-    ////ok = db->write(table,"tuna",m);   
-    ////m = imread("../../demo/lena.jpg",1);
-    ////ok = db->write(table,"lena",m);
+    cerr << "creat " << table << " " << ok << endl;
 
-    vector<int> prm; prm.push_back(IMWRITE_PNG_COMPRESSION); prm.push_back(2);
-    vector<uchar> mb; imencode(".png",m,mb,prm);
-    ok = db->write(table,"tuna.png",Mat(mb));
-
-    Mat md = Mat::eye(3,4,CV_64F);
+    Mat md = Mat::eye(3,4,CV_64F)*127;
     ok = db->write(table,"eye",md);
     cerr << "2 " << ok << endl;
     
@@ -53,15 +47,18 @@ int main()
     if ( ok && m2.rows )
         imshow("success!",m2), waitKey();
     
-    //ok = db->read(table,"lena",m2);
-    //if ( ok && m2.rows )
-    //    imshow("success!",m2), waitKey();
-    //
-    ok = db->read(table,"tuna.png",m2);
+    Mat m = imread("../../demo/tuna.jpg",1);
+    vector<int> prm; prm.push_back(IMWRITE_PNG_COMPRESSION); prm.push_back(2);
+    vector<uchar> mb; imencode(".png",m,mb,prm);
+    ok = db->write(table,"tuna.png",Mat(mb));
     cerr << "4 " << ok << endl;
 
-    if ( ok && m2.rows ) {
-        m2 = imdecode(m2,1);
+    Mat m5;
+    ok = db->read(table,"tuna.png",m5);
+    cerr << "5 " << ok << endl;
+
+    if ( ok && m5.rows ) {
+        m2 = imdecode(m5,1);
         if ( ok && m2.rows )
             imshow("success!",m2), waitKey();
     }
