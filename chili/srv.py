@@ -1,6 +1,10 @@
 #
 # what is it ? an interactive opencv c++ (and java !) compiler.
 #
+#   this script heavily depends on github.com.berak.sugarcoatedchili/bin/compile
+#   base assumptions:
+#      local (static) openv installs for 2.4(ocv) and 3.0(ocv30) were extracted
+#      ant (for java) was downloaded and extracted
 
 import sys, socket, threading, time, datetime, os, random
 import subprocess, urllib, urllib2
@@ -12,6 +16,16 @@ except ImportError:
     from StringIO import StringIO as BytesIO
 
 
+code_java_static="""
+class SimpleSample {
+    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+    public static void cout(Object ... s){ for(Object z:s)System.out.println(z); }
+    public static void cerr(Object ... s){ for(Object z:s)System.err.println(z); }
+    public static void help(){ cerr("help(classname,item);\\n  'classname' should be canonical, like org.opencv.core.Mat\\n  'item' can be: CONSTRUCTOR, FIELD, METHOD, CLASS, ALL"); }
+    public static void help(String cls){ ClassSpy.reflect(cls,"CLASS"); }
+    public static void help(String cls,String item){ ClassSpy.reflect(cls,item); }
+    public static void main(String[] args) {
+"""
 code_java_pre_24="""
 import java.util.*;
 import org.opencv.core.*;
@@ -19,9 +33,7 @@ import org.opencv.highgui.*;
 import org.opencv.imgproc.*;
 import org.opencv.video.*;
 import org.opencv.objdetect.*;
-class SimpleSample {
-    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
-    public static void main(String[] args) {
+""" + code_java_static + """
         Mat ocv = Highgui.imread("input.img",-1);
         if ( ocv.empty() )
             ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
@@ -34,9 +46,7 @@ import org.opencv.imgproc.*;
 import org.opencv.video.*;
 import org.opencv.objdetect.*;
 import org.opencv.features2d.*;
-class SimpleSample {
-    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
-    public static void main(String[] args) {
+""" + code_java_static + """
         Mat ocv = Imgcodecs.imread("input.img",-1);
         if ( ocv.empty() )
             ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
@@ -56,9 +66,31 @@ code_java_post_30="""
 }
 """
 
+code_cpp_pre_static="""
+using namespace cv;
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <bitset>
+#include <map>
+using namespace std;
+Mat urlimg(const char * url) {
+    system(format("curl -s %s > local.img",url).c_str());
+    Mat im = imread("local.img", -1);
+    system("rm local.img");
+    return im;
+}
+int main()
+{
+    Mat ocv = imread("input.img",-1);
+    if ( ocv.empty() )
+        ocv = Mat(8,8,CV_8UC3,Scalar(40,40,40));
+"""
+
 code_cpp_pre_24="""
 #include "opencv2/contrib/contrib.hpp"
 #include "opencv2/core/core.hpp"
+#include "opencv2/nonfree/nonfree.hpp"
 #include "opencv2/nonfree/features2d.hpp"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
@@ -70,41 +102,23 @@ code_cpp_pre_24="""
 #include "opencv2/video/video.hpp"
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/video/background_segm.hpp"
-using namespace cv;
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <bitset>
-#include <map>
-using namespace std;
-int main()
-{
-    Mat ocv = imread("input.img",-1);
-    if ( ocv.empty() )
-        ocv = Mat(8,8,CV_8UC3,Scalar(40,40,40));
-"""
+""" + code_cpp_pre_static
+
 code_cpp_pre_30="""
 #include "opencv2/core.hpp"
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/features2d.hpp"
+#include "opencv2/xfeatures2d.hpp"
+#include "opencv2/xfeatures2d/nonfree.hpp"
 #include "opencv2/objdetect.hpp"
+#include "opencv2/xobjdetect.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/ml.hpp"
 #include "opencv2/photo.hpp"
+#include "opencv2/xphoto.hpp"
 #include "opencv2/video.hpp"
-using namespace cv;
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <bitset>
-#include <map>
-using namespace std;
-int main()
-{
-    Mat ocv = imread("input.img",-1);
-    if ( ocv.empty() )
-        ocv = Mat(8,8,CV_8UC3,Scalar(40,40,40));
-"""
+""" + code_cpp_pre_static
+
 code_cpp_post="""
     ;;
     imwrite("output.png", ocv);
@@ -128,12 +142,20 @@ style="""
 """
 
 
+z_js = """
+    var canvas = document.getElementById('input_url');
+    canvas.onmousemove = function (evt) {
+        canvas.title = '(' + (evt.clientX - canvas.x) + ',' + (evt.clientY - canvas.y) + ')'
+    }    
+"""
+
+
 def write_faq():
     faq = [
         ["what is it ?", "an online opencv c++ / java compiler,<br> meant as an interactive pastebin,<br> or a quick tryout without installing anything locally.<br> basically, your code is running inside some shim, like int main(){/*your code*/}"],
         ["what can i do ?", "e.g. load an image into ocv, manipulate it, show the result."],
         ["any additional help ?", "<a href=answers.opencv.org>answers.opencv.org</a>, <a href=docs.opencv.org>docs.opencv.org</a>, #opencv on freenode"],
-        ["opencv version ?", "2.4.9."],
+        ["opencv version ?", "2.4.9 / 3.0.0."],
         ["do i need opencv installed ?", "no, it's all in the cloud.<br>minimal knowledge of the opencv c++/java api is sure helpful."],
         ["no video ?", "no, unfortunately. you can download / manipulate exactly 1 image only (the one named 'ocv')"],
         ["is there gpu support of any kind, like ocl or cuda ?", "none of it atm. <br>(heroku even seems to support ocl, but i'm too lazy to try that now.)"],
@@ -183,15 +205,6 @@ def url_image(u):
 # form buttons     | compile results
 #                  | help link
 #
-
-
-i_js = """
-    var canvas = document.getElementById('input_url');
-    canvas.onmousemove = function (evt) {
-        canvas.title = '(' + (evt.clientX - canvas.x) + ',' + (evt.clientY - canvas.y) + ')'
-    }    
-"""
-
 def write_page( code, result, link='',img='',input_url='' ):
     data = '<html><head>\n'
     data += style
@@ -210,7 +223,7 @@ def write_page( code, result, link='',img='',input_url='' ):
     data += img
     data += result
     data += '</td></tr></table>\n</body>\n'
-    data += '<script>'+i_js+'</script></html>\n'
+    data += '<script>'+z_js+'</script></html>\n'
     return data
 
 
@@ -292,6 +305,7 @@ def check_code(code):
     if code.find("Core.")   >=0  : return "java"
     if code.find("Highgui.")>=0  : return "java"
     if code.find("Imgproc.")>=0  : return "java"
+    if code.find("org.opencv.")>=0  : return "java"
     return "cpp"
 
 
