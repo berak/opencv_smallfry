@@ -74,10 +74,13 @@ using namespace cv;
 #include <bitset>
 #include <map>
 using namespace std;
+void download(const char * url, const char * localthing) {
+    system(format("curl -s -o %s '%s'",localthing,url).c_str());
+}
 Mat urlimg(const char * url) {
-    system(format("curl -s %s > local.img",url).c_str());
+    download(url,"local.img");
     Mat im = imread("local.img", -1);
-    system("rm local.img");
+    //system("rm local.img");
     return im;
 }
 int main()
@@ -113,6 +116,13 @@ code_cpp_pre_30="""
 #include "opencv2/objdetect.hpp"
 #include "opencv2/xobjdetect.hpp"
 #include "opencv2/imgproc.hpp"
+#include "opencv2/ximgproc.hpp"
+#include "opencv2/face.hpp"
+#include "opencv2/bgsegm.hpp"
+#include "opencv2/optflow.hpp"
+#include "opencv2/shape.hpp"
+#include "opencv2/saliency.hpp"
+#include "opencv2/text.hpp"
 #include "opencv2/ml.hpp"
 #include "opencv2/photo.hpp"
 #include "opencv2/xphoto.hpp"
@@ -227,6 +237,12 @@ def write_page( code, result, link='',img='',input_url='' ):
     return data
 
 
+def _remove(x): 
+    try: 
+        os.remove(x)
+    except: pass
+
+
 #
 # execute bot_cmd, return piped stdout/stderr
 # 
@@ -252,11 +268,6 @@ def run_prog( bot_command ):
     bot.wait()
     return '<pre>' + data + '</pre>'
 
-
-def _remove(x): 
-    try: 
-        os.remove(x)
-    except: pass
 
 
 def run_cpp( code, v30 ):
@@ -337,7 +348,7 @@ def application(environ, start_response):
         input_url = d.get('url', '')
         if input_url: input_url = input_url[0];
     data = ""
-    err = "200 OK"
+    err  = "200 OK"
     content = "text/html"
     if url == "/":
         data = write_page('','')
@@ -353,6 +364,7 @@ def application(environ, start_response):
         except: pass
         data = write_page(code,'',url,'',input_url)
     elif url.startswith(b'/run') :
+        _remove("output.png")
         key = str(int(random.random()*100000))
         dat = urllib.urlencode({"key":key,"code":code,"img":input_url})
         req = urllib2.Request("http://sugarcoatedchili.appspot.com/up",dat)
@@ -368,11 +380,14 @@ def application(environ, start_response):
         if lang == "java":
             result = run_java(code,v30)
         data = write_page(code, result, "/share/" + key, '<img src="output.png" title="Mat ocv(here\'s your output)">', input_url)
+        _remove("input.img")
     elif url == '/output.png' or url == '/share/output.png' :
-        f = open('output.png','rb')
-        data = f.read()
-        f.close()
-        content = "image/png"
+        try:
+            f = open('output.png','rb')
+            data = f.read()
+            f.close()
+            content = "image/png"
+        except: pass
     start_response( err, [ ("Content-Type", content), ("Content-Length", str(len(data))) ] )
     return iter([data])
 
