@@ -33,20 +33,26 @@ class Pixels extends Extractor {
     }
 }
 
+
 class Lbph extends Pixels {
     public Mat extract(Mat img) {
         Mat I = super.extract(img);
         int M = I.rows(); 
         int N = I.cols(); 
-        int h = M/8;
+        int h = M/8; // hardcoded 8x8 grid
         int w = N/8;
-        short [] his = new short[256*8*8];
+        short [] his = new short[256*8*8]; // 64 patches a 256 elems.
         byte  [] px  = new byte[M*N];
         I.get(0,0,px);
 
         for (int i=1; i<M-h; i++) {
-               int oi = i/h;
+            int oi = i/h; // integer truncation for staircase binning
             for (int j=1; j<N-w; j++) {
+                //
+                // 7 6 5
+                // 0 c 4
+                // 1 2 3
+                //
                 byte i7 = px[(j-1)*N + (i-1)];
                 byte i6 = px[(j-1)*N + (i  )];
                 byte i5 = px[(j-1)*N + (i+1)];
@@ -64,16 +70,19 @@ class Lbph extends Pixels {
                           + (i2>ic ? 1<<2 : 0)
                           + (i1>ic ? 1<<1 : 0)
                           + (i0>ic ? 1<<0 : 0) ;
-                   int oj  = j/w;
-                   int off = 256*(oi*8+oj);
+                int oj  = j/w;
+                int off = 256*(oi*8+oj); // 8x8 patch offset
                 his[off+code] ++;
             }
         }
+
         Mat hist = new Mat(1,256*8*8,CvType.CV_16S);
         hist.put(0,0,his);
         return hist;
     }
 }
+
+
 
 /*
 class Mts extends Pixels {
