@@ -5,92 +5,92 @@ import org.opencv.imgproc.*;
 
 
 public abstract class Classifier {
-	// dataset should have one row per feature, 
-	// labels should have n rows, 1 classid per features
-	public abstract boolean train(Mat dataset, Mat labels);
+    // dataset should have one row per feature, 
+    // labels should have n rows, 1 classid per features
+    public abstract boolean train(Mat dataset, Mat labels);
 
-	// return MatOfFloat( classid, distance, imgid ) ;
-	public abstract Mat predict(Mat query); 
+    // return MatOfFloat( classid, distance, imgid ) ;
+    public abstract Mat predict(Mat query); 
 
-	static Classifier create(String s) {
-		if ( s.startsWith("Hist") )
-			return new CompareHist();
-		if ( s.startsWith("Cos") )
-			return new CompareCosine();
-		if ( s.startsWith("Eigen") )
-			return new CompareEigen();
-		return new CompareNorm();
-	}
+    static Classifier create(String s) {
+        if ( s.startsWith("Hist") )
+            return new CompareHist();
+        if ( s.startsWith("Cos") )
+            return new CompareCosine();
+        if ( s.startsWith("Eigen") )
+            return new CompareEigen();
+        return new CompareNorm();
+    }
 
     // ubitiquous helper:
-	public Mat tofloat(Mat in) {
-		if (in.type() != CvType.CV_32F) {
-			in.convertTo(in, CvType.CV_32F);			
-		}
-		return in;
-	}	
+    public Mat tofloat(Mat in) {
+        if (in.type() != CvType.CV_32F) {
+            in.convertTo(in, CvType.CV_32F);            
+        }
+        return in;
+    }    
 }
 
 
 
 class CompareNorm extends Classifier {
-	Mat features;
-	Mat labels;
-	int flag=Core.NORM_L2;
+    Mat features;
+    Mat labels;
+    int flag=Core.NORM_L2;
 
-	public CompareNorm() {}
-	public CompareNorm(int flag) {
-		this.flag=flag;
-	}
-	public boolean train(Mat in, Mat labels) {
-		this.features = in;
-		this.labels = labels;
-		return true;
-	}
-	public double distance(Mat a, Mat b) {
-		return Core.norm(a,b,flag);
-	}
-	public Mat predict(Mat in) {
-		double dm = 99999999.0;
-		double best = -1; 
-		int di = -1;
-		for ( int i=0; i<features.rows(); i++) {
-			double d = distance(in,features.row(i));
-			if ( d<dm ) {
-				di = i;
-				dm = d;
-				best = labels.get(di,0)[0];
-			}
-		}
-		return new MatOfFloat((float)best,(float)dm,(float)di);
-	}
+    public CompareNorm() {}
+    public CompareNorm(int flag) {
+        this.flag=flag;
+    }
+    public boolean train(Mat in, Mat labels) {
+        this.features = in;
+        this.labels = labels;
+        return true;
+    }
+    public double distance(Mat a, Mat b) {
+        return Core.norm(a,b,flag);
+    }
+    public Mat predict(Mat in) {
+        double dm = 99999999.0;
+        double best = -1; 
+        int di = -1;
+        for ( int i=0; i<features.rows(); i++) {
+            double d = distance(in,features.row(i));
+            if ( d<dm ) {
+                di = i;
+                dm = d;
+                best = labels.get(di,0)[0];
+            }
+        }
+        return new MatOfFloat((float)best,(float)dm,(float)di);
+    }
 }
 
 
 class CompareFloat extends CompareNorm {
-	public boolean train(Mat in, Mat labels) {
-		return super.train(tofloat(in), labels);
-	}
-	public Mat predict(Mat in) {
-		return super.predict(tofloat(in));
-	}
+    public boolean train(Mat in, Mat labels) {
+        return super.train(tofloat(in), labels);
+    }
+    public Mat predict(Mat in) {
+        return super.predict(tofloat(in));
+    }
 }
 
 class CompareHist extends CompareFloat {
-	public CompareHist() {
-		this.flag=Imgproc.CV_COMP_HELLINGER;
-	}
-	public CompareHist(int flag) {
-		this.flag=flag;
-	}
-	public double distance(Mat a, Mat b) {
-		return Imgproc.compareHist(a,b,flag);
-	}
+    public CompareHist() {
+        this.flag=Imgproc.CV_COMP_HELLINGER;
+    }
+    public CompareHist(int flag) {
+        this.flag=flag;
+    }
+    public double distance(Mat a, Mat b) {
+        return Imgproc.compareHist(a,b,flag);
+    }
 }
 
 
 class CompareCosine extends CompareFloat {
-	public double distance(Mat trainFeature, Mat testFeature) {
+    public double distance(Mat trainFeature, Mat testFeature) {
         double a = trainFeature.dot(testFeature);
         double b = trainFeature.dot(trainFeature);
         double c = testFeature.dot(testFeature);
@@ -111,25 +111,25 @@ class CompareEigen extends Classifier
     public CompareEigen() {}
     public CompareEigen(int num_components) {
         _num_components = (num_components); // we don't need a threshold yet
-	}
+    }
 
     public void save_projections(Mat data) {
         _projections = new Mat();
         for(int i=0; i<data.rows(); i++) {
             
-			Mat p = new Mat();
-			Core.PCAProject(_eigenvectors, _mean, data.row(i), p);
+            Mat p = new Mat();
+            Core.PCAProject(_eigenvectors, _mean, data.row(i), p);
             _projections.push_back(p);
         }
     }
 
     public boolean train(Mat data, Mat labels) {
-		Mat fd = tofloat(data);
-	    if((_num_components <= 0) || (_num_components > fd.rows()))
+        Mat fd = tofloat(data);
+        if((_num_components <= 0) || (_num_components > fd.rows()))
             _num_components = fd.rows();
         
-		Mat eigenvectors = new Mat();
-		Mat mean = new Mat();
+        Mat eigenvectors = new Mat();
+        Mat mean = new Mat();
         Core.PCACompute(fd, mean, eigenvectors, _num_components);
 
         _labels = labels;
@@ -144,13 +144,13 @@ class CompareEigen extends Classifier
         double minClass = -1;
         int minId=-1;
         Mat query = new Mat();
-		Core.PCAProject(_eigenvectors, _mean, tofloat(testFeature), query);
+        Core.PCAProject(_eigenvectors, _mean, tofloat(testFeature), query);
         for (int idx=0; idx<_projections.rows(); idx++) {
             double dist = Core.norm(_projections.row(idx), query, Core.NORM_L2);
             if (dist < minDist) {
                 minId    = idx;
                 minDist  = dist;
-				minClass = _labels.get(idx,0)[0];
+                minClass = _labels.get(idx,0)[0];
             }
         }
         return new MatOfFloat((float)(minClass),(float)(minDist),(float)(minId));
@@ -161,12 +161,12 @@ class CompareEigen extends Classifier
 
 //~ class ClassifierFisher extends ClassifierEigen
 //~ {
-	//~ public ClassifierFisher(int num_components)  {
-		//~ super(num_components);
-	//~ }
+    //~ public ClassifierFisher(int num_components)  {
+        //~ super(num_components);
+    //~ }
 
-	//~ int unique( ) {
-	//~ }
+    //~ int unique( ) {
+    //~ }
     //~ public boolean train(Mat data, Mat labels) {
         //~ int N = data.rows;
         //~ int C = unique(labels);
@@ -183,7 +183,7 @@ class CompareEigen extends Classifier
 
         //
         //// ok, there's no LDA yet in java. pity.
-	    //// nice idea dies here.
+        //// nice idea dies here.
         //
 
         //~ // step three, combine both:
