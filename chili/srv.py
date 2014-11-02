@@ -40,12 +40,18 @@ import org.opencv.objdetect.*;
 """
 code_java_pre_30="""
 import java.util.*;
+import org.opencv.calib3d.*;
 import org.opencv.core.*;
+import org.opencv.face.*;
+import org.opencv.features2d.*;
 import org.opencv.imgcodecs.*;
 import org.opencv.imgproc.*;
-import org.opencv.video.*;
 import org.opencv.objdetect.*;
-import org.opencv.features2d.*;
+import org.opencv.photo.*;
+import org.opencv.utils.*;
+import org.opencv.video.*;
+import org.opencv.videoio.*;
+
 """ + code_java_static + """
         Mat ocv = Imgcodecs.imread("input.img",-1);
         if ( ocv.empty() )
@@ -71,8 +77,10 @@ using namespace cv;
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+#include <vector>
 #include <bitset>
 #include <map>
+#include <set>
 using namespace std;
 void download(const char * url, const char * localthing) {
     system(format("curl -s -o %s '%s'",localthing,url).c_str());
@@ -166,6 +174,7 @@ def write_faq():
         ["what can i do ?", "e.g. load an image into ocv, manipulate it, show the result."],
         ["any additional help ?", "<a href=answers.opencv.org>answers.opencv.org</a>, <a href=docs.opencv.org>docs.opencv.org</a>, #opencv on freenode"],
         ["opencv version ?", "2.4.9 / 3.0.0."],
+        ["does it support python, too?", "no, unfortunately.<br> it's already quite a 'byo' party here on heroku, getting cv2 to run here would mean building python/numpy from scratch.<br> ... maybe later..."],
         ["do i need opencv installed ?", "no, it's all in the cloud.<br>minimal knowledge of the opencv c++/java api is sure helpful."],
         ["no video ?", "no, unfortunately. you can download / manipulate exactly 1 image only (the one named 'ocv')"],
         ["is there gpu support of any kind, like ocl or cuda ?", "none of it atm. <br>(heroku even seems to support ocl, but i'm too lazy to try that now.)"],
@@ -206,6 +215,14 @@ def url_image(u):
     f.write(img)
     f.close()
     return fn
+
+def get_file(fn):
+    try:
+        f = open(fn,"rb")
+    except: return ""
+    it = f.read()
+    f.close()
+    return it
 
 #
 # .layout
@@ -312,11 +329,13 @@ def run_java( code,v30 ):
 
 
 def check_code(code):
-    if code.find("System.") >=0  : return "java"
-    if code.find("Core.")   >=0  : return "java"
-    if code.find("Highgui.")>=0  : return "java"
-    if code.find("Imgproc.")>=0  : return "java"
-    if code.find("org.opencv.")>=0  : return "java"
+    if code.find("java.")   >=0    : return "java"
+    if code.find("CvType.") >=0    : return "java"
+    if code.find("System.") >=0    : return "java"
+    if code.find("Core.")   >=0    : return "java"
+    if code.find("Highgui.")>=0    : return "java"
+    if code.find("Imgproc.")>=0    : return "java"
+    if code.find("org.opencv.")>=0 : return "java"
     return "cpp"
 
 
@@ -382,12 +401,11 @@ def application(environ, start_response):
         data = write_page(code, result, "/share/" + key, '<img src="output.png" title="Mat ocv(here\'s your output)">', input_url)
         _remove("input.img")
     elif url == '/output.png' or url == '/share/output.png' :
-        try:
-            f = open('output.png','rb')
-            data = f.read()
-            f.close()
-            content = "image/png"
-        except: pass
+        data = get_file('output.png')
+        content = "image/png"
+    elif url == '/src/SimpleSample.java' or url == '/cv.cpp' :
+        data = get_file(url[1:])
+        content = "text/plain"
     start_response( err, [ ("Content-Type", content), ("Content-Length", str(len(data))) ] )
     return iter([data])
 

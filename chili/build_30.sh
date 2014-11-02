@@ -9,15 +9,18 @@ make
 cp bin/cmake ..
 cd ..
 
+tar -czf cmake.tgz  cmake-2.8.12.1
+
+
 
 curl http://apache.mirror.digionline.de//ant/binaries/apache-ant-1.9.4-bin.tar.gz > ant.tgz
 tar zxf ant.tgz
 
-
-git clone https://github.com/berak/opencv_contrib.git
-cd opencv_contrib
-git checkout  07_10_14 
-cd ..
+git clone https://github.com/Itseez/opencv_contrib
+#~ git clone https://github.com/berak/opencv_contrib.git
+#~ cd opencv_contrib
+#~ git checkout  07_10_14 
+#~ cd ..
 
 #git clone https://github.com/Itseez/opencv.git
 #git clone https://github.com/Itseez/opencv_contrib.git
@@ -25,7 +28,7 @@ cd ..
 git clone https://github.com/berak/opencv.git
 cd opencv
 git fetch
-git checkout z_heroku_30
+git checkout patch-1
 
 #../cmake -G "Unix Makefiles" -DOPENCV_EXTRA_MODULES_PATH=../opencv_extra/modules -DBUILD_TIFF=ON -DWITH_TIFF=ON -DBUILD_PNG=ON -DWITH_PNG=ON -DBUILD_JPEG=ON -DWITH_JPEG=ON -DBUILD_ZLIB=ON -DWITH_JASPER=OFF -DWITH_OPENEXR=OFF -DBUILD_OPENEXR=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/app/ocv3 -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_opencv_apps=OFF -DBUILD_examples=OFF
 
@@ -53,8 +56,10 @@ mkdir sugar
 cd sugar
 git clone git@github.com:berak/sugarcoatedchili.git  # git/ssh url !!
 cp ../ocv3.tgz sugarcoatedchili
+cp ../cmake.tgz sugarcoatedchili
 cd sugarcoatedchili
 git add ocv3.tgz
+git add cmake.tgz
 git commit -a -m "ocv3.tgz"
 git push
 cd ..
