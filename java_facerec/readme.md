@@ -11,3 +11,4 @@
 
 only thing missing for fisher is the LDA.
   
+(it's all opencv3.0, sorry..)
