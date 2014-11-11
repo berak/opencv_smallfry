@@ -35,6 +35,8 @@ class SimpleSample {
         data.add(loadImg("dogwalker.jpg"));
         Mat labels = new MatOfInt(1,2,3,4,5,17);
 
+        //texture.FaceRec face = new texture.FaceRec("Pixels","Norm");
+        //texture.FaceRec face = new texture.FaceRec("Pixels","Eigen");
         texture.FaceRec face = new texture.FaceRec("Lbph","Hist");
         face.train(data,labels);
 
