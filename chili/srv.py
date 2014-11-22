@@ -5,6 +5,7 @@
 #   base assumptions:
 #      local (static) openv installs for 2.4(ocv) and 3.0(ocv30) were extracted
 #      ant (for java) was downloaded and extracted
+#
 
 import sys, socket, threading, time, datetime, os, random
 import subprocess, urllib, urllib2
@@ -26,37 +27,44 @@ class SimpleSample {
     public static void help(String cls,String item){ ClassSpy.reflect(cls,item); }
     public static void main(String[] args) {
 """
-code_java_pre_24="""
+
+code_java_pre_shared = """
 import java.util.*;
+import java.awt.*;
+import java.awt.image.*;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.*;
 import org.opencv.core.*;
-import org.opencv.highgui.*;
-import org.opencv.imgproc.*;
-import org.opencv.video.*;
-import org.opencv.objdetect.*;
-""" + code_java_static + """
-        Mat ocv = Highgui.imread("input.img",-1);
-        if ( ocv.empty() )
-            ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
-"""
-code_java_pre_30="""
-import java.util.*;
 import org.opencv.calib3d.*;
-import org.opencv.core.*;
-import org.opencv.face.*;
 import org.opencv.features2d.*;
-import org.opencv.imgcodecs.*;
 import org.opencv.imgproc.*;
 import org.opencv.objdetect.*;
 import org.opencv.photo.*;
 import org.opencv.utils.*;
 import org.opencv.video.*;
-import org.opencv.videoio.*;
+"""
 
+code_java_pre_24="""
+import org.opencv.highgui.*;
+""" + code_java_static + """
+        Mat ocv = Highgui.imread("input.img",-1);
+        if ( ocv.empty() )
+            ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
+"""
+
+code_java_pre_30="""
+//import org.opencv.face.*;
+import org.opencv.bioinspired.*;
+import org.opencv.imgcodecs.*;
+import org.opencv.imgproc.*;
+import org.opencv.videoio.*;
 """ + code_java_static + """
         Mat ocv = Imgcodecs.imread("input.img",-1);
         if ( ocv.empty() )
             ocv = new Mat(8,8,CvType.CV_8UC3,new Scalar(40,40,40));
 """
+
 code_java_post_24="""
         ;;
         Highgui.imwrite("output.png", ocv);
@@ -64,6 +72,7 @@ code_java_post_24="""
     }
 }
 """
+
 code_java_post_30="""
         ;;
         Imgcodecs.imwrite("output.png", ocv);
@@ -100,6 +109,7 @@ int main()
 
 code_cpp_pre_24="""
 #include "opencv2/contrib/contrib.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
 #include "opencv2/nonfree/features2d.hpp"
@@ -113,10 +123,13 @@ code_cpp_pre_24="""
 #include "opencv2/video/video.hpp"
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/video/background_segm.hpp"
-""" + code_cpp_pre_static
+""" 
 
 code_cpp_pre_30="""
+#include "opencv2/bioinspired.hpp"
 #include "opencv2/core.hpp"
+#include "opencv2/calib3d.hpp"
+#include "opencv2/ccalib.hpp"
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/features2d.hpp"
 #include "opencv2/xfeatures2d.hpp"
@@ -130,12 +143,15 @@ code_cpp_pre_30="""
 #include "opencv2/optflow.hpp"
 #include "opencv2/shape.hpp"
 #include "opencv2/saliency.hpp"
+#include "opencv2/stitching.hpp"
+#include "opencv2/superres.hpp"
+#include "opencv2/tracking.hpp"
 #include "opencv2/text.hpp"
 #include "opencv2/ml.hpp"
 #include "opencv2/photo.hpp"
 #include "opencv2/xphoto.hpp"
 #include "opencv2/video.hpp"
-""" + code_cpp_pre_static
+""" 
 
 code_cpp_post="""
     ;;
@@ -209,7 +225,6 @@ def url_image(u):
         c = urllib2.urlopen(u)
         img = c.read()            
     except: return ''
-    ext = u.split(".")
     fn="input.img"
     f=open(fn,"wb")
     f.write(img)
@@ -294,6 +309,7 @@ def run_cpp( code, v30 ):
         f.write(code_cpp_pre_30)
     else:
         f.write(code_cpp_pre_24)
+    f.write(code_cpp_pre_static)
     f.write(code)
     f.write(code_cpp_post)
     f.close()
@@ -311,6 +327,7 @@ def run_cpp( code, v30 ):
 def run_java( code,v30 ):
     # save code
     f = open("src/SimpleSample.java","wb")
+    f.write(code_java_pre_shared)
     if v30:
         f.write(code_java_pre_30)
         f.write(code)
@@ -390,16 +407,16 @@ def application(environ, start_response):
         res = urllib2.urlopen(req)
         #res.read() # !! reading the thank_you msg will cost ~5secs extra.
         if input_url:
-            _remove(input_img)
+            #_remove(input_img)
             input_img = url_image(input_url)
         lang = check_code(code)
         v30  = url.find("30") > 0
         if lang == "cpp":
-            result = run_cpp(code,v30)
+            result = run_cpp(code, v30)
         if lang == "java":
-            result = run_java(code,v30)
+            result = run_java(code, v30)
         data = write_page(code, result, "/share/" + key, '<img src="output.png" title="Mat ocv(here\'s your output)">', input_url)
-        _remove("input.img")
+        #_remove("input.img")
     elif url == '/output.png' or url == '/share/output.png' :
         data = get_file('output.png')
         content = "image/png"
