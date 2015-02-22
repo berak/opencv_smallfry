@@ -33,11 +33,12 @@ struct KMajority
         // Initializing variables useful for obtaining indexes of random chosen center
         std::vector<int> centers_idx(numClusters);
         randu(centers_idx, Scalar(0), Scalar(numClusters));
+        //randu(centers_idx, Scalar(0), Scalar(trainData.rows));
         std::sort(centers_idx.begin(), centers_idx.end());
 
         // Assign centers based on the chosen indexes
         cv::Mat centroids(centers_idx.size(), trainData.cols, trainData.type());
-        for (size_t i = 0; i < numClusters; ++i) 
+        for (int i = 0; i < numClusters; ++i) 
         {
             trainData.row(centers_idx[i]).copyTo(centroids(cv::Range(i, i + 1), cv::Range(0, trainData.cols)));
         }
@@ -262,11 +263,13 @@ Mat BOWKmajorityTrainer::cluster() const
 
 Mat BOWKmajorityTrainer::cluster(const Mat& descriptors) const 
 {
-
     // Trivial case: less data than clusters, assign one data point per cluster
     if (descriptors.rows <= numClusters) 
-	{
-        return descriptors.clone();
+    {
+        Mat centroids;
+        for (int i=0; i<numClusters; i++)
+            centroids.push_back(descriptors.row(i % numClusters));
+        return centroids;
     }
 
     Mat centroids = KMajority::initCentroids(descriptors, numClusters);
