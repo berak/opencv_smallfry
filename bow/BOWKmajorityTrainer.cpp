@@ -32,7 +32,7 @@ struct KMajority
     {
         // Initializing variables useful for obtaining indexes of random chosen center
         std::vector<int> centers_idx(numClusters);
-        randu(centers_idx, Scalar(0), Scalar(trainData.rows));
+        randu(centers_idx, Scalar(0), Scalar(numClusters));
         std::sort(centers_idx.begin(), centers_idx.end());
 
         // Assign centers based on the chosen indexes
