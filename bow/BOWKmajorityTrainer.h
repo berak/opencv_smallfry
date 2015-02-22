@@ -15,14 +15,14 @@ namespace cv {
 class BOWKmajorityTrainer: public BOWTrainer {
 
 public:
-	BOWKmajorityTrainer(int clusterCount, const TermCriteria& termcrit=TermCriteria());
-	virtual ~BOWKmajorityTrainer();
-	virtual Mat cluster() const;
-	virtual Mat cluster(const Mat& descriptors) const;
+    BOWKmajorityTrainer(int clusterCount, const TermCriteria& termcrit=TermCriteria());
+    virtual ~BOWKmajorityTrainer();
+    virtual Mat cluster() const;
+    virtual Mat cluster(const Mat& descriptors) const;
 
 protected:
-	int numClusters;
-	int maxIterations;
+    int numClusters;
+    int maxIterations;
 };
 
 } /* namespace cv */
