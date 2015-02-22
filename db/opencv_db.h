@@ -23,22 +23,5 @@ struct opencv_db
     virtual ~opencv_db() {} // we're a base class
 };
 
-
-
-////
-//// anothr smrtpinter
-////
-//template <class T>
-//struct raii 
-//{
-//    T *p;
-//    typedef int (*dtor)(T*t);
-//    dtor del;
-//
-//    raii( T*p=0, dtor del=0 ) : p(p),del(del) { }
-//    ~raii() { if (p && del) del(p); p=0; }
-//};
-//
-
 #endif // __opencv_db_onboard__
 

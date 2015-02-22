@@ -11,7 +11,7 @@
 * db: serialize cv::Mat to some popular databases.
 * latent: quick test with the latentsvm detector for people
 * dbrief: c++, opencv2.x port of http://cvlab.epfl.ch/research/detect/dbrief
-* bow.py: 2.4.9 can do BOW in python now 
 * hep.cpp: playing with http://dismac.dii.unipg.it/hep/index.html
 * chili: opencv c++ remote playground running on [heroku](http://sugarcoatedchili.herokuapp.com/)
 * java_facerec: 'pure java' re-impl 
+* bow: BOWKmajority example(for binary descriptors) also, 2.4.9 can do BOW in python now 
