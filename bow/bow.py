@@ -10,13 +10,16 @@ import numpy as np
 #  but it shows the general flow nicely.
 #
 # please modify !
-datapath="e:/code/opencv/samples/cpp"
+datapath="e:/code/opencv/samples/data"
 def path(cls,i): # "./left03.jpg"
 	return "%s/%s%02d.jpg"  % (datapath,cls,i+1)
 
 
-detect = cv2.FeatureDetector_create("SIFT")
-extract = cv2.DescriptorExtractor_create("SIFT")
+detect = cv2.xfeatures2d.SIFT_create()
+extract = cv2.xfeatures2d.SIFT_create()
+
+flann_params = dict(algorithm = 1, trees = 5)      # flann enums are missing, FLANN_INDEX_KDTREE=1
+matcher = cv2.FlannBasedMatcher(flann_params, {})  # need to pass empty dict (#1329)
 
 
 ## 1.a setup BOW
@@ -55,14 +58,14 @@ for i in range(6): # save first 2 for testing
 print "svm items", len(traindata), len(traindata[0])
 
 ## 2.b create & train the svm
-svm = cv2.SVM()
-svm.train(np.array(traindata), np.array(trainlabels))
+svm = cv2.ml.SVM_create()
+svm.train(np.array(traindata), cv2.ml.ROW_SAMPLE, np.array(trainlabels))
 
 ## 2.c predict the remaining 2*2 images, use BOWImgDescriptorExtractor again
 def predict(fn):
 	f = feature_bow(fn);	
 	p = svm.predict(f)
-	print fn, "\t", p 
+	print fn, "\t", p[1][0][0] 
 	
 for i in range(2): #  testing
 	predict( path("left",i) )

@@ -150,7 +150,7 @@ if __name__ == "__main__":
     # parameters for this simple example, please read the documentation
     #model = cv2.createEigenFaceRecognizer()
     #model = cv2.createFisherFaceRecognizer()
-    model = cv2.createLBPHFaceRecognizer()
+    model = cv2.face.createLBPHFaceRecognizer()
     
     # train it from faces in the imgdir:
     images,labels,names = retrain(imgdir,model,face_size)
