@@ -43,6 +43,7 @@ import org.opencv.objdetect.*;
 import org.opencv.photo.*;
 import org.opencv.utils.*;
 import org.opencv.video.*;
+import org.opencv.ml.*;
 """
 
 code_java_pre_24="""
@@ -407,7 +408,7 @@ def application(environ, start_response):
         res = urllib2.urlopen(req)
         #res.read() # !! reading the thank_you msg will cost ~5secs extra.
         if input_url:
-            #_remove(input_img)
+            _remove(input_img)
             input_img = url_image(input_url)
         lang = check_code(code)
         v30  = url.find("30") > 0
@@ -416,7 +417,7 @@ def application(environ, start_response):
         if lang == "java":
             result = run_java(code, v30)
         data = write_page(code, result, "/share/" + key, '<img src="output.png" title="Mat ocv(here\'s your output)">', input_url)
-        #_remove("input.img")
+        _remove("input.img")
     elif url == '/output.png' or url == '/share/output.png' :
         data = get_file('output.png')
         content = "image/png"
