@@ -9,6 +9,8 @@ import numpy as np
 #  admittedly, there's not much sense in training an svm on left vs right checkerboards, 
 #  but it shows the general flow nicely.
 #
+# since this is using SIFT, you will need the https://github.com/Itseez/opencv_contrib repo
+#
 # please modify !
 datapath="e:/code/opencv/samples/data"
 def path(cls,i): # "./left03.jpg"
