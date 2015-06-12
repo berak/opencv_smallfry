@@ -6,3 +6,7 @@
   original code from:
   https://github.com/olanleed/MochiMochi/blob/master/src/classifier/adam.hpp
 
+
+###[Gravitational Clustering](https://github.com/ArmenAg/GravitationalClustering/blob/master/Paper.pdf?raw=true)
+
+  quite literal port from [original c# code here](https://github.com/ArmenAg/GravitationalClustering)
