@@ -3,6 +3,6 @@ small head pose estimation using
 	and a (slightly opencv adapted version of) [pico](https://github.com/nenadmarkus/pico)
 	
 <p align="center">
-  <img src="https://github.com/berak/opencv_smallfry/raw/master/pico/pose.png">
+  <img src="https://github.com/berak/opencv_smallfry/raw/master/headpose/pose.png">
 </p>
 	
