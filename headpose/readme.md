@@ -5,4 +5,17 @@ small head pose estimation using
 <p align="center">
   <img src="https://github.com/berak/opencv_smallfry/raw/master/headpose/pose.png">
 </p>
+
+-----------------
+
+the idea is quite simple:
+
+* initially:
+  + have a 3d model with face texture
+  + run landmark estimation on that face texture, so we can
+    take the corresponding 3d points from the model as our base.
 	
+* then, for each frame:
+  + face detection, if successful,
+  + landmark estimation on cameraframe
+  + solvePnP with the landmarks, and the base 3d points, to get rvec and tvec.
