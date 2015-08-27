@@ -15,3 +15,4 @@
 * chili: opencv c++ remote playground running on [heroku](http://sugarcoatedchili.herokuapp.com/)
 * java_facerec: 'pure java' re-impl 
 * bow: BOWKmajority example(for binary descriptors) also, 2.4.9 can do BOW in python now 
+* headpose: small head pose estimation (using dlib & pico)
