@@ -86,6 +86,7 @@ code_cpp_pre_static="""
 using namespace cv;
 #include <algorithm>
 #include <iostream>
+#include <chrono> // c++11 !!
 #include <numeric>
 #include <vector>
 #include <bitset>
@@ -127,31 +128,45 @@ code_cpp_pre_24="""
 """ 
 
 code_cpp_pre_30="""
+#include "opencv2/aruco.hpp"
+#include "opencv2/bgsegm.hpp"
 #include "opencv2/bioinspired.hpp"
 #include "opencv2/core.hpp"
+#include "opencv2/core/ocl.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/ccalib.hpp"
+#include "opencv2/dnn.hpp"
+#include "opencv2/dpm.hpp"
+#include "opencv2/face.hpp"
+#include "opencv2/flann.hpp"
+#include "opencv2/hal.hpp"
 #include "opencv2/imgcodecs.hpp"
+#include "opencv2/imgproc.hpp"
 #include "opencv2/features2d.hpp"
+#include "opencv2/line_descriptor.hpp"
+#include "opencv2/ml.hpp"
+#include "opencv2/objdetect.hpp"
+#include "opencv2/optflow.hpp"
+#include "opencv2/photo.hpp"
+#include "opencv2/rgbd.hpp"
+#include "opencv2/saliency.hpp"
+#include "opencv2/shape.hpp"
+#include "opencv2/stereo.hpp"
+#include "opencv2/stitching.hpp"
+#include "opencv2/structured_light.hpp"
+#include "opencv2/superres.hpp"
+#include "opencv2/text.hpp"
+#include "opencv2/tracking.hpp"
+#include "opencv2/video.hpp"
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/xfeatures2d/nonfree.hpp"
-#include "opencv2/objdetect.hpp"
-#include "opencv2/xobjdetect.hpp"
-#include "opencv2/imgproc.hpp"
 #include "opencv2/ximgproc.hpp"
-#include "opencv2/face.hpp"
-#include "opencv2/bgsegm.hpp"
-#include "opencv2/optflow.hpp"
-#include "opencv2/shape.hpp"
-#include "opencv2/saliency.hpp"
-#include "opencv2/stitching.hpp"
-#include "opencv2/superres.hpp"
-#include "opencv2/tracking.hpp"
-#include "opencv2/text.hpp"
-#include "opencv2/ml.hpp"
-#include "opencv2/photo.hpp"
+#include "opencv2/xobjdetect.hpp"
 #include "opencv2/xphoto.hpp"
-#include "opencv2/video.hpp"
+#include "opencv2/reg.hpp"
+#include "opencv2/surface_matching.hpp"
+
+
 """ 
 
 code_cpp_post="""
@@ -187,11 +202,11 @@ z_js = """
 
 def write_faq():
     faq = [
-        ["what is it ?", "an online opencv c++ / java compiler,<br> meant as an interactive pastebin,<br> or a quick tryout without installing anything locally.<br> basically, your code is running inside some shim, like int main(){/*your code*/}"],
+        ["what is it ?", "an online opencv c++ / java / python compiler,<br> meant as an interactive pastebin,<br> or a quick tryout without installing anything locally.<br> basically, your code is running inside some shim, like int main(){/*your code*/}"],
         ["what can i do ?", "e.g. load an image into ocv, manipulate it, show the result."],
         ["any additional help ?", "<a href=answers.opencv.org>answers.opencv.org</a>, <a href=docs.opencv.org>docs.opencv.org</a>, #opencv on freenode"],
-        ["opencv version ?", "2.4.9 / 3.0.0."],
-        ["does it support python, too?", "no, unfortunately.<br> it's already quite a 'byo' party here on heroku, getting cv2 to run here would mean building python/numpy from scratch.<br> ... maybe later..."],
+        ["opencv version ?", "2.4.11 / 3.0.0."],
+        ["does it support python, too?", "YES (at least 2.4) !<br> just type 'import cv2' and happily code away.."],
         ["do i need opencv installed ?", "no, it's all in the cloud.<br>minimal knowledge of the opencv c++/java api is sure helpful."],
         ["no video ?", "no, unfortunately. you can download / manipulate exactly 1 image only (the one named 'ocv')"],
         ["is there gpu support of any kind, like ocl or cuda ?", "none of it atm. <br>(heroku even seems to support ocl, but i'm too lazy to try that now.)"],
@@ -199,7 +214,8 @@ def write_faq():
         ["where are the cascades ?", "in './ocv/share/OpenCV/haarcascades', './ocv/share/OpenCV/lbpcascades'"],
         ["examples ?", "Mat m = Mat::ones(4,4,5);\r\ncerr << m << endl;"],
         ["i want to program in c.","oh, no.(but try java ;)"],
-        #["src code ?","https://github.com/berak/opencv_smallfry/tree/master/chili"],
+        ["this seems to generate additional boilerplate code, where can i see, what's actually run ?", "* c++ : http://sugarcoatedchili.herokuapp.com/cv.cpp<br>* java : http://sugarcoatedchili.herokuapp.com/src/SimpleSample.java <br>* python: http://sugarcoatedchili.herokuapp.com/ocv.py"],
+        ["src code ?","https://github.com/berak/opencv_smallfry/tree/master/chili"],
     ]
     data = '<html><head>\n'
     data +='<title>faq</title>'
@@ -275,7 +291,6 @@ def _remove(x):
         os.remove(x)
     except: pass
 
-
 #
 # execute bot_cmd, return piped stdout/stderr
 # 
@@ -345,8 +360,22 @@ def run_java( code,v30 ):
     if v30: script = "bash build.java.30.sh"
     return run_prog( script )
 
+def run_python( code,v30 ):
+    # save code
+    f = open("ocv.py","wb")
+    f.write("import cv2, numpy as np\r\nocv = cv2.imread('input.img')\r\n")
+    f.write(code)
+    f.write("\r\nif np.shape(ocv)!=():\r\n  cv2.imwrite('output.png',ocv)\r\n")
+    f.close()
+    _remove("output.png")
+    xwarn=""
+    if v30: xwarn= "<br>(sorry, this is 2.4 only.)\r\n"
+    script = "python ocv.py"
+    return xwarn + run_prog( script )
+
 
 def check_code(code):
+    if code.find("import cv2") >=0 : return "python"
     if code.find("java.")   >=0    : return "java"
     if code.find("CvType.") >=0    : return "java"
     if code.find("System.") >=0    : return "java"
@@ -416,12 +445,14 @@ def application(environ, start_response):
             result = run_cpp(code, v30)
         if lang == "java":
             result = run_java(code, v30)
+        if lang == "python":
+            result = run_python(code, v30)
         data = write_page(code, result, "/share/" + key, '<img src="output.png" title="Mat ocv(here\'s your output)">', input_url)
         _remove("input.img")
     elif url == '/output.png' or url == '/share/output.png' :
         data = get_file('output.png')
         content = "image/png"
-    elif url == '/src/SimpleSample.java' or url == '/cv.cpp' :
+    elif url == '/src/SimpleSample.java' or url == '/cv.cpp' or url == '/ocv.py' :
         data = get_file(url[1:])
         content = "text/plain"
     start_response( err, [ ("Content-Type", content), ("Content-Length", str(len(data))) ] )

@@ -30,7 +30,7 @@ class SimpleSample {
         String [] names = {"aRUtJ.png","img.jpg","right01.jpg","phone.jpg","right01.jpg"};
         List<Mat> data = new ArrayList<Mat>();
         for (int i=0; i<5; i++) {
-            data.add(loadImg("e:/code/opencv_p/demo/" + names[i]));
+            data.add(loadImg("e:/code/opencv_p/demo/im/" + names[i]));
         }
         data.add(loadImg("dogwalker.jpg"));
         Mat labels = new MatOfInt(1,2,3,4,5,17);
