@@ -161,19 +161,21 @@ public:
                 {
                     cerr << "error : couldn't accept connection on sock " << sock<< " !" << endl;
                     return false;
-                    //return release();
                 }
                 maxfd=(maxfd>client?maxfd:client);
                 FD_SET( client, &master );
-                _write( client,"200 HTTP/1.1 ok\r\n",0);
+                _write( client,"HTTP/1.0 200 OK\r\n",0);
                 _write( client,
 	                "Server: Mozarella/2.2\r\n"
 	                "Accept-Range: bytes\r\n"
 	                "Connection: close\r\n"
+                    "Max-Age: 0\r\n"
+                    "Expires: 0\r\n"
+                    "Cache-Control: no-cache, private\r\n"
+                    "Pragma: no-cache\r\n"
 	                "Content-Type: multipart/x-mixed-replace; boundary=mjpegstream\r\n"
 	                "\r\n",0);
                 cerr << "new client " << client << endl;
-                //s = client; // fall thru and serve an image, stupid vlc starts a new con each time
             } 
             else // existing client, just stream pix
             {
@@ -206,9 +208,9 @@ int main()
 		return 1;
 	}
 
-    MJPGWriter wri(7777);
+    MJPGWriter wri(7777); // http://your-server:7777
 
-    while( cap.isOpened() && wri.isopened() )
+    while( cap.isOpened() && wri.isOpened() )
     {
         Mat frame;
         cap >> frame;
