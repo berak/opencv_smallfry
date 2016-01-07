@@ -8,14 +8,6 @@
 
 
 
-#include <windows.h> // damn, this has to go before the opencv ones
-#include <iostream>
-using std::cerr;
-using std::endl;
-
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-using namespace cv;
 
 
 
@@ -51,6 +43,14 @@ using namespace cv;
     #define SOCKET_ERROR   -1
 #endif /* _WIN32 */
 
+
+
+#include <iostream>
+using std::cerr;
+using std::endl;
+
+#include "opencv2/opencv.hpp"
+using namespace cv;
 
 
 
@@ -137,7 +137,7 @@ public:
 
         std::vector<uchar>outbuf;
         std::vector<int> params;
-        params.push_back(1);//CV_IMWRITE_JPEG_QUALITY;
+        params.push_back(IMWRITE_JPEG_QUALITY);
         params.push_back(quality);
         cv::imencode(".jpg", frame, outbuf, params);
         int outlen = outbuf.size();
@@ -208,7 +208,7 @@ int main()
 		return 1;
 	}
 
-    MJPGWriter wri(7777); // http://your-server:7777
+    MJPGWriter wri(7777);
 
     while( cap.isOpened() && wri.isOpened() )
     {
