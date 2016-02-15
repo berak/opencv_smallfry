@@ -17,3 +17,5 @@
 * bow: BOWKmajority example(for binary descriptors) also, 2.4.9 can do BOW in python now 
 * headpose: small head pose estimation (using dlib & pico)
 * eyes.cpp: hog/svm based open / closed eyes detector, using flandmarks for eye location
+* violentFlow.cpp : http://www.openu.ac.il/home/hassner/data/violentflows/violent_flows.pdf
+* profile.h: profiling / timing code
