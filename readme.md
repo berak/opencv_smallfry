@@ -19,3 +19,4 @@
 * violentFlow.cpp : http://www.openu.ac.il/home/hassner/data/violentflows/violent_flows.pdf
 * profile.h: profiling / timing code
 * java_face3.0: testcase for ocv3 facerec bindings in java
+* curl.cpp: download a car from the internet ;)
