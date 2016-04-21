@@ -30,7 +30,7 @@ public class WaitKey implements KeyListener {
     public int get() { return get(-1); }
     
     public void keyTyped(KeyEvent e) {}
-    public void keyPressed(KeyEvent e) { k=e.getKeyChar(); }
+    public void keyPressed(KeyEvent e) { k=e.getKeyChar();/*  System.out.println("k " + k); */}
     public void keyReleased(KeyEvent e) {}
 }
 

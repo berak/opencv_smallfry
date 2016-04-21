@@ -20,7 +20,7 @@ size_t write_data(char *ptr, size_t size, size_t nmemb, void *userdata)
     return count;
 }
 
-//function to retrieve the image as Cv::Mat data type
+//function to retrieve the image as cv::Mat data type
 cv::Mat curlImg(const char *img_url, int timeout=10)
 {
     vector<uchar> stream;

@@ -76,7 +76,7 @@ class SimpleSample {
 
     public static void main(String[] args) {
         // PLEASE ADJUST TO YOUR PERSONAL SETTINGS !
-        String personsDir = "e:/code/opencv_p/face3/persons";
+        String personsDir = "e:/code/opencv_p/face3/data/persons";
         if (args.length > 1) personsDir = args[1];
 
         String cascadeFile = "e:/code/opencv/data/haarcascades/haarcascade_frontalface_alt.xml";
