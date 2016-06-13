@@ -9,7 +9,6 @@
 * mjpg_serve.cpp: mjpeg webcam server ( single-thread, but multi client )
 * facerec_online.py: realtime facerec from webcam ( with adaptive face-db )
 * db: serialize cv::Mat to some popular databases.
-* latent: quick test with the latentsvm detector for people
 * dbrief: c++, opencv2.x port of http://cvlab.epfl.ch/research/detect/dbrief
 * hep.cpp: playing with http://dismac.dii.unipg.it/hep/index.html
 * chili: opencv c++ remote playground running on [heroku](http://sugarcoatedchili.herokuapp.com/)
@@ -20,3 +19,5 @@
 * profile.h: profiling / timing code
 * java_face3.0: testcase for ocv3 facerec bindings in java
 * curl.cpp: download a car from the internet ;)
+* gldemo.cpp : opengl inside opencv (+min .obj reader)
+* ui : onscreen ui (sliders & buttons & selectboxes)  
