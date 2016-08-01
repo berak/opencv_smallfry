@@ -97,10 +97,11 @@ struct SkinDetector
 		_cov = c.reshape(3,2);
 
 		// precompute sqrt(det(cov)):
+		static double pow2pi = pow(2 * CV_PI, 1.5);
 		for (int i=0; i<16; i++)
 		{
-			_covDet(0,i) = pow(_cov(0,i)[0] * _cov(0,i)[1] * _cov(0,i)[2], 0.5);
-			_covDet(1,i) = pow(_cov(1,i)[0] * _cov(1,i)[1] * _cov(1,i)[2], 0.5);
+			_covDet(0,i) = pow2pi * pow(_cov(0,i)[0] * _cov(0,i)[1] * _cov(0,i)[2], 0.5);
+			_covDet(1,i) = pow2pi * pow(_cov(1,i)[0] * _cov(1,i)[1] * _cov(1,i)[2], 0.5);
 		}
 
 		_weight <<
@@ -112,15 +113,12 @@ struct SkinDetector
 
 	double gaussianMixture(int id, const Vec3d &RGBpixel)
 	{
-		static double pow2pi = pow(2 * CV_PI, 1.5);
-
 		double P = 0;
 		for (int i=0; i<16; i++)
 		{
 			Vec3d a = RGBpixel - _mean(id, i);
 			Vec3d cov = _cov(id, i);
-			double covDet = cov[0] * cov[1] * cov[2];
-			double C = pow2pi * _covDet(id,i);
+			double C = _covDet(id,i);
 			double D = -0.5 * ((a[0]*a[0]) / cov[0] + (a[1]*a[1]) / cov[1] + (a[2]*a[2]) / cov[2]);
 			double w = _weight(id, i);
 			P = P + (w/C) * exp(D);
