@@ -49,8 +49,7 @@ int main()
     Mat frame;
     while(cap.read(frame))
     {
-        Mat img;
-        if (f>-1) flip(frame,frame,f);
+        if (f>-1) flip(frame, frame, f);
         if (t) frame = frame.t();
         if (k) kaleidoscope(frame, frame);
         imshow("kaleidoscope", frame);

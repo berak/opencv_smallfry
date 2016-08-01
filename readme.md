@@ -22,3 +22,4 @@
 * curl.cpp: download a car from the internet ;)
 * gldemo.cpp : opengl inside opencv (+min .obj reader)
 * ui : onscreen ui (sliders & buttons & selectboxes)
+* skin.cpp: skin detector (Rehg/Jones,1999)
