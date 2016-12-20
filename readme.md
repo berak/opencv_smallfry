@@ -23,3 +23,4 @@
 * gldemo.cpp : opengl inside opencv (+min .obj reader)
 * ui : onscreen ui (sliders & buttons & selectboxes)
 * skin.cpp: skin detector (Rehg/Jones,1999)
+* blink.cpp: eye-blink classification based on facial landmarks

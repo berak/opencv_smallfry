@@ -203,7 +203,7 @@ public:
                 ystep(i,d) = newsid; // remember the step we took
 
                 // step!
-                Y(i,d) += newsid; 
+                Y(i,d) += newsid;
 
                 ymean(d) += Y(i,d); // accumulate mean so that we can center later
             }
@@ -242,7 +242,7 @@ public:
 
 int simple()
 {
-    Mat_<float> X(3,3); 
+    Mat_<float> X(3,3);
     //X << 1.0, 0.1, 0.2,
     //     0.1, 1.0, 0.3,
     //     0.2, 0.1, 1.0;
@@ -265,7 +265,7 @@ int main( int argc, const char** argv )
     float EPS = 0.027;
     int SCALE = 180;
     //String path = "e:/media/faces/tv/*.png";
-    String path = "c:/p/data/faces/att/*.pgm";
+    String path = "c:/data/faces/att/*.pgm";
     vector<String> fn;
     glob(path,fn,true);
     Mat data;
@@ -297,7 +297,7 @@ int main( int argc, const char** argv )
             //Point p(abs(Y(i,0))*SCALE*2, abs(Y(i,1))*SCALE*2);
             Rect r(p.x-T/2, p.y-T/2, T,T);
             Rect o = r & bounds;
-            if (o.area()<r.area()) 
+            if (o.area()<r.area())
                 continue;
             im2.copyTo(draw(r));
         }
