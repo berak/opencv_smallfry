@@ -27,6 +27,41 @@ confusion:
 
 ***/
 
+namespace ROC {
+    void curve(const Mat &probs, const Mat &truth, vector<Point2f> &roc, int N, const float eps=1e-1) {
+        for (int i=0; i<N; i++) {
+            float thresh = float(N-i) / N;
+            float TP = countNonZero((probs >  thresh) & (truth >  eps));
+            float TN = countNonZero((probs <= thresh) & (truth <= eps));
+            float FP = countNonZero((probs >  thresh) & (truth <= eps));
+            float FN = countNonZero((probs <= thresh) & (truth >  eps));
+            float FPR = FP / (FP + TN);
+            float TPR = TP / (TP + FN);
+            roc.push_back(Point2f(FPR, TPR));
+        }
+    }
+
+    float auc(vector<Point2f> &roc) {
+        float _auc = 0.0f;
+        for (int i=0; i<int(roc.size())-1; i++) {
+            _auc += (roc[i+1].y + roc[i].y) * (roc[i+1].x - roc[i].x);
+        }
+        return _auc * 0.5f;
+    }
+
+    void draw(vector<Point2f> &roc, Mat &img, const Scalar &color) {
+        int   N = roc.size();
+        float S = float(img.rows) / N;
+        Point2f prev;
+        for (size_t i=0; i<roc.size(); i++) {
+            Point2f cur(roc[i].x*N*S, (1.0-roc[i].y)*N*S); // opencv y axis points down
+            if (i>0)
+                line(img, prev, cur, color, 1);
+            prev = cur;
+        }
+    }
+} // ROC
+
 
 int main(int argc, char **argv)
 {
@@ -131,5 +166,22 @@ int main(int argc, char **argv)
         confusion(p,t) ++;
     }
     cerr << "confusion:\n" << confusion << endl;
+
+    // additionally, do ROC analysis.
+    // we need raw output, so another prediction required:
+    svm->predict(vdata, results, ml::StatModel::RAW_OUTPUT);
+    normalize(results, results, 1, 0, NORM_MINMAX);
+    // svm gives distances, needed are probs
+    results = 1.0f - results;
+
+    std::vector<Point2f> roc;
+    ROC::curve(results, vlabels, roc, 100);
+    cerr << "AUC " << ROC::auc(roc) << endl;
+
+    Mat roc_draw(480, 640, CV_8UC3, Scalar::all(255));
+    ROC::draw(roc, roc_draw, Scalar(255,0,0));
+    imshow("ROC",roc_draw);
+    waitKey();
+
     return 0;
 }
