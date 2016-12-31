@@ -51,10 +51,11 @@ namespace ROC {
 
     void draw(vector<Point2f> &roc, Mat &img, const Scalar &color) {
         int   N = roc.size();
-        float S = float(img.rows) / N;
+        float SY = float(img.rows) / N;
+        float SX = float(img.cols) / N;
         Point2f prev;
         for (size_t i=0; i<roc.size(); i++) {
-            Point2f cur(roc[i].x*N*S, (1.0-roc[i].y)*N*S); // opencv y axis points down
+            Point2f cur(roc[i].x*N*SX, (1.0-roc[i].y)*N*SY); // opencv y axis points down
             if (i>0)
                 line(img, prev, cur, color, 1);
             prev = cur;
@@ -62,6 +63,15 @@ namespace ROC {
     }
 } // ROC
 
+Mat sigmoid(const Mat &m)
+{
+    Mat P;
+    multiply(m, -1, P);
+    exp(P,P);
+    add(P, 1, P);
+    divide(1,P, P);
+    return P;
+}
 
 int main(int argc, char **argv)
 {
@@ -159,7 +169,7 @@ int main(int argc, char **argv)
 
     // accuracy alone is not enough here, since it might
     // simply have missed all positives !
-    Mat_<float> confusion(2,2);
+    Mat_<int> confusion(2,2,0);
     for (int i=0; i<results.rows; i++) {
         int p = (int)results.at<float>(i);
         int t = (int)vlabels.at<float>(i);
@@ -170,9 +180,8 @@ int main(int argc, char **argv)
     // additionally, do ROC analysis.
     // we need raw output, so another prediction required:
     svm->predict(vdata, results, ml::StatModel::RAW_OUTPUT);
-    normalize(results, results, 1, 0, NORM_MINMAX);
     // svm gives distances, needed are probs
-    results = 1.0f - results;
+    results = sigmoid(-results); // positive features have negative distance
 
     std::vector<Point2f> roc;
     ROC::curve(results, vlabels, roc, 100);
