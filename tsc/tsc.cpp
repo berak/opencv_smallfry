@@ -1,5 +1,5 @@
 //
-// belgium traffic classification set from:
+// belgium traffic sign classification set from:
 //   http://btsd.ethz.ch/shareddata/
 //   ( BelgiumTSC_Training.zip & BelgiumTSC_Testing.zip
 //     i changed the directory structure, so it looks like:
