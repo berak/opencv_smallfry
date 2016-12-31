@@ -24,9 +24,9 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <map>
+
 using namespace cv;
 using namespace std;
-
 using tiny_dnn::vec_t;
 using tiny_dnn::label_t;
 
@@ -65,7 +65,7 @@ void convert_image(const Mat &image, int lab, cv::Mat &data, cv::Mat &labels)
 }
 
 //
-//! load mages for maxn classes from train or test dir.
+//! load images for maxn classes from train or test dir.
 // note, that the csv files *claim* to have W,h,x,y order, but it's the other way round ! (H,W,y,x)
 //
 template<class Datatype, class Labelstype>
@@ -105,12 +105,16 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int maxn=-1, 
         }
     }
     cout << endl;
+
     int64 t1 = getTickCount();
     return  ((t1-t)/getTickFrequency());
 }
 
 
-
+//
+//! load a json model from file, reconfigure traindata settings (winsize, maxn)
+//  optionally load pretrained weights
+//
 int ann_test(int maxn, char *json, char *savedata, float learn)
 {
     using namespace tiny_dnn;
@@ -137,7 +141,7 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
        std::cout << e.what();
     }
 
-    /// i wich i could configure theis dynamically !
+    /// i wich i could configure this dynamically !
     //gradient_descent optimizer;
     //momentum optimizer;
     adagrad opt;
@@ -168,8 +172,9 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
     size_t z=0; // samples seen per epoch
     size_t batch_size = 12;
     size_t epochs = 0;
-    size_t count = 0; // overall samples seen in this training
+    size_t count = 0; // overall samples seen in this training pass
 
+    // test accuracy on (a few) random samples
     auto check = [&](const string &tit, const vector<vec_t> &data, const vector<label_t> &labels){
         int ntests = 100;
         int correct = 0;
@@ -187,7 +192,6 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
         cout << tit << " " << acc << " " ;
     };
 
-
     auto on_enumerate_epoch = [&](){
         opt.alpha *= 0.98;  // decay learning rate
         opt.alpha = std::max((tiny_dnn::float_t)0.00001, opt.alpha);
@@ -204,7 +208,8 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
         nn[1]->output_to_image().write("layer1.bmp");
         nn[2]->output_to_image().write("layer2.bmp");
         nn[3]->output_to_image().write("layer3.bmp");
-/*
+
+/* WIP!!
         std::vector<vec_t*> w0 = nn[0]->weights();
         Mat draw;
         cout << w0.size() << " elems. " << w[0]->size() << "features.";
@@ -218,6 +223,7 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
         imshow("filters 0", draw);
         waitKey(5);
 */
+        // save weights
         std::ofstream ofs("my.net");
         ofs << nn;
 
@@ -233,13 +239,13 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
     nn.train<cross_entropy>(opt, data, labels, batch_size, 1000,
                   on_enumerate_data, on_enumerate_epoch);
 
-    std::ofstream ofs("my.net");
-    ofs << nn;
-
     return 0;
 }
 
 
+//
+// cross-checking with opencv's SVM (0.93 with first 20 classes only)
+//
 int svm_test(int maxn)
 {
     Mat data,labels;
