@@ -63,18 +63,23 @@ namespace ROC {
     }
 } // ROC
 
-Mat sigmoid(const Mat &m)
-{
+Mat sigmoid(const Mat &m) {
     Mat P;
     multiply(m, -1, P);
-    exp(P,P);
+    exp(P, P);
     add(P, 1, P);
-    divide(1,P, P);
+    divide(1, P, P);
     return P;
 }
 
-int main(int argc, char **argv)
-{
+//
+// parse precalculated landmarks & ground truth data from
+//    http://www.icg.tugraz.at/Members/divjak/prework/groundtruth_talking.zip
+//    http://www-prima.inrialpes.fr/FGnet/data/01-TalkingFace/talking_face.html
+//    (5000 frames with 63 blinks)
+//    and write a csv file compatible with opencv's traindata
+//
+void writeEAR() {
     string blink = "C:/data/blink/";
     string dummy;
 
@@ -106,17 +111,18 @@ int main(int argc, char **argv)
             cerr << "bad file " << i << endl;
             continue;
         }
-        // skip first 30 lines (3 lines offset + 27)
+        // skip annotation header and first 27 points (30 lines)
         string dummy;
         for (int j=0; j<30; j++)
             getline(in, dummy);
 
+        // they start counting at 1, so the 1st eye corner is point 27
         Point2d p27,p28,p29,p30;
         in >> p27.x >> p27.y;
         in >> p28.x >> p28.y;
         in >> p29.x >> p29.y;
         in >> p30.x >> p30.y;
-        double ear_l = cv::norm(p27 - p29) / cv::norm(p28 - p30);
+        double ear_l = norm(p27 - p29) / norm(p28 - p30);
         el.push_back(ear_l);
 
         // skip point 31
@@ -147,6 +153,15 @@ int main(int argc, char **argv)
             er.pop_front();
         }
     }
+}
+
+
+int main(int argc, char **argv)
+{
+    ifstream e("ear.csv");
+    if (! e.good()) {
+        writeEAR();
+    }
 
     // train & test with SVM:
     Ptr<ml::SVM> svm = ml::SVM::create();
@@ -159,37 +174,37 @@ int main(int argc, char **argv)
     svm->train(data,0,labels);
 
     Mat vdata = tdata->getTestSamples();
-    Mat vlabels = tdata->getTestResponses();
-    Mat results;
-    svm->predict(vdata,results);
+    Mat gdtruth = tdata->getTestResponses();
+    Mat predict;
+    svm->predict(vdata, predict);
 
-    float correct = countNonZero(results == vlabels);
-    float accuracy = correct / results.total();
+    float correct = countNonZero(predict == gdtruth);
+    float accuracy = correct / predict.total();
     cerr << "accuracy: " << accuracy << endl;
 
     // accuracy alone is not enough here, since it might
     // simply have missed all positives !
     Mat_<int> confusion(2,2,0);
-    for (int i=0; i<results.rows; i++) {
-        int p = (int)results.at<float>(i);
-        int t = (int)vlabels.at<float>(i);
+    for (int i=0; i<predict.rows; i++) {
+        int p = (int)predict.at<float>(i);
+        int t = (int)gdtruth.at<float>(i);
         confusion(p,t) ++;
     }
     cerr << "confusion:\n" << confusion << endl;
 
     // additionally, do ROC analysis.
     // we need raw output, so another prediction required:
-    svm->predict(vdata, results, ml::StatModel::RAW_OUTPUT);
-    // svm gives distances, needed are probs
-    results = sigmoid(-results); // positive features have negative distance
+    svm->predict(vdata, predict, ml::StatModel::RAW_OUTPUT);
+    // svm gives distances, needed are probs in [0..1]
+    predict = sigmoid(-predict); // positive features have negative distance
 
     std::vector<Point2f> roc;
-    ROC::curve(results, vlabels, roc, 100);
+    ROC::curve(predict, gdtruth, roc, 100);
     cerr << "AUC " << ROC::auc(roc) << endl;
 
     Mat roc_draw(480, 640, CV_8UC3, Scalar::all(255));
     ROC::draw(roc, roc_draw, Scalar(255,0,0));
-    imshow("ROC",roc_draw);
+    imshow("ROC", roc_draw);
     waitKey();
 
     return 0;

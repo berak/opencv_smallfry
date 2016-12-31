@@ -1,0 +1,83 @@
+{
+    "nodes": [
+        {
+            "type": "conv<leaky_relu>",
+            "in_size": {
+                "width": 24,
+                "height": 24,
+                "depth": 3
+            },
+            "window_width": 5,
+            "window_height": 5,
+            "out_channels": 9,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 0,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
+        },
+        {
+            "type": "conv<leaky_relu>",
+            "in_size": {
+                "width": 20,
+                "height": 20,
+                "depth": 9
+            },
+            "window_width": 5,
+            "window_height": 5,
+            "out_channels": 9,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 0,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
+        },
+        {
+            "type": "conv<leaky_relu>",
+            "in_size": {
+                "width": 16,
+                "height": 16,
+                "depth": 9
+            },
+            "window_width": 3,
+            "window_height": 3,
+            "out_channels": 9,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 0,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
+        },
+        {
+            "type": "avepool<identity>",
+            "in_size": {
+                "width": 14,
+                "height": 14,
+                "depth": 9
+            },
+            "pool_size_x": 2,
+            "pool_size_y": 2,
+            "stride_x": 2,
+            "stride_y": 2,
+            "pad_type": 0
+        },
+        {
+            "type": "fully_connected<softmax>",
+            "in_size": 441,
+            "out_size": 30,
+            "has_bias": true
+        }
+    ]
+}

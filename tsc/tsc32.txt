@@ -1,0 +1,69 @@
+{
+    "nodes": [
+        {
+            "type": "conv<leaky_relu>",
+            "in_size": {
+                "width": 32,
+                "height": 32,
+                "depth": 3
+            },
+            "window_width": 5,
+            "window_height": 5,
+            "out_channels": 9,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 0,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
+        },
+        {
+            "type": "conv<leaky_relu>",
+            "in_size": {
+                "width": 28,
+                "height": 28,
+                "depth": 9
+            },
+            "window_width": 5,
+            "window_height": 5,
+            "out_channels": 9,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 0,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
+        },
+        {
+            "type": "avepool<identity>",
+            "in_size": {
+                "width": 24,
+                "height": 24,
+                "depth": 9
+            },
+            "pool_size_x": 2,
+            "pool_size_y": 2,
+            "stride_x": 2,
+            "stride_y": 2,
+            "pad_type": 0
+        },
+        {
+            "type": "fully_connected<tan_h>",
+            "in_size": 1296,
+            "out_size": 200,
+            "has_bias": true
+        },
+        {
+            "type": "fully_connected<softmax>",
+            "in_size": 200,
+            "out_size": 20,
+            "has_bias": true
+        }
+    ]
+}
