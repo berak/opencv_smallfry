@@ -46,7 +46,7 @@ namespace ROC {
     float auc(vector<Point2f> &roc) {
         float _auc = 0.0f;
         for (int i=0; i<int(roc.size())-1; i++) {
-            _auc += (roc[i+1].y + roc[i].y) * (roc[i+1].x - roc[i].x);
+            _auc += (roc[i+1].y + roc[i].y) * (roc[i+1].x - roc[i].x); // riemann
         }
         return _auc * 0.5f;
     }
@@ -166,22 +166,21 @@ int main(int argc, char **argv)
         writeEAR();
     }
 
-    // train & test with SVM:
-    Ptr<ml::SVM> svm = ml::SVM::create();
     Ptr<ml::TrainData> tdata = ml::TrainData::loadFromCSV("ear.csv",0,0,1);
     tdata->setTrainTestSplitRatio(0.7);
-
-    Mat data = tdata->getTrainSamples();
+    Mat data   = tdata->getTrainSamples();
     Mat labels = tdata->getTrainResponses();
     labels.convertTo(labels, CV_32S); // hrrm!
+
+    Ptr<ml::SVM> svm = ml::SVM::create();
     svm->train(data,0,labels);
 
     Mat vdata = tdata->getTestSamples();
-    Mat gdtruth = tdata->getTestResponses();
+    Mat truth = tdata->getTestResponses();
     Mat predict;
     svm->predict(vdata, predict);
 
-    float correct = countNonZero(predict == gdtruth);
+    float correct = countNonZero(predict == truth);
     float accuracy = correct / predict.total();
     cerr << "accuracy: " << accuracy << endl;
 
@@ -190,7 +189,7 @@ int main(int argc, char **argv)
     Mat_<int> confusion(2,2,0);
     for (int i=0; i<predict.rows; i++) {
         int p = (int)predict.at<float>(i);
-        int t = (int)gdtruth.at<float>(i);
+        int t = (int)truth.at<float>(i);
         confusion(p,t) ++;
     }
     cerr << "confusion:\n" << confusion << endl;
@@ -203,7 +202,7 @@ int main(int argc, char **argv)
     predict = sigmoid(-predict);
 
     std::vector<Point2f> roc;
-    ROC::curve(predict, gdtruth, roc, 100);
+    ROC::curve(predict, truth, roc, 100);
     cerr << "AUC " << ROC::auc(roc) << endl;
 
     Mat roc_draw(480, 640, CV_8UC3, Scalar::all(255));
