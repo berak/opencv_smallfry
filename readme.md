@@ -5,6 +5,7 @@
 * condens2.cpp: 2.x adaption of the old legacy condensation code
 * db: serialize cv::Mat to some popular databases.
 * dbrief: c++, opencv2.x port of http://cvlab.epfl.ch/research/detect/dbrief
+* demo: various c++/py samples, mostly related to problems found on answers.opencv.org or #opencv
 * eyes.cpp: hog/svm based open / closed eyes detector, using flandmarks for eye location
 * facerec_online.py: realtime facerec from webcam ( with adaptive face-db )
 * gas.cpp: Neural Gas (clustering) experiment
