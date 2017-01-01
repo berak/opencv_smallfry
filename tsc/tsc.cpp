@@ -23,14 +23,13 @@
 #include "tiny_dnn/tiny_dnn.h" // order matters, this has to go before opencv (ACCESS_WRITE)
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include <map>
 
 using namespace cv;
 using namespace std;
 using tiny_dnn::vec_t;
 using tiny_dnn::label_t;
 
-int WINSIZE=32;
+int WINSIZE   = 24; // dnn/json will override this
 String tscdir = "C:/data/BelgiumTSC/";
 
 //! convert a single image plane to vec_t for tiny_dnn
@@ -40,48 +39,54 @@ void convert_plane(const Mat &img, vec_t &d)
     std::transform(image.begin(), image.end(), std::back_inserter(d),
                    [=](uint8_t c) { return float(c)/255.0f; });
 }
+
 //! convert (possibly color) image to vec_t for tiny_dnn, and add to dataset
+//  tiny_dnn wants consecutive image planes
 void convert_image(const Mat &img, int lab, std::vector<vec_t>& data, std::vector<label_t>& labels)
 {
     vec_t d;
     if (img.channels() == 1) {
         convert_plane(img, d);
     } else {
-        vector<Mat> chn; split(img, chn);
+        vector<Mat> chn;
+        split(img, chn);
         for (auto c : chn) {
             convert_plane(c, d);
         }
     }
     data.push_back(d);
     labels.push_back(lab);
-    cout << "ann " << data.size() << "\t" << lab << "\r";
-}
-//! convert image to Mat for cv::ml::SVM, and add to dataset
-void convert_image(const Mat &image, int lab, cv::Mat &data, cv::Mat &labels)
-{
-    data.push_back(image.reshape(1,1));
-    labels.push_back(lab);
-    cout << "svm " << data.rows << "\t" << lab << "\r";
+    cout << "dnn " << data.size() << "\t" << lab << "\r";
 }
 
-//
+//! convert image to Mat for cv::ml classes, and add to dataset
+void convert_image(const Mat &image, int lab, cv::Mat &data, cv::Mat &labels)
+{
+    Mat img;
+    image.convertTo(img, CV_32F, 1.0/255);
+    data.push_back(img.reshape(1,1));
+    labels.push_back(lab);
+    cout << "mat " << data.rows << "\t" << lab << "\r";
+}
+
+
 //! load images for maxn classes from train or test dir.
-// note, that the csv files *claim* to have W,h,x,y order, but it's the other way round ! (H,W,y,x)
-//
+//  note, that the csv files *claim* to have W,h,x,y order, but actually, it's the other way round ! (H,W,y,x)
 template<class Datatype, class Labelstype>
 double load(const String &dir, Datatype &data, Labelstype &labels, int maxn=-1, bool gray=true)
 {
     int64 t = getTickCount();
 
     vector<String> csvs;
-    glob(dir + "*.csv",csvs, true);
+    glob(dir + "*.csv", csvs, true);
     for (auto cn : csvs) {
         ifstream csv(cn);
         string file;
-        getline(csv,file);
+        getline(csv, file); // skip csv header
         while(csv.good()) {
             char c = 0;
             file = "";
+            // avoid "evil string globbing"
             while (csv.good()) {
                 csv.get(c);
                 if (c == ';') break;
@@ -89,19 +94,19 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int maxn=-1, 
                 file += c;
             }
             if (file.empty()) break;
+
             int W,H,x1,y1,x2,y2,l;
             csv >> H >> c >> W >> c >> y1 >> c >> x1 >> c >> y2 >> c >> x2 >> c >> l;
             if (maxn>0 && l>=maxn) break;
             Rect r(Point(x1,y1), Point(x2,y2));
+
             String fn = dir + format("%05d/",l) + file;
             Mat img = imread(fn, (gray?0:1));
-            if (img.empty()) {
-                //cout << "no " << fn << endl;
-                continue;
-            }
+            if (img.empty()) continue;
+
             cv::Mat resized;
             cv::resize(img(r), resized, cv::Size(WINSIZE, WINSIZE));
-            convert_image(resized,l,data,labels);
+            convert_image(resized, l, data, labels);
         }
     }
     cout << endl;
@@ -111,11 +116,9 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int maxn=-1, 
 }
 
 
-//
-//! load a json model from file, reconfigure traindata settings (winsize, maxn)
-//  optionally load pretrained weights
-//
-int ann_test(int maxn, char *json, char *savedata, float learn)
+//! load a json model from file, adjust traindata settings (winsize, maxn)
+//!  optionally load pretrained weights
+int dnn(int maxn, char *json, char *savedata, float learn)
 {
     using namespace tiny_dnn;
     using namespace tiny_dnn::activation;
@@ -130,18 +133,20 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
         std::vector<shape3d> shp_out = nn[last]->out_data_shape();
         maxn = shp_out[0].width_;
         cout << "in " << WINSIZE << ", out " << maxn << endl;
+
         if (savedata) {
             ifstream ifs(savedata);
             ifs >> nn;
         } else {
             nn.weight_init(weight_init::xavier(0.2));
         }
+
         nn.save("mymodel.txt", content_type::model, file_format::json);
     } catch (const nn_error& e) {
        std::cout << e.what();
     }
 
-    /// i wich i could configure this dynamically !
+    /// WIP - i wish i could configure this from json !
     //gradient_descent optimizer;
     //momentum optimizer;
     adagrad opt;
@@ -150,23 +155,23 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
     //optimizer.mu = 0.85;
 
     for (int i = 0; i < nn.depth(); i++) {
-        cout << "#layer:" << i << "\n";
-        cout << "layer type:" << nn[i]->layer_type() << "\n";
-        cout << "input:" << nn[i]->in_size() << "(" << nn[i]->in_shape() << ")\n";
-        cout << "output:" << nn[i]->out_size() << "(" << nn[i]->out_shape() << ")\n";
+        cout << "#layer: " << i << "\n";
+        cout << "type: "   << nn[i]->layer_type() << "\n";
+        cout << "input: "  << nn[i]->in_size() << "(" << nn[i]->in_shape() << ")\n";
+        cout << "output: " << nn[i]->out_size() << "(" << nn[i]->out_shape() << ")\n";
     }
 
     // load data
     vector<vec_t> data, v_data;
     vector<label_t> labels, v_labels;
 
-    double tl = load(tscdir + "Training/",data,labels,maxn, false);
+    double tl = load(tscdir + "Training/", data, labels, maxn, false);
     int n = data.size() * data[0].size();
-    cout << data.size() << " train elems, " << n << " bytes. " << tl << " seconds. " << endl;
+    cout << "dnn train " << data.size() << " elems, " << n << " bytes. " << tl << " seconds. " << endl;
 
-    tl = load(tscdir + "Testing/",v_data,v_labels,maxn, false);
+    tl = load(tscdir + "Testing/", v_data, v_labels, maxn, false);
     n = v_data.size() * v_data[0].size();
-    cout << v_data.size() << " test  elems, " << n << " bytes. " << tl << " seconds." <<endl;
+    cout << "dnn test  " << v_data.size() << " elems, " << n << " bytes. " << tl << " seconds." <<endl;
 
     timer t;
     size_t z=0; // samples seen per epoch
@@ -204,12 +209,15 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
         result res = nn.test(v_data, v_labels);
         cout << "test " << (float(res.num_success)/res.num_total) << endl;
 
-        nn[0]->output_to_image().write("layer0.bmp");
+        nn[0]->output_to_image().write("layer0_w.bmp");
         nn[1]->output_to_image().write("layer1.bmp");
         nn[2]->output_to_image().write("layer2.bmp");
         nn[3]->output_to_image().write("layer3.bmp");
+        /// WIP
+        //nn.at<conv<leaky_relu>(0)->weight_to_image().write("layer0_w.bmp");
+        //nn.at<conv<leaky_relu>(1)->weight_to_image().write("layer1_w.bmp");
 
-/* WIP!!
+        /** WIP
         std::vector<vec_t*> w0 = nn[0]->weights();
         Mat draw;
         cout << w0.size() << " elems. " << w[0]->size() << "features.";
@@ -222,18 +230,19 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
         }
         imshow("filters 0", draw);
         waitKey(5);
-*/
+        **/
+
         // save weights
         std::ofstream ofs("my.net");
         ofs << nn;
 
         t.restart();
-        z = 0;
+        z = 0; // reset local counter
     };
 
     auto on_enumerate_data = [&](){
-        cout << (z+=batch_size) << "\r";
-        count += batch_size;
+        cout << (z+=batch_size) << "\r"; // local
+        count += batch_size;             // global
     };
 
     nn.train<cross_entropy>(opt, data, labels, batch_size, 1000,
@@ -243,56 +252,103 @@ int ann_test(int maxn, char *json, char *savedata, float learn)
 }
 
 
-//
-// cross-checking with opencv's SVM (0.93 with first 20 classes only)
-//
-int svm_test(int maxn)
+//! process opencv prediction results:
+void cv_results(int maxn, Mat &results, Mat &labels, const String &tit)
 {
-    Mat data,labels;
-    double t = load(tscdir + "Training/",data,labels,maxn);
-    data.convertTo(data, CV_32F);
-    int n = data.total() * data.elemSize();
-    cout << data.rows << " elems, " << n << " bytes." << endl;
+    // confusion:
+    int C = std::min(maxn, 62);
+    Mat_<int> confusion(C, C, 0);
+    for (int i=0; i<results.rows; i++) {
+        int p = (int)results.at<float>(i);
+        int t = (int)labels.at<int>(i);
+        confusion(p, t) ++;
+    }
+    const int MAXC = 30;
+    if (confusion.rows < MAXC)
+        cout << tit << "confusion:\n" << confusion << endl;
+    else // skip results beyond MAXC
+        cout << tit << "confusion:\n" << confusion(Rect(0, 0, MAXC, MAXC)) << endl;
 
+    // accuracy:
+    float correct  = sum(confusion.diag())[0];
+    float accuracy = correct / results.rows;
+    cout << tit << "accuracy: " << accuracy << endl;
+}
+
+
+//! load & print stats
+void cv_load(const String &dir, Mat &data, Mat &labels, int maxn, const String &tit)
+{    data.release();
+    labels.release();
+    double t = load(tscdir + dir, data, labels, maxn);
+    int n = data.total() * data.elemSize();
+    cout << tit << data.rows << " elems, " << n << " bytes, " << maxn << " classes, " << t <<  " seconds." << endl;
+}
+
+int cv_svm(int maxn)
+{
     Ptr<ml::SVM> svm = ml::SVM::create();
     svm->setKernel(ml::SVM::LINEAR);
-    svm->train(data,0,labels);
 
-    data.release();
-    labels.release();
-    t = load(tscdir + "Testing/",data,labels,maxn);
-    data.convertTo(data, CV_32F);
-    n = data.total() * data.elemSize();
-    cout << data.rows << " elems, " << n << " bytes." << endl;
+    Mat data, labels;
+    cv_load("Training/", data, labels, maxn, "svm train ");
+    svm->train(data, 0, labels);
 
+    cv_load("Testing/", data, labels, maxn, "svm test  ");
     Mat results;
-    svm->predict(data,results);
-    results.convertTo(results, CV_32S);
-    float correct = countNonZero(results == labels);
-    float accuracy = correct / results.total();
-    cout << "accuracy: " << accuracy << endl;
-    int C = 62;
-    if (maxn!=-1) C=maxn;
-    Mat_<int> confusion(C,C,0);
-    for (int i=0; i<results.rows; i++) {
-        int p = (int)results.at<int>(i);
-        int t = (int)labels.at<int>(i);
-        confusion(p,t) ++;
+    svm->predict(data, results);
+    cv_results(maxn, results, labels, "svm ");
+    return 0;
+}
+
+int cv_mlp(int maxn)
+{
+    Ptr<ml::ANN_MLP> nn = ml::ANN_MLP::create();
+    Mat_<int> layers(3, 1);
+    layers << WINSIZE*WINSIZE, 400, maxn;
+    nn->setLayerSizes(layers);
+    nn->setTrainMethod(ml::ANN_MLP::BACKPROP);
+    nn->setTermCriteria(TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 1000, 0.00001f));
+    nn->setActivationFunction(ml::ANN_MLP::SIGMOID_SYM, 1, 1);
+    nn->setBackpropWeightScale(0.1f);
+    nn->setBackpropMomentumScale(0.1f);
+
+    Mat data,labels;
+    cv_load("Training/", data, labels, maxn, "mlp train ");
+
+    // mlp needs one-hot encoded responses
+    Mat hot(labels.rows, maxn, CV_32F, 0.0f); // all zero, initially
+    for (int i=0; i<labels.rows; i++)
+    {
+        int id = (int)labels.at<int>(i);
+        hot.at<float>(i, id) = 1.0f;
     }
-    cout << "confusion:\n" << confusion << endl;
+    nn->train(data, 0, hot);
+
+    cv_load("Testing/", data, labels, maxn, "mlp test  ");
+    Mat results;
+    nn->predict(data, results);
+    cv_results(maxn, results, labels, "mlp ");
     return 0;
 }
 
 
 int main(int argc, char **argv)
 {
-    int maxn=20;
+    int maxn = 20; // restrict to first maxn classes
+
+    if (argc>1 && argv[1][0] == 's')
+        return cv_svm(maxn);
+    if (argc>1 && argv[1][0] == 'm')
+        return cv_mlp(maxn);
+
     char *json = (char*)"mymodel.txt";
     if (argc>1) json = argv[1];
     float learn = 0.01f;
     if (argc>2) learn = atof(argv[2]);
     char *save = 0;
     if (argc>3) save = argv[3];
-    return ann_test(maxn, json, save, learn);
-    //return svm_test(maxn);
+
+    dnn(maxn, json, save, learn);
+    return 0;
 }

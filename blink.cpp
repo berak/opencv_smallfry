@@ -1,24 +1,17 @@
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <deque>
-#include <map>
-using namespace cv;
-using namespace std;
-
 /***
 
 eye-blink classification, based on:
-http://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf
+ http://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf
 
 using data from:
-http://www.icg.tugraz.at/Members/divjak/prework/PreWork-Data
-http://www.icg.tugraz.at/Members/divjak/prework/groundtruth_talking.zip
-http://www-prima.inrialpes.fr/FGnet/data/01-TalkingFace/talking_face.html
-(annotated landmarks + ground truth (blink/non-blink) data for the time series)
+ http://www.icg.tugraz.at/Members/divjak/prework/PreWork-Data
+ http://www.icg.tugraz.at/Members/divjak/prework/groundtruth_talking.zip
+ http://www-prima.inrialpes.fr/FGnet/data/01-TalkingFace/talking_face.html
+ (annotated landmarks + ground truth (blink/non-blink) data for the time series)
 
 note, that the landmark model used here differs from the paper,
-as it only has 1 vertical point pair, so the ear is calulated as
-cv::norm(p27 - p29) / cv::norm(p28 - p30); (for the left eye)
+ as it only has 1 vertical point pair, so the ear is calulated as
+ norm(p27 - p29) / norm(p28 - p30); (for the left eye)
 
 accuracy: 0.963904
 confusion:
@@ -26,6 +19,15 @@ confusion:
  36, 246]  // pos
 
 ***/
+
+
+#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <deque>
+#include <map>
+using namespace cv;
+using namespace std;
+
 
 namespace ROC {
     void curve(const Mat &probs, const Mat &truth, vector<Point2f> &roc, int N, const float eps=1e-1) {
@@ -78,6 +80,7 @@ Mat sigmoid(const Mat &m) {
 //    http://www-prima.inrialpes.fr/FGnet/data/01-TalkingFace/talking_face.html
 //    (5000 frames with 63 blinks)
 //    and write a csv file compatible with opencv's traindata
+//      (time series with 13 ear values per center frame)
 //
 void writeEAR() {
     string blink = "C:/data/blink/";
@@ -183,7 +186,7 @@ int main(int argc, char **argv)
     cerr << "accuracy: " << accuracy << endl;
 
     // accuracy alone is not enough here, since it might
-    // simply have missed all positives !
+    //   simply have missed all positives !
     Mat_<int> confusion(2,2,0);
     for (int i=0; i<predict.rows; i++) {
         int p = (int)predict.at<float>(i);
@@ -193,10 +196,11 @@ int main(int argc, char **argv)
     cerr << "confusion:\n" << confusion << endl;
 
     // additionally, do ROC analysis.
-    // we need raw output, so another prediction required:
+    //   we need raw output, so another prediction required:
     svm->predict(vdata, predict, ml::StatModel::RAW_OUTPUT);
     // svm gives distances, needed are probs in [0..1]
-    predict = sigmoid(-predict); // positive features have negative distance
+    //   positive features have negative distance, so negate input
+    predict = sigmoid(-predict);
 
     std::vector<Point2f> roc;
     ROC::curve(predict, gdtruth, roc, 100);
