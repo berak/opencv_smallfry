@@ -132,6 +132,7 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
     using namespace tiny_dnn;
     using namespace tiny_dnn::activation;
     using namespace tiny_dnn::layers;
+    typedef cross_entropy loss_t;
 
     network<sequential> nn;
     try {
@@ -147,7 +148,8 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
             ifstream ifs(pre_weigths);
             ifs >> nn;
         } else {
-            nn.weight_init(weight_init::xavier(0.2));
+            //nn.weight_init(weight_init::xavier(0.2));
+            nn.weight_init(weight_init::lecun());
         }
 
         nn.save("mymodel.txt", content_type::model, file_format::json);
@@ -158,7 +160,7 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
     /// WIP - i wish i could configure this from json !
     //gradient_descent optimizer;
     //momentum optimizer;
-    adagrad opt;
+    adam opt;
     opt.alpha = learn;
     //optimizer.lambda = 0.05;
     //optimizer.mu = 0.85;
@@ -217,29 +219,19 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
         check("valid", v_data, v_labels);
         result res = nn.test(v_data, v_labels);
         cout << "test " << (float(res.num_success) / res.num_total) << endl;
+        //double loss = nn.get_loss<loss_t>(v_data, v_labels);
+        //cout << "loss " << loss << endl;
 
         nn[0]->output_to_image().write("layer0.bmp");
         nn[1]->output_to_image().write("layer1.bmp");
         nn[2]->output_to_image().write("layer2.bmp");
         nn[3]->output_to_image().write("layer3.bmp");
-        /// WIP
-        //nn.at<conv<leaky_relu>(0)->weight_to_image().write("layer0_w.bmp");
-        //nn.at<conv<leaky_relu>(1)->weight_to_image().write("layer1_w.bmp");
-
-        /** WIP
-        std::vector<vec_t*> w0 = nn[0]->weights();
-        Mat draw;
-        cout << w0.size() << " elems. " << w[0]->size() << "features.";
-        for (auto f=w0.begin(); f!=w0.end(); f++) {
-            const vec_t *v = (*f);
-            int w = (int)sqrt(double(v->size() + 4));
-            Mat m = Mat(w, w, CV_32F, (void*)v->data());
-            if (draw.empty()) draw = m.clone();
-            else hconcat(draw, m, draw);
+        try {
+            nn.at<conv<leaky_relu>>(0).weight_to_image().write("layer0_w.bmp");
+            nn.at<conv<leaky_relu>>(1).weight_to_image().write("layer1_w.bmp");
+        } catch (const nn_error& e) {
+           cout << e.what();
         }
-        imshow("filters 0", draw);
-        waitKey(5);
-        **/
 
         // save weights
         std::ofstream ofs("my.net");
@@ -254,7 +246,7 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
         count += batch_size;             // global
     };
 
-    nn.train<cross_entropy>(opt, t_data, t_labels, batch_size, 1000,
+    nn.train<loss_t>(opt, t_data, t_labels, batch_size, 1000,
                   on_enumerate_data, on_enumerate_epoch);
 
     return 0;
@@ -315,21 +307,21 @@ int cv_svm(int max_classes)
 int cv_mlp(int max_classes)
 {
     Mat_<int> layers(3, 1);
-    layers << WINSIZE*WINSIZE, 400, max_classes;
+    layers << WINSIZE*WINSIZE, 100, max_classes;
 
     Ptr<ml::ANN_MLP> nn = ml::ANN_MLP::create();
     nn->setLayerSizes(layers);
-    nn->setTrainMethod(ml::ANN_MLP::BACKPROP);
-    nn->setTermCriteria(TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 1000, 0.00001f));
+    nn->setTrainMethod(ml::ANN_MLP::BACKPROP, 0.0001);
     nn->setActivationFunction(ml::ANN_MLP::SIGMOID_SYM, 1, 1);
-    nn->setBackpropWeightScale(0.5f);
-    nn->setBackpropMomentumScale(0.5f);
+    nn->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER+TermCriteria::EPS, 300, 0.0001));
+    //nn->setBackpropWeightScale(0.5f);
+    //nn->setBackpropMomentumScale(0.5f);
 
     Mat data, labels;
     cv_load("Training/", data, labels, max_classes, "mlp train ");
 
     // mlp needs "one-hot" encoded responses for training
-    Mat hot(labels.rows, max_classes, CV_32F, 0.0f); // all zero, initially
+    Mat hot(labels.rows, max_classes, CV_32F, 0.0f);
     for (int i=0; i<labels.rows; i++)
     {
         int id = (int)labels.at<int>(i);
@@ -339,7 +331,25 @@ int cv_mlp(int max_classes)
 
     cv_load("Testing/", data, labels, max_classes, "mlp test  ");
     Mat results;
-    nn->predict(data, results);
+    for (int r=0; r<data.rows; r++) {
+        float p = nn->predict(data.row(r));
+        results.push_back(p);
+    }
+
+    /*for (int r=0; r<results.rows; r++) {
+        float m = -99999999;
+        int mid = 0;
+        for (int c=0; c<results.cols; c++) {
+            float v = results.at<float>(r,c);
+            if (v>m) {
+                m   = v;
+                mid = c;
+            }
+        }
+        largest.at<float>(r) = mid;
+    }*/
+    //cerr << "res " << results.size() << endl;
+    //cerr << results << endl;
     cv_results(max_classes, results, labels, "mlp ");
     return 0;
 }

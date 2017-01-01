@@ -76,7 +76,7 @@
         {
             "type": "fully_connected<softmax>",
             "in_size": 441,
-            "out_size": 30,
+            "out_size": 20,
             "has_bias": true
         }
     ]
