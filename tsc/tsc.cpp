@@ -17,6 +17,7 @@
 // dnn code from:
 //   https://github.com/tiny-dnn/
 //   (main tries to load a json model)
+// also comes with opencv SVM & ANN_MLP reference impl.
 //
 
 
@@ -37,9 +38,10 @@ String tscdir = "C:/data/BelgiumTSC/";
 //! convert a single cv::Mat image plane to tiny_dnn::vec_t
 void convert_plane(const Mat &img, vec_t& tiny_vec)
 {
-    Mat_<uchar> image = img.reshape(1,1);
+    const float scale = 1.0f / 255.0f;
+    Mat_<uchar> image = img.reshape(1, 1);
     std::transform(image.begin(), image.end(), std::back_inserter(tiny_vec),
-                   [=](uint8_t c) { return float(c)/255.0f; });
+                   [=](uint8_t c) { return float(c) * scale; });
 }
 
 
@@ -84,10 +86,10 @@ void add_image(const Mat &image, int lab, cv::Mat &data, cv::Mat &labels)
 //! load images for max_classes classes from train or test dir.
 //  note, that the csv files *claim* to have W,h,x,y order, but actually, it's the other way round ! (H,W,y,x)
 template<class Datatype, class Labelstype>
-double load(const String &dir, Datatype &data, Labelstype &labels, int max_classes=-1, bool gray=true)
+double load(const String &dir, Datatype &data, Labelstype &labels, int max_classes=-1, bool gray=true, int skip=0)
 {
     int64 t0 = getTickCount();
-
+    int k = 0;
     vector<String> csvs;
     glob(dir + "*.csv", csvs, true);
     for (auto cn : csvs) {
@@ -95,6 +97,7 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int max_class
         string file;
         getline(csv, file); // skip csv header
         while(csv.good()) {
+            k++;
             char c = 0;
             file = "";
             // avoid "evil string globbing"
@@ -108,14 +111,15 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int max_class
 
             int W,H,x1,y1,x2,y2,label;
             csv >> H >> c >> W >> c >> y1 >> c >> x1 >> c >> y2 >> c >> x2 >> c >> label;
-            if (max_classes>0 && label>=max_classes) break;
-            Rect roi(Point(x1,y1), Point(x2,y2));
+            if ((skip > 1) && (k % skip != 0)) continue;
+            if ((max_classes > 0) && (label >= max_classes)) break;
 
             String fn = dir + format("%05d/",label) + file;
             Mat img = imread(fn, (gray?0:1));
             if (img.empty()) continue;
 
             cv::Mat resized;
+            Rect roi(Point(x1,y1), Point(x2,y2));
             cv::resize(img(roi), resized, cv::Size(WINSIZE, WINSIZE));
             add_image(resized, label, data, labels);
         }
@@ -127,7 +131,7 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int max_class
 
 //! load a json model from file, adjust traindata settings (winsize, max_classes)
 //!  optionally load pretrained weights
-int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
+int dnn(int max_classes, char *json_model, char *pre_weigths, float learn, const string &op)
 {
     using namespace tiny_dnn;
     using namespace tiny_dnn::activation;
@@ -142,14 +146,13 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
         int last = int(nn.layer_size()) - 1;
         std::vector<shape3d> shp_out = nn[last]->out_data_shape();
         max_classes = shp_out[0].width_;
-        cout << "in " << WINSIZE << ", out " << max_classes << endl;
 
         if (pre_weigths) {
             ifstream ifs(pre_weigths);
             ifs >> nn;
         } else {
-            //nn.weight_init(weight_init::xavier(0.2));
-            nn.weight_init(weight_init::lecun());
+            nn.weight_init(weight_init::xavier(1));
+            //nn.weight_init(weight_init::lecun());
         }
 
         nn.save("mymodel.txt", content_type::model, file_format::json);
@@ -157,14 +160,25 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
        std::cout << e.what();
     }
 
-    /// WIP - i wish i could configure this from json !
-    //gradient_descent optimizer;
-    //momentum optimizer;
-    adam opt;
-    opt.alpha = learn;
-    //optimizer.lambda = 0.05;
-    //optimizer.mu = 0.85;
+    // yea, this is horrible, but allows me to specify an optimizer from cmdline :[
+    map<string,optimizer*> ops;
+    ops["rms"]      = new RMSprop();
+    ops["grad"]     = new gradient_descent();
+    ops["adam"]     = new adam();
+    ops["adagrad"]  = new adagrad();
+    ops["momentum"] = new momentum();
+    auto get_alpha = [&](const string &op) {
+        if (op=="rms") return &(static_cast<RMSprop*>(ops[op])->alpha);
+        if (op=="grad") return &(static_cast<gradient_descent*>(ops[op])->alpha);
+        if (op=="adam") return &(static_cast<adam*>(ops[op])->alpha);
+        if (op=="adagrad") return &(static_cast<adagrad*>(ops[op])->alpha);
+        if (op=="momentum") return &(static_cast<momentum*>(ops[op])->alpha);
+        static float _ = 0.0f;
+        return &_;
+    };
+    *get_alpha(op) = learn;
 
+    cout << op << ", in " << WINSIZE << ", out " << max_classes << endl;
     for (int i = 0; i < nn.depth(); i++) {
         cout << "#layer: " << i << "\n";
         cout << "type: "   << nn[i]->layer_type() << "\n";
@@ -178,15 +192,15 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
 
     double tl = load(tscdir + "Training/", t_data, t_labels, max_classes, false);
     int n = t_data.size() * t_data[0].size();
-    cout << "dnn train " << t_data.size() << " elems, " << n << " bytes. " << tl << " seconds. " << endl;
+    cout << "dnn train " << t_data.size() << " samples, " << n << " bytes. " << tl << " seconds. " << endl;
 
-    tl = load(tscdir + "Testing/", v_data, v_labels, max_classes, false);
+    tl = load(tscdir + "Testing/", v_data, v_labels, max_classes, false, 3);
     n = v_data.size() * v_data[0].size();
-    cout << "dnn test  " << v_data.size() << " elems, " << n << " bytes. " << tl << " seconds." <<endl;
+    cout << "dnn test  " << v_data.size() << " samples, " << n << " bytes. " << tl << " seconds." <<endl;
 
     timer t;
     size_t z=0; // samples per epoch
-    size_t batch_size = 12;
+    size_t batch_size = 24;
     size_t epochs = 0;
     size_t count = 0; // overall samples in this training pass
 
@@ -209,14 +223,15 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
     };
 
     auto on_enumerate_epoch = [&](){
-        opt.alpha *= 0.98;  // decay learning rate
-        opt.alpha = std::max((tiny_dnn::float_t)0.00001, opt.alpha);
+        float *alpha = get_alpha(op);
+        *alpha *= 0.95;  // continuously decay learning rate
+        *alpha = std::max((tiny_dnn::float_t)0.00001, *alpha);
         std::cout << "epoch " << epochs << " " << count << " samples " << t.elapsed();
-        std::cout << " seconds, " << opt.alpha << " alpha. ";
+        std::cout << " seconds, " << *alpha << " alpha. ";
         epochs ++;
 
         check("train", t_data, t_labels);
-        check("valid", v_data, v_labels);
+        //check("valid", v_data, v_labels);
         result res = nn.test(v_data, v_labels);
         cout << "test " << (float(res.num_success) / res.num_total) << endl;
         //double loss = nn.get_loss<loss_t>(v_data, v_labels);
@@ -246,7 +261,7 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn)
         count += batch_size;             // global
     };
 
-    nn.train<loss_t>(opt, t_data, t_labels, batch_size, 1000,
+    nn.train<loss_t>(*ops[op], t_data, t_labels, batch_size, 1000,
                   on_enumerate_data, on_enumerate_epoch);
 
     return 0;
@@ -287,6 +302,8 @@ void cv_load(const String &dir, Mat &data, Mat &labels, int max_classes, const S
     cout << title << data.rows << " elems, " << n << " bytes, " << max_classes << " classes, " << t <<  " seconds." << endl;
 }
 
+using tiny_dnn::timer;
+
 int cv_svm(int max_classes)
 {
     Ptr<ml::SVM> svm = ml::SVM::create();
@@ -294,11 +311,19 @@ int cv_svm(int max_classes)
 
     Mat data, labels;
     cv_load("Training/", data, labels, max_classes, "svm train ");
+
+    timer t;
     svm->train(data, 0, labels);
+    double t1 = t.elapsed();
 
     cv_load("Testing/", data, labels, max_classes, "svm test  ");
+
+    t.restart();
     Mat results;
     svm->predict(data, results);
+    double t2 = t.elapsed();
+
+    cout << "svm " << t1 << " / " << t2 << " seconds." << endl;
     cv_results(max_classes, results, labels, "svm ");
     return 0;
 }
@@ -307,15 +332,13 @@ int cv_svm(int max_classes)
 int cv_mlp(int max_classes)
 {
     Mat_<int> layers(3, 1);
-    layers << WINSIZE*WINSIZE, 100, max_classes;
+    layers << WINSIZE*WINSIZE, 200, max_classes;
 
     Ptr<ml::ANN_MLP> nn = ml::ANN_MLP::create();
     nn->setLayerSizes(layers);
     nn->setTrainMethod(ml::ANN_MLP::BACKPROP, 0.0001);
-    nn->setActivationFunction(ml::ANN_MLP::SIGMOID_SYM, 1, 1);
+    nn->setActivationFunction(ml::ANN_MLP::SIGMOID_SYM);
     nn->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER+TermCriteria::EPS, 300, 0.0001));
-    //nn->setBackpropWeightScale(0.5f);
-    //nn->setBackpropMomentumScale(0.5f);
 
     Mat data, labels;
     cv_load("Training/", data, labels, max_classes, "mlp train ");
@@ -327,29 +350,21 @@ int cv_mlp(int max_classes)
         int id = (int)labels.at<int>(i);
         hot.at<float>(i, id) = 1.0f;
     }
+    timer t;
     nn->train(data, 0, hot);
+    double t1 = t.elapsed();
 
     cv_load("Testing/", data, labels, max_classes, "mlp test  ");
+    t.restart();
     Mat results;
+    // doing single predictions is slower, but this avoids having to unroll the result
     for (int r=0; r<data.rows; r++) {
         float p = nn->predict(data.row(r));
         results.push_back(p);
     }
+    double t2 = t.elapsed();
+    cout << "mlp " << t1 << " / " << t2 << " seconds." << endl;
 
-    /*for (int r=0; r<results.rows; r++) {
-        float m = -99999999;
-        int mid = 0;
-        for (int c=0; c<results.cols; c++) {
-            float v = results.at<float>(r,c);
-            if (v>m) {
-                m   = v;
-                mid = c;
-            }
-        }
-        largest.at<float>(r) = mid;
-    }*/
-    //cerr << "res " << results.size() << endl;
-    //cerr << results << endl;
     cv_results(max_classes, results, labels, "mlp ");
     return 0;
 }
@@ -366,10 +381,12 @@ int main(int argc, char **argv)
 
     char *json = (char*)"tsc32.txt";
     if (argc>1) json = argv[1];
+    string opt("grad");
+    if (argc>2) opt = argv[2];
     float learn = 0.01f;
-    if (argc>2) learn = atof(argv[2]);
+    if (argc>3) learn = atof(argv[3]);
     char *saved = 0;
-    if (argc>3) saved = argv[3];
+    if (argc>4) saved = argv[4];
 
-    return dnn(max_classes, json, saved, learn);
+    return dnn(max_classes, json, saved, learn, opt);
 }

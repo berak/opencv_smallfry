@@ -9,7 +9,7 @@
             },
             "window_width": 5,
             "window_height": 5,
-            "out_channels": 9,
+            "out_channels": 6,
             "connection_table": {
                 "rows": 0,
                 "cols": 0,
@@ -25,11 +25,11 @@
             "in_size": {
                 "width": 28,
                 "height": 28,
-                "depth": 9
+                "depth": 6
             },
             "window_width": 5,
             "window_height": 5,
-            "out_channels": 9,
+            "out_channels": 6,
             "connection_table": {
                 "rows": 0,
                 "cols": 0,
@@ -41,11 +41,17 @@
             "h_stride": 1
         },
         {
+            "type": "dropout",
+            "in_size": 3456,
+            "dropout_rate": 0.05,
+            "phase": 0
+        },
+        {
             "type": "avepool<identity>",
             "in_size": {
                 "width": 24,
                 "height": 24,
-                "depth": 9
+                "depth": 6
             },
             "pool_size_x": 2,
             "pool_size_y": 2,
@@ -55,7 +61,7 @@
         },
         {
             "type": "fully_connected<tan_h>",
-            "in_size": 1296,
+            "in_size": 864,
             "out_size": 200,
             "has_bias": true
         },
