@@ -1,7 +1,7 @@
 {
     "nodes": [
         {
-            "type": "conv<leaky_relu>",
+            "type": "conv<tan_h>",
             "in_size": {
                 "width": 32,
                 "height": 32,
@@ -15,16 +15,29 @@
                 "cols": 0,
                 "connection": "all"
             },
-            "pad_type": 0,
+            "pad_type": 1,
             "has_bias": true,
             "w_stride": 1,
             "h_stride": 1
         },
         {
-            "type": "conv<leaky_relu>",
+            "type": "maxpool<identity>",
             "in_size": {
-                "width": 28,
-                "height": 28,
+                "width": 32,
+                "height": 32,
+                "depth": 6
+            },
+            "pool_size_x": 2,
+            "pool_size_y": 2,
+            "stride_x": 2,
+            "stride_y": 2,
+            "pad_type": 0
+        },
+        {
+            "type": "conv<tan_h>",
+            "in_size": {
+                "width": 16,
+                "height": 16,
                 "depth": 6
             },
             "window_width": 5,
@@ -35,22 +48,16 @@
                 "cols": 0,
                 "connection": "all"
             },
-            "pad_type": 0,
+            "pad_type": 1,
             "has_bias": true,
             "w_stride": 1,
             "h_stride": 1
         },
         {
-            "type": "dropout",
-            "in_size": 3456,
-            "dropout_rate": 0.05,
-            "phase": 0
-        },
-        {
-            "type": "avepool<identity>",
+            "type": "maxpool<identity>",
             "in_size": {
-                "width": 24,
-                "height": 24,
+                "width": 16,
+                "height": 16,
                 "depth": 6
             },
             "pool_size_x": 2,
@@ -60,15 +67,29 @@
             "pad_type": 0
         },
         {
-            "type": "fully_connected<tan_h>",
-            "in_size": 864,
-            "out_size": 200,
-            "has_bias": true
+            "type": "conv<tan_h>",
+            "in_size": {
+                "width": 8,
+                "height": 8,
+                "depth": 6
+            },
+            "window_width": 5,
+            "window_height": 5,
+            "out_channels": 6,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 1,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
         },
         {
             "type": "fully_connected<softmax>",
-            "in_size": 200,
-            "out_size": 20,
+            "in_size": 384,
+            "out_size": 62,
             "has_bias": true
         }
     ]

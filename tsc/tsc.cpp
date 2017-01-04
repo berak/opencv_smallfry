@@ -1,26 +1,3 @@
-//
-// belgium traffic sign classification set from:
-//   http://btsd.ethz.ch/shareddata/
-//   ( BelgiumTSC_Training.zip & BelgiumTSC_Testing.zip
-//     i changed the directory structure, so it looks like:
-//     BelgiumTSC
-//     ├───Testing
-//     │   ├───00000
-//     │   ├───00001
-//     ...
-//     │   └───00061
-//     └───Training
-//         ├───00000
-//         ├───00001
-//     ...
-//         └───00061 )
-// dnn code from:
-//   https://github.com/tiny-dnn/
-//   (main tries to load a json model)
-// also comes with opencv SVM & ANN_MLP reference impl.
-//
-
-
 #include "tiny_dnn/tiny_dnn.h" // order matters, this has to go before opencv (ACCESS_WRITE)
 #include <opencv2/opencv.hpp>
 #include <iostream>
@@ -131,7 +108,8 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int max_class
 
 //! load a json model from file, adjust traindata settings (winsize, max_classes)
 //!  optionally load pretrained weights
-int dnn(int max_classes, char *json_model, char *pre_weigths, float learn, const string &op)
+template <class Optimizer>
+int dnn(const string &json_model, const string &pre_weigths, float learn)
 {
     using namespace tiny_dnn;
     using namespace tiny_dnn::activation;
@@ -139,19 +117,22 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn, const
     typedef cross_entropy loss_t;
 
     network<sequential> nn;
+
+    int max_classes = 62;
     try {
-        nn.load(json_model, content_type::model, file_format::json);
+        nn.load(json_model.c_str(), content_type::model, file_format::json);
         std::vector<shape3d> shp_in = nn[0]->in_data_shape();
         WINSIZE = shp_in[0].width_;
         int last = int(nn.layer_size()) - 1;
         std::vector<shape3d> shp_out = nn[last]->out_data_shape();
         max_classes = shp_out[0].width_;
 
-        if (pre_weigths) {
-            ifstream ifs(pre_weigths);
+        if (! pre_weigths.empty()) {
+            cout << "reading weights from " << pre_weigths << endl;
+            ifstream ifs(pre_weigths.c_str());
             ifs >> nn;
         } else {
-            nn.weight_init(weight_init::xavier(1));
+            //nn.weight_init(weight_init::xavier(1));
             //nn.weight_init(weight_init::lecun());
         }
 
@@ -160,25 +141,10 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn, const
        std::cout << e.what();
     }
 
-    // yea, this is horrible, but allows me to specify an optimizer from cmdline :[
-    map<string,optimizer*> ops;
-    ops["rms"]      = new RMSprop();
-    ops["grad"]     = new gradient_descent();
-    ops["adam"]     = new adam();
-    ops["adagrad"]  = new adagrad();
-    ops["momentum"] = new momentum();
-    auto get_alpha = [&](const string &op) {
-        if (op=="rms") return &(static_cast<RMSprop*>(ops[op])->alpha);
-        if (op=="grad") return &(static_cast<gradient_descent*>(ops[op])->alpha);
-        if (op=="adam") return &(static_cast<adam*>(ops[op])->alpha);
-        if (op=="adagrad") return &(static_cast<adagrad*>(ops[op])->alpha);
-        if (op=="momentum") return &(static_cast<momentum*>(ops[op])->alpha);
-        static float _ = 0.0f;
-        return &_;
-    };
-    *get_alpha(op) = learn;
+    Optimizer opt;
+    opt.alpha = learn;
 
-    cout << op << ", in " << WINSIZE << ", out " << max_classes << endl;
+    cout << "in " << WINSIZE << ", out " << max_classes << endl;
     for (int i = 0; i < nn.depth(); i++) {
         cout << "#layer: " << i << "\n";
         cout << "type: "   << nn[i]->layer_type() << "\n";
@@ -194,7 +160,7 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn, const
     int n = t_data.size() * t_data[0].size();
     cout << "dnn train " << t_data.size() << " samples, " << n << " bytes. " << tl << " seconds. " << endl;
 
-    tl = load(tscdir + "Testing/", v_data, v_labels, max_classes, false, 3);
+    tl = load(tscdir + "Testing/", v_data, v_labels, max_classes, false, 3); //only 1/3 of test set
     n = v_data.size() * v_data[0].size();
     cout << "dnn test  " << v_data.size() << " samples, " << n << " bytes. " << tl << " seconds." <<endl;
 
@@ -203,57 +169,33 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn, const
     size_t batch_size = 24;
     size_t epochs = 0;
     size_t count = 0; // overall samples in this training pass
-
-    // test accuracy on (a few) random samples
-    auto check = [&](const string &title, const vector<vec_t> &data, const vector<label_t> &labels){
-        int ntests = 100;
-        int correct = 0;
-        for (int i=0; i<ntests; i++) {
-            size_t n = size_t(rand()) % data.size();
-            try {
-                size_t pid = nn.predict_label(data[n]);
-                size_t tid = labels[n];
-                correct += (pid == tid);
-            } catch (const nn_error& e) {
-                std::cout << i << " " << n << " " << data[n].size() << "\n" << e.what();
-            }
-        }
-        float acc = float(correct) / float(ntests);
-        cout << title << " " << acc << " " ;
-    };
+    float best_result=0;
 
     auto on_enumerate_epoch = [&](){
-        float *alpha = get_alpha(op);
-        *alpha *= 0.95;  // continuously decay learning rate
-        *alpha = std::max((tiny_dnn::float_t)0.00001, *alpha);
+        opt.alpha *= 0.98;  // continuously decay learning rate
+        opt.alpha = std::max((tiny_dnn::float_t)0.00001, opt.alpha);
         std::cout << "epoch " << epochs << " " << count << " samples " << t.elapsed();
-        std::cout << " seconds, " << *alpha << " alpha. ";
-        epochs ++;
+        std::cout << " seconds, " << opt.alpha << " alpha, ";
 
-        check("train", t_data, t_labels);
-        //check("valid", v_data, v_labels);
         result res = nn.test(v_data, v_labels);
-        cout << "test " << (float(res.num_success) / res.num_total) << endl;
+        float accuracy = (float(res.num_success) / res.num_total);
+        cout << accuracy << " accuracy." << endl;
         //double loss = nn.get_loss<loss_t>(v_data, v_labels);
         //cout << "loss " << loss << endl;
 
-        nn[0]->output_to_image().write("layer0.bmp");
-        nn[1]->output_to_image().write("layer1.bmp");
-        nn[2]->output_to_image().write("layer2.bmp");
-        nn[3]->output_to_image().write("layer3.bmp");
-        try {
-            nn.at<conv<leaky_relu>>(0).weight_to_image().write("layer0_w.bmp");
-            nn.at<conv<leaky_relu>>(1).weight_to_image().write("layer1_w.bmp");
-        } catch (const nn_error& e) {
-           cout << e.what();
+        // save weights
+        if (accuracy > best_result) {
+            std::ofstream ofs("my.net");
+            ofs << nn;
+            best_result = accuracy;
         }
 
-        // save weights
-        std::ofstream ofs("my.net");
-        ofs << nn;
+        for (int i=0; i<nn.depth()-1; i++)
+            nn[i]->output_to_image().write(format("layer%i.bmp", i));
 
         t.restart();
         z = 0; // reset local counter
+        epochs ++;
     };
 
     auto on_enumerate_data = [&](){
@@ -261,19 +203,56 @@ int dnn(int max_classes, char *json_model, char *pre_weigths, float learn, const
         count += batch_size;             // global
     };
 
-    nn.train<loss_t>(*ops[op], t_data, t_labels, batch_size, 1000,
+    nn.train<loss_t>(opt, t_data, t_labels, batch_size, 1000,
                   on_enumerate_data, on_enumerate_epoch);
+    return 0;
+}
 
+
+//! load a json model and pretrained weights from file, adjust traindata settings (winsize, max_classes)
+//!  and predict on test images
+int dnn_test(const string &json_model, const string &pre_weigths)
+{
+    using namespace tiny_dnn;
+
+    network<sequential> nn;
+    int max_classes = 62;
+    try {
+        nn.load(json_model, content_type::model, file_format::json);
+        std::vector<shape3d> shp_in = nn[0]->in_data_shape();
+        WINSIZE = shp_in[0].width_;
+        int last = int(nn.layer_size()) - 1;
+        std::vector<shape3d> shp_out = nn[last]->out_data_shape();
+        max_classes = shp_out[0].width_;
+
+        cout << "reading weights from " << pre_weigths << endl;
+        ifstream ifs(pre_weigths);
+        ifs >> nn;
+    } catch (const nn_error& e) {
+       std::cout << e.what();
+    }
+
+    // load data
+    vector<vec_t>   v_data;
+    vector<label_t> v_labels;
+
+    double tl = load(tscdir + "Testing/", v_data, v_labels, max_classes, false, 1);
+    int n = v_data.size() * v_data[0].size();
+    cout << "dnn test  " << v_data.size() << " samples, " << n << " bytes. " << tl << " seconds." <<endl;
+
+    timer t;
+    result res = nn.test(v_data, v_labels);
+    float accuracy = (float(res.num_success) / res.num_total);
+    cout << "test " << accuracy << " accuracy, " << t.elapsed() << " seconds." << endl;
     return 0;
 }
 
 
 //! process opencv prediction results:
-void cv_results(int max_classes, Mat &results, Mat &labels, const String &title)
+void cv_results(int classes, Mat &results, Mat &labels, const String &title)
 {
     // confusion:
-    int C = std::min(max_classes, 62);
-    Mat_<int> confusion(C, C, 0);
+    Mat_<int> confusion(classes, classes, 0);
     for (int i=0; i<results.rows; i++) {
         int p = (int)results.at<float>(i);
         int t = (int)labels.at<int>(i);
@@ -283,7 +262,7 @@ void cv_results(int max_classes, Mat &results, Mat &labels, const String &title)
     if (confusion.rows < MAXC)
         cout << title << "confusion:\n" << confusion << endl;
     else // skip results beyond MAXC
-        cout << title << format("confusion (%d cropped to %d:\n", confusion.rows, MAXC) << confusion(Rect(0, 0, MAXC, MAXC)) << endl;
+        cout << title << format("confusion (showing %d of %d):\n", MAXC, confusion.rows) << confusion(Rect(0, 0, MAXC, MAXC)) << endl;
 
     // accuracy:
     float correct  = sum(confusion.diag())[0];
@@ -331,8 +310,8 @@ int cv_svm(int max_classes)
 
 int cv_mlp(int max_classes)
 {
-    Mat_<int> layers(3, 1);
-    layers << WINSIZE*WINSIZE, 200, max_classes;
+    Mat_<int> layers(4, 1);
+    layers << WINSIZE*WINSIZE, 400, 100, max_classes;
 
     Ptr<ml::ANN_MLP> nn = ml::ANN_MLP::create();
     nn->setLayerSizes(layers);
@@ -372,21 +351,51 @@ int cv_mlp(int max_classes)
 
 int main(int argc, char **argv)
 {
-    int max_classes = 20; // restrict to first n classes
+    using namespace tiny_dnn;
 
-    if (argc>1 && argv[1][0] == 's')
+    const char *keys =
+        "{ help h usage ? |      | show this message }"
+        "{ svm s          |      | reference svm test }"
+        "{ mlp m          |      | reference mlp test }"
+        "{ test t         |      | test dnn on pretrained model }"
+        "{ maxc M         |    62| restrict to M classes (for speedup), only for svm,mlp }"
+        "{ learn l        |0.0004| initial learning rate for dnn }"
+        "{ weights w      |      | pretrained weights file (my.net) }"
+        "{ optimizer o    |grad  | optimizer for dnn training }"
+        "{ json j         |tsc32.txt| json model file for dnn (required) }"
+        "{ data d         |C:/data/BelgiumTSC/| path to dataset }"
+        ;
+
+    CommandLineParser parser(argc, argv, keys);
+    string json(parser.get<string>("json"));
+    if (parser.has("help") || json.empty())
+    {
+        parser.printMessage();
+        return 0;
+    }
+    tscdir = parser.get<string>("data"); // global
+    string saved(parser.get<string>("weights"));
+    string opt(parser.get<string>("optimizer"));
+    int max_classes = parser.get<int>("maxc");
+    float learn = parser.get<float>("learn");
+    bool do_svm = parser.has("svm");
+    bool do_mlp = parser.has("mlp");
+    bool do_test = parser.has("test");
+
+    if (do_svm)
         return cv_svm(max_classes);
-    if (argc>1 && argv[1][0] == 'm')
+    if (do_mlp)
         return cv_mlp(max_classes);
+    if (do_test)
+        return dnn_test(json, saved);
 
-    char *json = (char*)"tsc32.txt";
-    if (argc>1) json = argv[1];
-    string opt("grad");
-    if (argc>2) opt = argv[2];
-    float learn = 0.01f;
-    if (argc>3) learn = atof(argv[3]);
-    char *saved = 0;
-    if (argc>4) saved = argv[4];
-
-    return dnn(max_classes, json, saved, learn, opt);
+    if (opt == "rms")
+        return dnn<RMSprop>(json, saved, learn);
+    if (opt == "adam")
+        return dnn<adam>(json, saved, learn);
+    if (opt == "adagrad")
+        return dnn<adagrad>(json, saved, learn);
+    if (opt == "momentum")
+        return dnn<momentum>(json, saved, learn);
+    return dnn<gradient_descent>(json, saved, learn);
 }
