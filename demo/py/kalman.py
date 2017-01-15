@@ -26,7 +26,6 @@ def main():
     kalman.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.003
     kalman.measurementNoiseCov = np.array([[1,0],[0,1]],np.float32) * 10
     kalman.errorCovPost = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.1
-    prediction = np.zeros((2,1), np.float32)
 
     while(True):
         prediction = kalman.predict()
