@@ -109,7 +109,7 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int max_class
 //! load a json model from file, adjust traindata settings (winsize, max_classes)
 //!  optionally load pretrained weights
 template <class Optimizer>
-int dnn(const string &json_model, const string &pre_weigths, float learn)
+int dnn_train(const string &json_model, const string &pre_weigths, float learn, float decay, int batch_size)
 {
     using namespace tiny_dnn;
     using namespace tiny_dnn::activation;
@@ -144,7 +144,7 @@ int dnn(const string &json_model, const string &pre_weigths, float learn)
     Optimizer opt;
     opt.alpha = learn;
 
-    cout << "in " << WINSIZE << ", out " << max_classes << endl;
+    cout << "in " << WINSIZE << ", out " << max_classes << ", batch " << batch_size << endl;
     for (int i = 0; i < nn.depth(); i++) {
         cout << "#layer: " << i << "\n";
         cout << "type: "   << nn[i]->layer_type() << "\n";
@@ -166,13 +166,12 @@ int dnn(const string &json_model, const string &pre_weigths, float learn)
 
     timer t;
     size_t z=0; // samples per epoch
-    size_t batch_size = 24;
     size_t epochs = 0;
     size_t count = 0; // overall samples in this training pass
     float best_result=0;
 
     auto on_enumerate_epoch = [&](){
-        opt.alpha *= 0.98;  // continuously decay learning rate
+        opt.alpha *= decay;  // continuously decay learning rate
         opt.alpha = std::max((tiny_dnn::float_t)0.00001, opt.alpha);
         std::cout << "epoch " << epochs << " " << count << " samples " << t.elapsed();
         std::cout << " seconds, " << opt.alpha << " alpha, ";
@@ -353,20 +352,20 @@ int main(int argc, char **argv)
 {
     using namespace tiny_dnn;
 
-    const char *keys =
+    CommandLineParser parser(argc, argv,
         "{ help h usage ? |      | show this message }"
         "{ svm s          |      | reference svm test }"
         "{ mlp m          |      | reference mlp test }"
         "{ test t         |      | test dnn on pretrained model }"
+        "{ batch b        |    24| batch size for dnn training }"
         "{ maxc M         |    62| restrict to M classes (for speedup), only for svm,mlp }"
         "{ learn l        |0.0004| initial learning rate for dnn }"
+        "{ decay d        |0.95  | decay learning rate per epoch }"
         "{ weights w      |      | pretrained weights file (my.net) }"
         "{ optimizer o    |grad  | optimizer for dnn training }"
         "{ json j         |tsc32.txt| json model file for dnn (required) }"
-        "{ data d         |C:/data/BelgiumTSC/| path to dataset }"
-        ;
+        "{ data D         |C:/data/BelgiumTSC/| path to dataset }" );
 
-    CommandLineParser parser(argc, argv, keys);
     string json(parser.get<string>("json"));
     if (parser.has("help") || json.empty())
     {
@@ -377,7 +376,9 @@ int main(int argc, char **argv)
     string saved(parser.get<string>("weights"));
     string opt(parser.get<string>("optimizer"));
     int max_classes = parser.get<int>("maxc");
+    int batch_size = parser.get<int>("batch");
     float learn = parser.get<float>("learn");
+    float decay = parser.get<float>("decay");
     bool do_svm = parser.has("svm");
     bool do_mlp = parser.has("mlp");
     bool do_test = parser.has("test");
@@ -390,12 +391,12 @@ int main(int argc, char **argv)
         return dnn_test(json, saved);
 
     if (opt == "rms")
-        return dnn<RMSprop>(json, saved, learn);
+        return dnn_train<RMSprop>(json, saved, learn, decay, batch_size);
     if (opt == "adam")
-        return dnn<adam>(json, saved, learn);
+        return dnn_train<adam>(json, saved, learn, decay, batch_size);
     if (opt == "adagrad")
-        return dnn<adagrad>(json, saved, learn);
+        return dnn_train<adagrad>(json, saved, learn, decay, batch_size);
     if (opt == "momentum")
-        return dnn<momentum>(json, saved, learn);
-    return dnn<gradient_descent>(json, saved, learn);
+        return dnn_train<momentum>(json, saved, learn, decay, batch_size);
+    return dnn_train<gradient_descent>(json, saved, learn, decay, batch_size);
 }

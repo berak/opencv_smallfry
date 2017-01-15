@@ -40,6 +40,12 @@ namespace ROC {
             float FPR = FP / (FP + TN);
             float TPR = TP / (TP + FN);
             roc.push_back(Point2f(FPR, TPR));
+
+            //// since our blink to non-blink ratio is so small,
+            //// rather use precision / recall, than FPR / TPR
+            //float recall    = TP / (TP + FN);
+            //float precision = TP / (TP + FP);
+            //roc.push_back(Point2f(recall, precision));
         }
     }
 
