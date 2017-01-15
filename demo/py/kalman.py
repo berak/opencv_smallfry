@@ -23,14 +23,17 @@ def main():
 
     kalman.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
     kalman.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
-    kalman.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.3 # "adaption speed"
+    kalman.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.003
+    kalman.measurementNoiseCov = np.array([[1,0],[0,1]],np.float32) * 10
+    kalman.errorCovPost = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.1
     prediction = np.zeros((2,1), np.float32)
 
     while(True):
         prediction = kalman.predict()
-        kalman.correct(measurement);
+        estimated = kalman.correct(measurement);
 
-        pts_track.append((prediction[0],prediction[1]))
+        #pts_track.append((prediction[0],prediction[1]))
+        pts_track.append((estimated[0],estimated[1]))
 
         draw = np.zeros((400,400,3),np.uint8)
         if len(pts_mouse)>0:
