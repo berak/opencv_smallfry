@@ -26,3 +26,4 @@
 * ui : onscreen ui (sliders & buttons & selectboxes)
 * vibe.cpp: ViBe background separation
 * violentFlow.cpp : http://www.openu.ac.il/home/hassner/data/violentflows/violent_flows.pdf
+* ml/libsvm_ocv.cpp : using libsvm with opencv

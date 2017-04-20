@@ -5,14 +5,14 @@ using namespace std;
 
 int main()
 {
-    Mat img = imread("oven.jpg");
+    Mat img = imread("maxresdefault.jpg");
     vector<Point2f> pts;  // hardcoded, in clockwise order
-    pts.push_back(Point2f(167,27));
-    pts.push_back(Point2f(367,55));
-    pts.push_back(Point2f(382,159));
-    pts.push_back(Point2f(182,197));
+    pts.push_back(Point2f(895,204));
+    pts.push_back(Point2f(995,195));
+    pts.push_back(Point2f(1222,292));
+    pts.push_back(Point2f(1099,307));
 
-    Size sz(400,250);    // desired output size
+    Size sz(250,500);    // desired output size
     vector<Point2f> rct; // desired coords, same order
     rct.push_back(Point2f(0,0));
     rct.push_back(Point2f(sz.width,0));

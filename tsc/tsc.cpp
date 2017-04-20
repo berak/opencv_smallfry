@@ -1,4 +1,4 @@
-#include "tiny_dnn/tiny_dnn.h" // order matters, this has to go before opencv (ACCESS_WRITE)
+#include "tiny_dnn/tiny_dnn.h" // order matters, on win, this has to go before opencv (ACCESS_WRITE)
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
@@ -11,6 +11,15 @@ using tiny_dnn::label_t;
 int WINSIZE   = 24; // dnn/json will override this
 String tscdir = "C:/data/BelgiumTSC/";
 
+
+//! convert tiny_cnn::image to cv::Mat and resize
+template <typename image>
+cv::Mat image2mat(image& img) {
+    cv::Mat ori(img.height(), img.width(), CV_8UC3, &img.at(0, 0));
+    cv::Mat resized;
+    cv::resize(ori, resized, cv::Size(), 3, 3, cv::INTER_AREA);
+    return resized;
+}
 
 //! convert a single cv::Mat image plane to tiny_dnn::vec_t
 void convert_plane(const Mat &img, vec_t& tiny_vec)
@@ -189,8 +198,13 @@ int dnn_train(const string &json_model, const string &pre_weigths, float learn, 
             best_result = accuracy;
         }
 
-        for (int i=0; i<nn.depth()-1; i++)
-            nn[i]->output_to_image().write(format("layer%i.bmp", i));
+        // WARNING this has to get adjusted, if the network layout is changed !
+        auto weight0 = nn.at<convolutional_layer<tan_h>>(0).weight_to_image();
+        cv::imwrite("weights_0.png", image2mat(weight0));
+        auto weight2 = nn.at<convolutional_layer<tan_h>>(2).weight_to_image();
+        cv::imwrite("weights_2.png", image2mat(weight2));
+        auto weight4 = nn.at<convolutional_layer<tan_h>>(4).weight_to_image();
+        cv::imwrite("weights_4.png", image2mat(weight4));
 
         t.restart();
         z = 0; // reset local counter
@@ -282,28 +296,38 @@ void cv_load(const String &dir, Mat &data, Mat &labels, int max_classes, const S
 
 using tiny_dnn::timer;
 
+int cv_ml(Ptr<ml::StatModel> mdl, const String &name, int max_classes)
+{
+    Mat data, labels;
+    cv_load("Training/", data, labels, max_classes, name + " train ");
+
+    timer t;
+    mdl->train(data, 0, labels);
+    double t1 = t.elapsed();
+
+    cv_load("Testing/", data, labels, max_classes, name + " test  ");
+
+    t.restart();
+    Mat results;
+    mdl->predict(data, results);
+    double t2 = t.elapsed();
+
+    cout << name << " " << t1 << " / " << t2 << " seconds." << endl;
+    cv_results(max_classes, results, labels, name + " ");
+    return 0;
+}
+
 int cv_svm(int max_classes)
 {
     Ptr<ml::SVM> svm = ml::SVM::create();
     svm->setKernel(ml::SVM::LINEAR);
+    return cv_ml(svm, "svm", max_classes);
+}
 
-    Mat data, labels;
-    cv_load("Training/", data, labels, max_classes, "svm train ");
-
-    timer t;
-    svm->train(data, 0, labels);
-    double t1 = t.elapsed();
-
-    cv_load("Testing/", data, labels, max_classes, "svm test  ");
-
-    t.restart();
-    Mat results;
-    svm->predict(data, results);
-    double t2 = t.elapsed();
-
-    cout << "svm " << t1 << " / " << t2 << " seconds." << endl;
-    cv_results(max_classes, results, labels, "svm ");
-    return 0;
+int cv_knn(int max_classes)
+{
+    Ptr<ml::KNearest> mdl = ml::KNearest::create();
+    return cv_ml(mdl, "knn", max_classes);
 }
 
 
@@ -347,15 +371,15 @@ int cv_mlp(int max_classes)
     return 0;
 }
 
-
 int main(int argc, char **argv)
 {
     using namespace tiny_dnn;
 
     CommandLineParser parser(argc, argv,
         "{ help h usage ? |      | show this message }"
-        "{ svm s          |      | reference svm test }"
-        "{ mlp m          |      | reference mlp test }"
+        "{ svm s          |      | reference cv::svm test }"
+        "{ mlp m          |      | reference cv::mlp test }"
+        "{ knn k          |      | reference cv::knearest test }"
         "{ test t         |      | test dnn on pretrained model }"
         "{ batch b        |    24| batch size for dnn training }"
         "{ maxc M         |    62| restrict to M classes (for speedup), only for svm,mlp }"
@@ -381,12 +405,15 @@ int main(int argc, char **argv)
     float decay = parser.get<float>("decay");
     bool do_svm = parser.has("svm");
     bool do_mlp = parser.has("mlp");
+    bool do_knn = parser.has("knn");
     bool do_test = parser.has("test");
 
     if (do_svm)
         return cv_svm(max_classes);
     if (do_mlp)
         return cv_mlp(max_classes);
+    if (do_knn)
+        return cv_knn(max_classes);
     if (do_test)
         return dnn_test(json, saved);
 

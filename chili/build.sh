@@ -1,6 +1,6 @@
 PS1=">"
 
-curl -s http://www.cmake.org/files/v2.8/cmake-2.8.12.1.tar.Z > cmake.tar.gz
+curl -s https://cmake.org/files/v2.8/cmake-2.8.12.1.tar.Z > cmake.tar.gz
 tar zxf cmake.tar.gz
 cd cmake-2.8.12.1/
 
@@ -23,7 +23,7 @@ echo -n /app/ocv -DBUILD_ZLIB=ON -DWITH_JASPER=>> cm.sh
 echo -n OFF -G \"Unix Makefiles\" -DANT_EXECUTABLE=../apache-ant-1.9.4/bin/ant >> cm.sh
 bash cm.sh
 
-make 
+make
 make install
 
 cd ..

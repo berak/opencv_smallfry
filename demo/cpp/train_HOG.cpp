@@ -14,7 +14,7 @@ using namespace std;
 void get_svm_detector(const Ptr<SVM>& svm, vector< float > & hog_detector );
 void convert_to_ml(const std::vector< cv::Mat > & train_samples, cv::Mat& trainData );
 void load_images( const string & prefix, const string & filename, vector< Mat > & img_lst );
-void sample_neg( const vector< Mat > & full_neg_lst, vector< Mat > & neg_lst, const Size & size, int samples=1 );
+void sample_neg( const vector< Mat > & full_neg_lst, vector< Mat > & neg_lst, const Size & size, int neg_steps=1 );
 Mat get_hogdescriptor_visu(const Mat& color_origImg, vector<float>& descriptorValues, const Size & size );
 void compute_hog( const vector< Mat > & img_lst, vector< Mat > & gradient_lst, const Size & size );
 void train_svm( const vector< Mat > & gradient_lst, const vector< int > & labels );
@@ -93,25 +93,24 @@ void load_images( const String & prefix, vector< Mat > & img_lst )
     }
 }
 
-void sample_neg( const vector< Mat > & full_neg_lst, vector< Mat > & neg_lst, const Size & size, int samples )
+void sample_neg( const vector< Mat > & full_neg_lst, vector< Mat > & neg_lst, const Size & size, int neg_steps )
 {
-    Rect box;
-    box.width = size.width;
-    box.height = size.height;
-
-    const int size_x = box.width;
-    const int size_y = box.height;
-
-    srand( (unsigned int)time( NULL ) );
-
+    Rect box(0, 0, size.width, size.height);
     vector< Mat >::const_iterator img = full_neg_lst.begin();
     vector< Mat >::const_iterator end = full_neg_lst.end();
     for( ; img != end ; ++img )
     {
-        for (int i=0; i<samples; i++)
+        if (neg_steps==0)
         {
-            box.x = rand() % (img->cols - size_x);
-            box.y = rand() % (img->rows - size_y);
+            Mat roi = (*img)(box);
+            neg_lst.push_back( roi.clone() );
+            continue;
+        }
+        for (int i=0; i < img->rows - neg_steps - box.height; i+=neg_steps)
+        for (int j=0; j < img->cols - neg_steps - box.width;  j+=neg_steps)
+        {
+            box.x = j;
+            box.y = i;
             Mat roi = (*img)(box);
             neg_lst.push_back( roi.clone() );
 #ifdef _DEBUG
@@ -312,12 +311,12 @@ void train_svm( const vector< Mat > & gradient_lst, const vector< int > & labels
     clog << "Start training...";
     Ptr<SVM> svm = SVM::create();
     /* Default values to train SVM */
-    svm->setCoef0(0.0);
-    svm->setDegree(3);
+    //svm->setCoef0(0.0);
+    //svm->setDegree(3);
     svm->setTermCriteria(TermCriteria( CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 1000, 1e-3 ));
-    svm->setGamma(0);
+    //svm->setGamma(0);
     svm->setKernel(SVM::LINEAR);
-    svm->setNu(0.5);
+    //svm->setNu(0.5);
     svm->setP(0.1); // for EPSILON_SVR, epsilon in loss function?
     svm->setC(0.01); // From paper, soft classifier
     svm->setType(SVM::EPS_SVR); // C_SVC; // EPSILON_SVR; // may be also NU_SVR; // do regression task
@@ -346,7 +345,6 @@ void test_it( const Size & size ,
 {
     HOGDescriptor hog;
     hog.winSize = size;
-    vector< Rect > locations;
     Scalar reference( 0, 255, 0 );
     // Load the trained SVM.
     Ptr<ml::SVM> svm = StatModel::load<SVM>( "my_people_detector.yml" );
@@ -364,19 +362,35 @@ void test_it( const Size & size ,
             );
         Mat roi(img, box);
         pos_lst[i].copyTo(roi);
-        hog.detectMultiScale( img, locations );
+        vector< Rect > locations;
+        hog.detectMultiScale( img, locations, 0.004 );
         Mat draw = img.clone();
+        rectangle( draw, box, Scalar(0,0,200), 3 );
         draw_locations( draw, locations, reference );
-        Mat_<int> confusion(2,2,0);
+        int hits = 0;
+        double minD=99999;
+        double maxD=0;
         for (size_t j=0; j<locations.size(); j++)
         {
-            Rect inter = locations[i] & box;
-            bool hit(inter.area() > 10);
-            confusion(hit,0) ++;
+            /*Rect inter = locations[j] & box;
+            double a = inter.area();
+            if (a==0) continue;
+            minD = std::min(minD, a);
+            maxD = std::max(maxD, a);
+            hits += (inter.area() > (2*box.area())/3);
+                 //&& (abs(locations[j].area()-box.area())<(box.area()/4));
+            */
+
+            Point d1 = box.tl() - locations[j].tl();
+            Point d2 = box.br() - locations[j].br();
+            double d = sqrt(d1.x*d1.x + d1.y*d1.y) + sqrt(d2.x*d2.x + d2.y*d2.y);
+            hits += (d < box.area()/20);
+            if (d<minD) minD=d;
+            if (d>=maxD) maxD=d;
         }
-        cerr << confusion(1) << " true pos and " << confusion(0) << " false pos detections " << (double(confusion(1)) / confusion(0)) << endl;
+        cerr << hits << " true pos of " << locations.size() << " " << minD << " " << maxD << endl;
         imshow("m", draw);
-        if (waitKey(200) == 27) break;
+        if (waitKey(5000) == 27) break;
     }
 }
 void test_it( const Size & size )
@@ -441,12 +455,14 @@ void test_it( const Size & size )
 int main( int argc, char** argv )
 {
     cv::CommandLineParser parser(argc, argv,
-        "{ help    h || show help message }"
-        "{ pos     p || folder with pos images like ~/img/*.png }"
-        "{ neg     n || folder with neg images }"
-        "{ samples s |1| take N random patches per negative }"
-        "{ width   W |64|  window size }"
-        "{ height  H |96| window size }");
+        "{ help    h ||   show help message }"
+        "{ test    t ||   test only }"
+        "{ pos     p ||   folder with pos images like ~/img/*.png }"
+        "{ neg     n ||   folder with neg images }"
+        "{ steps   s |0|  step width for neg patches }"
+        "{ mirror  m ||   mirror pos patches }"
+        "{ width   W |64| window width }"
+        "{ height  H |96| window height }");
 
     if (parser.has("help"))
     {
@@ -462,7 +478,9 @@ int main( int argc, char** argv )
     string neg_dir = parser.get<string>("neg");
     Size windowSize( parser.get<int>("width"),
                      parser.get<int>("height"));
-    int samples = parser.get<int>("samples"); // sample N images from a negative
+    int neg_steps = parser.get<int>("steps"); // sample N images from a negative
+    bool doTest = parser.has("test");
+    bool doMirror = parser.has("mirror");
 
     if( pos_dir.empty() || neg_dir.empty() )
     {
@@ -472,17 +490,34 @@ int main( int argc, char** argv )
         exit( -1 );
     }
     load_images( pos_dir, pos_lst );
+    if (doMirror)
+    {
+        std::vector<Mat> v(pos_lst.begin(), pos_lst.end());
+        for (Mat m : v)
+        {
+            Mat n;
+            flip(m,n,1);
+            pos_lst.push_back(n);
+        }
+    }
     labels.assign( pos_lst.size(), +1 );
     const unsigned int old = (unsigned int)labels.size();
+    cout << (doTest?"testing":"training") << " with " << pos_lst.size() << " positive " << windowSize ;
     load_images( neg_dir, full_neg_lst );
-    sample_neg( full_neg_lst, neg_lst, windowSize, samples );
+
+    if (!doTest)
+        sample_neg( full_neg_lst, neg_lst, windowSize, neg_steps );
+    else
+        neg_lst = full_neg_lst;
+
     labels.insert( labels.end(), neg_lst.size(), -1 );
-    cout << "training with " << pos_lst.size() << " positive and " << neg_lst.size() << " negative " << windowSize << " images" << endl;
+    cout << " and " << neg_lst.size() << " negative images" << endl;
     CV_Assert( old < labels.size() );
     compute_hog( pos_lst, gradient_lst, windowSize );
     compute_hog( neg_lst, gradient_lst, windowSize );
 
-    train_svm( gradient_lst, labels );
+    if (!doTest)
+        train_svm( gradient_lst, labels );
 
     //test_it( windowSize ); // change with your parameters
     test_it( windowSize, pos_lst, full_neg_lst, 100 ); // change with your parameters
