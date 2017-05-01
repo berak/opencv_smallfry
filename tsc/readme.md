@@ -18,6 +18,7 @@
  dnn code from:
    https://github.com/tiny-dnn/
    (main tries to load a json model)
+
  also comes with opencv SVM & ANN_MLP reference impl.
     svm accuracy: 0.882399 (tsc -s)
     mlp accuracy: 0.857932 (tsc -m)

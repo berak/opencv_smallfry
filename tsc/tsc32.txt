@@ -1,7 +1,7 @@
 {
     "nodes": [
         {
-            "type": "conv<tan_h>",
+            "type": "conv",
             "in_size": {
                 "width": 32,
                 "height": 32,
@@ -21,7 +21,15 @@
             "h_stride": 1
         },
         {
-            "type": "maxpool<identity>",
+            "type": "tanh",
+            "in_size" : {
+                "width": 32,
+                "height": 32,
+                "depth": 6
+            }
+        },
+        {
+            "type": "maxpool",
             "in_size": {
                 "width": 32,
                 "height": 32,
@@ -34,7 +42,7 @@
             "pad_type": 0
         },
         {
-            "type": "conv<tan_h>",
+            "type": "conv",
             "in_size": {
                 "width": 16,
                 "height": 16,
@@ -54,7 +62,15 @@
             "h_stride": 1
         },
         {
-            "type": "maxpool<identity>",
+            "type": "tanh",
+            "in_size" : {
+                "width": 16,
+                "height": 16,
+                "depth": 6
+            }
+        },
+        {
+            "type": "maxpool",
             "in_size": {
                 "width": 16,
                 "height": 16,
@@ -67,7 +83,7 @@
             "pad_type": 0
         },
         {
-            "type": "conv<tan_h>",
+            "type": "conv",
             "in_size": {
                 "width": 8,
                 "height": 8,
@@ -87,10 +103,26 @@
             "h_stride": 1
         },
         {
-            "type": "fully_connected<softmax>",
+            "type": "tanh",
+            "in_size" : {
+                "width": 8,
+                "height": 8,
+                "depth": 6
+            }
+        },
+        {
+            "type": "fully_connected",
             "in_size": 384,
             "out_size": 62,
             "has_bias": true
+        },
+        {
+            "type": "softmax",
+            "in_size": {
+                "width": 62,
+                "height": 1,
+                "depth": 1
+            }
         }
     ]
 }

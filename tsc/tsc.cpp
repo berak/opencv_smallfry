@@ -15,7 +15,7 @@ String tscdir = "C:/data/BelgiumTSC/";
 //! convert tiny_cnn::image to cv::Mat and resize
 template <typename image>
 cv::Mat image2mat(image& img) {
-    cv::Mat ori(img.height(), img.width(), CV_8UC3, &img.at(0, 0));
+    cv::Mat ori(img.height(), img.width(), CV_8U, &img.at(0, 0));
     cv::Mat resized;
     cv::resize(ori, resized, cv::Size(), 3, 3, cv::INTER_AREA);
     return resized;
@@ -192,19 +192,20 @@ int dnn_train(const string &json_model, const string &pre_weigths, float learn, 
         //cout << "loss " << loss << endl;
 
         // save weights
-        if (accuracy > best_result) {
+        if (accuracy > best_result && epochs > 5) {
             std::ofstream ofs("my.net");
             ofs << nn;
             best_result = accuracy;
         }
 
+
         // WARNING this has to get adjusted, if the network layout is changed !
-        auto weight0 = nn.at<convolutional_layer<tan_h>>(0).weight_to_image();
+        auto weight0 = nn.at<convolutional_layer>(0).weight_to_image();
         cv::imwrite("weights_0.png", image2mat(weight0));
-        auto weight2 = nn.at<convolutional_layer<tan_h>>(2).weight_to_image();
-        cv::imwrite("weights_2.png", image2mat(weight2));
-        auto weight4 = nn.at<convolutional_layer<tan_h>>(4).weight_to_image();
-        cv::imwrite("weights_4.png", image2mat(weight4));
+        auto weight2 = nn.at<convolutional_layer>(3).weight_to_image();
+        cv::imwrite("weights_3.png", image2mat(weight2));
+        auto weight4 = nn.at<convolutional_layer>(6).weight_to_image();
+        cv::imwrite("weights_6.png", image2mat(weight4));
 
         t.restart();
         z = 0; // reset local counter
