@@ -115,17 +115,16 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int max_class
 }
 
 using namespace tiny_dnn;
-using namespace tiny_dnn::activation;
 using namespace tiny_dnn::layers;
 int load_nn(network<sequential> &nn, const string &json_model, const string &pre_weigths="") {
     int max_classes = 62;
     try {
         nn.load(json_model.c_str(), content_type::model, file_format::json);
         std::vector<shape3d> shp_in = nn[0]->in_data_shape();
-        WINSIZE = shp_in[0].width_;
+        WINSIZE = shp_in[0].width_; // images need to be resized to shape of 1st nn node
         int last = int(nn.layer_size()) - 1;
         std::vector<shape3d> shp_out = nn[last]->out_data_shape();
-        max_classes = shp_out[0].width_;
+        max_classes = shp_out[0].width_; // can be limited from json
 
         if (! pre_weigths.empty()) {
             cout << "reading weights from " << pre_weigths << endl;
