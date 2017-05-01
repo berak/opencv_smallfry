@@ -114,19 +114,10 @@ double load(const String &dir, Datatype &data, Labelstype &labels, int max_class
     return  ((t1-t0)/getTickFrequency());
 }
 
-
-//! load a json model from file, adjust traindata settings (winsize, max_classes)
-//!  optionally load pretrained weights
-template <class Optimizer>
-int dnn_train(const string &json_model, const string &pre_weigths, float learn, float decay, int batch_size)
-{
-    using namespace tiny_dnn;
-    using namespace tiny_dnn::activation;
-    using namespace tiny_dnn::layers;
-    typedef cross_entropy loss_t;
-
-    network<sequential> nn;
-
+using namespace tiny_dnn;
+using namespace tiny_dnn::activation;
+using namespace tiny_dnn::layers;
+int load_nn(network<sequential> &nn, const string &json_model, const string &pre_weigths="") {
     int max_classes = 62;
     try {
         nn.load(json_model.c_str(), content_type::model, file_format::json);
@@ -140,15 +131,25 @@ int dnn_train(const string &json_model, const string &pre_weigths, float learn, 
             cout << "reading weights from " << pre_weigths << endl;
             ifstream ifs(pre_weigths.c_str());
             ifs >> nn;
-        } else {
-            //nn.weight_init(weight_init::xavier(1));
-            //nn.weight_init(weight_init::lecun());
         }
-
-        nn.save("mymodel.txt", content_type::model, file_format::json);
     } catch (const nn_error& e) {
        std::cout << e.what();
     }
+    return max_classes;
+}
+
+//! load a json model from file, adjust traindata settings (winsize, max_classes)
+//!  optionally load pretrained weights
+template <class Optimizer>
+int dnn_train(const string &json_model, const string &pre_weigths, float learn, float decay, int batch_size)
+{
+    using namespace tiny_dnn;
+    using namespace tiny_dnn::activation;
+    using namespace tiny_dnn::layers;
+    typedef cross_entropy loss_t;
+
+    network<sequential> nn;
+    int max_classes = load_nn(nn, json_model, pre_weigths);
 
     Optimizer opt;
     opt.alpha = learn;
@@ -198,15 +199,15 @@ int dnn_train(const string &json_model, const string &pre_weigths, float learn, 
             best_result = accuracy;
         }
 
-
+        /*
         // WARNING this has to get adjusted, if the network layout is changed !
         auto weight0 = nn.at<convolutional_layer>(0).weight_to_image();
         cv::imwrite("weights_0.png", image2mat(weight0));
-        auto weight2 = nn.at<convolutional_layer>(3).weight_to_image();
-        cv::imwrite("weights_3.png", image2mat(weight2));
-        auto weight4 = nn.at<convolutional_layer>(6).weight_to_image();
-        cv::imwrite("weights_6.png", image2mat(weight4));
-
+        auto weight3 = nn.at<convolutional_layer>(3).weight_to_image();
+        cv::imwrite("weights_3.png", image2mat(weight3));
+        auto weight6 = nn.at<convolutional_layer>(6).weight_to_image();
+        cv::imwrite("weights_6.png", image2mat(weight6));
+        */
         t.restart();
         z = 0; // reset local counter
         epochs ++;
@@ -230,21 +231,7 @@ int dnn_test(const string &json_model, const string &pre_weigths)
     using namespace tiny_dnn;
 
     network<sequential> nn;
-    int max_classes = 62;
-    try {
-        nn.load(json_model, content_type::model, file_format::json);
-        std::vector<shape3d> shp_in = nn[0]->in_data_shape();
-        WINSIZE = shp_in[0].width_;
-        int last = int(nn.layer_size()) - 1;
-        std::vector<shape3d> shp_out = nn[last]->out_data_shape();
-        max_classes = shp_out[0].width_;
-
-        cout << "reading weights from " << pre_weigths << endl;
-        ifstream ifs(pre_weigths);
-        ifs >> nn;
-    } catch (const nn_error& e) {
-       std::cout << e.what();
-    }
+    int max_classes = load_nn(nn, json_model, pre_weigths);
 
     // load data
     vector<vec_t>   v_data;
