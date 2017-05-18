@@ -322,16 +322,16 @@ namespace fourier {
 
 	struct MatcherImpl : Matcher {
 		int N; // resample contours to N fixed size
-		std::vector<std::vector<cv::Point2d>> shapes;
+		std::vector<vector<Point2d>> shapes;
 		MatcherImpl(int n) : N(n) {}
 
-		virtual void add(const std::vector<cv::Point> &p) {
-			std::vector<cv::Point2d> z = fourier::zsample(p, N);
+		virtual void add(const vector<Point> &p) {
+			vector<Point2d> z = fourier::zsample(p, N);
 			shapes.push_back(z);
 		}
 
-		virtual void match(const std::vector<cv::Point> &p, std::vector<cv::Point2d> &best, double &dist, int &id){
-			std::vector<cv::Point2d> Z = fourier::zsample(p, N); // compare in Z space
+		virtual void match(const vector<Point> &p, vector<Point2d> &best, double &dist, int &id){
+			vector<Point2d> Z = fourier::zsample(p, N); // compare in Z space
 			dist=99999999;
 			id=-1;
 			for (size_t i=0; i<shapes.size(); i++) {

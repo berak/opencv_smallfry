@@ -1,27 +1,38 @@
 #include <opencv2/core.hpp>
 #include <opencv2/calib3d.hpp>
 #include <vector>
+#include <iostream>
+using std::cout;
+using std::endl;
+using std::vector;
+using cv::Point;
+using cv::Point2d;
+using cv::Point3d;
+using cv::Mat;
+using cv::Mat_;
 
 namespace sampson {
 
-std::vector<cv::Point2d> todouble(const std::vector<cv::Point> &x) {
-    std::vector<cv::Point2d> y;
+vector<Point2d> todouble(const vector<Point> &x) {
+    vector<Point2d> y;
     for (size_t i=0; i<x.size(); i++)
         y.push_back(x[i]);
     return y;
 }
 
-double distance(const std::vector<cv::Point> &a, const std::vector<cv::Point> &b)
+double distance(const vector<Point> &a, const vector<Point> &b)
 {
-    std::vector<cv::Point2d> da = todouble(a);
-    std::vector<cv::Point2d> db = todouble(b);
-    cv::Mat F = findFundamentalMat(da, db);
+    vector<Point2d> da = todouble(a);
+    vector<Point2d> db = todouble(b);
+    Mat F = findFundamentalMat(da, db);
 
-    std::vector<cv::Point3d> ha, hb;
-    cv::convertPointsHomogeneous(da, ha);
-    cv::convertPointsHomogeneous(db, hb);
-
-    return cv::sampsonDistance(ha, hb, F);
+    Mat_<Point3d> ha, hb;
+    convertPointsHomogeneous(da, ha);
+    convertPointsHomogeneous(db, hb);
+    cout << ha.size() << ha.type() << endl;
+    cout << ha.size() << hb.type() << endl;
+    cout << F.size() << F.type() << endl;
+    return sampsonDistance(ha.reshape(1,3), hb.reshape(1,3), F);
 }
 
 } // namespace sampson
@@ -33,27 +44,27 @@ namespace sampson {
     using namespace matching;
 
     struct MatcherImpl : Matcher {
-        std::vector<std::vector<cv::Point3d>> shapes3d;
-        std::vector<std::vector<cv::Point2d>> shapes2d;
+        vector<Mat> shapes3d;
+        vector<vector<Point2d>> shapes2d;
 
-        virtual void add(const std::vector<cv::Point> &p) {
-            std::vector<cv::Point2d> dp = todouble(p);
-            std::vector<cv::Point3d> hp;
-            cv::convertPointsHomogeneous(dp, hp);
+        virtual void add(const vector<Point> &p) {
+            vector<Point2d> dp = todouble(p);
+            Mat hp;
+            convertPointsHomogeneous(dp, hp);
             shapes2d.push_back(dp);
             shapes3d.push_back(hp);
         }
 
-        virtual void match(const std::vector<cv::Point> &pv, std::vector<cv::Point2d> &best, double &dist, int &id){
-            std::vector<cv::Point2d> dp = todouble(pv);
-            std::vector<cv::Point3d> hp;
-            cv::convertPointsHomogeneous(dp, hp);
+        virtual void match(const vector<Point> &pv, vector<Point2d> &best, double &dist, int &id){
+            vector<Point2d> dp = todouble(pv);
+            vector<Point3d> hp;
+            convertPointsHomogeneous(dp, hp);
 
             dist=99999999;
             id=-1;
             for (size_t i=0; i<shapes2d.size(); i++) {
-                cv::Mat F = cv::findFundamentalMat(shapes2d[i], dp);
-                double d = cv::sampsonDistance(shapes3d[i], hp, F);
+                Mat F = findFundamentalMat(shapes2d[i], dp);
+                double d = sampsonDistance(shapes3d[i], hp, F);
                 if (d < dist) {
                     dist = d;
                     id = i;

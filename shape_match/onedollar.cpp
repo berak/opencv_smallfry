@@ -4,10 +4,11 @@
 
 #include "opencv2/opencv.hpp"
 using namespace cv;
+using std::vector;
 
 namespace onedollar {
 
-	double length(const std::vector<Point> &points) {
+	double length(const vector<Point> &points) {
 		double len = 0;
 		for (int i=1; i<points.size(); ++i) {
 			len += norm(points[i-1] - points[i]);
@@ -15,7 +16,7 @@ namespace onedollar {
 		return len;
 	}
 
-	Rect2d boundingBox(const std::vector<Point2d> &pts) {
+	Rect2d boundingBox(const vector<Point2d> &pts) {
 		double min_x = FLT_MAX, min_y = FLT_MAX, max_x = FLT_MIN, max_y = FLT_MIN;
 		std::vector<Point2d>::const_iterator it = pts.begin();
 		while (it != pts.end()) {
@@ -35,7 +36,7 @@ namespace onedollar {
 		return rect;
 	}
 
-	void resample(const std::vector<Point> &points, int n, std::vector<Point2d> &pts) {
+	void resample(const vector<Point> &points, int n, vector<Point2d> &pts) {
 		double I = length(points)/(n - 1);
 		double D = 0;
 
@@ -64,9 +65,9 @@ namespace onedollar {
 		}
 	}
 
-	Point2d centroid(const std::vector<Point2d> &pts) {
+	Point2d centroid(const vector<Point2d> &pts) {
 		Point2d center(0,0);
-		std::vector<Point2d>::const_iterator it = pts.begin();
+		vector<Point2d>::const_iterator it = pts.begin();
 		while (it != pts.end()) {
 			center += (*it);
 			++it;
@@ -75,11 +76,11 @@ namespace onedollar {
 		return center;
 	}
 
-	std::vector<Point2d> rotateBy(std::vector<Point2d> &pts, double nRad, const Point &c) {
-		std::vector<Point2d> rotated;
+	vector<Point2d> rotateBy(vector<Point2d> &pts, double nRad, const Point &c) {
+		vector<Point2d> rotated;
 		double cosa = cos(nRad);
 		double sina = sin(nRad);
-		std::vector<Point2d>::iterator it = pts.begin();
+		vector<Point2d>::iterator it = pts.begin();
 		while (it != pts.end()) {
 			Point2d v = (*it);
 			double dx = v.x - c.x;
@@ -92,14 +93,14 @@ namespace onedollar {
 		return rotated;
 	}
 
-	void rotateToZero(std::vector<Point2d> &pts, const Point &c) {
+	void rotateToZero(vector<Point2d> &pts, const Point &c) {
 		double angle = (c.y - pts[0].y, c.x - pts[0].x);
 		pts = rotateBy(pts, -angle, c);
 	}
 
-	void scaleTo(std::vector<Point2d> &pts, double nSize = 250.0) {
+	void scaleTo(vector<Point2d> &pts, double nSize = 250.0) {
 		Rect2d rect = boundingBox(pts);
-		std::vector<Point2d>::iterator it = pts.begin();
+		vector<Point2d>::iterator it = pts.begin();
 		while (it != pts.end()) {
 			Point2d* v = &(*it);
 			v->x = v->x * (nSize/rect.width);
@@ -109,8 +110,8 @@ namespace onedollar {
 	}
 
 	// translates to origin.
-	void translate(std::vector<Point2d> &pts, const Point &c) {
-		std::vector<Point2d>::iterator it = pts.begin();
+	void translate(vector<Point2d> &pts, const Point &c) {
+		vector<Point2d>::iterator it = pts.begin();
 		while (it != pts.end()) {
 			Point2d* v = &(*it);
 			v->x = v->x - c.x;
@@ -119,7 +120,7 @@ namespace onedollar {
 		};
 	}
 
-	void normalize(const std::vector<Point> &points, int nNumSamples, std::vector<Point2d> &pts) {
+	void normalize(const vector<Point> &points, int nNumSamples, vector<Point2d> &pts) {
 		resample(points, nNumSamples, pts);
 		Point2d c = centroid(pts);
 		rotateToZero(pts, c);
@@ -128,7 +129,7 @@ namespace onedollar {
 	}
 
 	// distance between two paths.
-	double pathDistance(const std::vector<Point2d> &p, const std::vector<Point2d> &q) {
+	double pathDistance(const vector<Point2d> &p, const vector<Point2d> &q) {
 		// sizes are not equal (?)
 		if (p.size() != q.size()) {
 			return -1.0;
@@ -140,15 +141,15 @@ namespace onedollar {
 		return d/p.size();
 	}
 
-	double distanceAtAngle(double nAngle, const std::vector<Point2d> &p, const std::vector<Point2d> &q, const Point &c) {
-		std::vector<Point2d> points_tmp = p;
+	double distanceAtAngle(double nAngle, const vector<cv::Point2d> &p, const vector<cv::Point2d> &q, const cv::Point &c) {
+		vector<Point2d> points_tmp = p;
 		points_tmp = rotateBy(points_tmp, nAngle, c);
 		return pathDistance(points_tmp, q);
 	}
 
 	const double angle_precision = 1.0;
 	const double golden_ratio = 0.5 * (-1.0 + sqrt(5.0));
-	double distanceAtBestAngle(const std::vector<Point2d> &p, const std::vector<Point2d> &q) {
+	double distanceBestAngle(const vector<cv::Point2d> &p, const vector<cv::Point2d> &q) {
 		Point2d c = centroid(p);
 		double angle_range = CV_PI;
 		double start_range = -angle_range;
@@ -175,6 +176,13 @@ namespace onedollar {
 		return min(f1, f2);
 	}
 
+	double distance(const vector<Point> &p, const vector<Point> &q) {
+		vector<cv::Point2d> pz, qz;
+		int N = min(p.size(), q.size());
+		onedollar::normalize(p, N, pz);
+		onedollar::normalize(q, N, qz);
+		return distanceBestAngle(pz, qz);
+	}
 } // namespace onedollar
 
 
@@ -185,23 +193,23 @@ namespace onedollar {
 
 	struct MatcherImpl : Matcher {
 		int N; // resample contour size
-		std::vector<std::vector<cv::Point2d>> shapes;
+		vector<vector<cv::Point2d>> shapes;
 
 		MatcherImpl(int n) : N(n) {}
 
-		virtual void add(const std::vector<cv::Point> &p) {
-			std::vector<cv::Point2d> z;
+		virtual void add(const vector<cv::Point> &p) {
+			vector<cv::Point2d> z;
 			onedollar::normalize(p,N,z);
 			shapes.push_back(z);
 		}
 
-		virtual void match(const std::vector<cv::Point> &p, std::vector<cv::Point2d> &best, double &dist, int &id){
-			std::vector<cv::Point2d> z;
+		virtual void match(const vector<cv::Point> &p, vector<cv::Point2d> &best, double &dist, int &id){
+			vector<cv::Point2d> z;
 			onedollar::normalize(p,N,z);
 			dist=99999999;
 			id=-1;
 			for (size_t i=0; i<shapes.size(); i++) {
-				double d = onedollar::distanceAtBestAngle(shapes[i], z);
+				double d = onedollar::distanceBestAngle(shapes[i], z);
 				if (d < dist) {
 					dist = d;
 					id = i;
