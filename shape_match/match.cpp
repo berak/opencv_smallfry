@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 	// filter for size
 	for (int i=0; i<raw_contours.size(); i++)
 	{
-	    if (raw_contours[i].size() >= sizeThresh )
+	    if (raw_contours[i].size() >= sizeThresh)
 	    {
 	        contours.push_back(raw_contours[i]);
 	        drawContours(mc, raw_contours, i, Scalar(128,128,128), 2);

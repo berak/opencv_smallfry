@@ -29,9 +29,6 @@ double distance(const vector<Point> &a, const vector<Point> &b)
     Mat_<Point3d> ha, hb;
     convertPointsHomogeneous(da, ha);
     convertPointsHomogeneous(db, hb);
-    cout << ha.size() << ha.type() << endl;
-    cout << ha.size() << hb.type() << endl;
-    cout << F.size() << F.type() << endl;
     return sampsonDistance(ha.reshape(1,3), hb.reshape(1,3), F);
 }
 
