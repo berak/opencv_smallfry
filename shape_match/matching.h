@@ -14,6 +14,9 @@ namespace matching {
 		//! find closest, return (possibly normalized) shape, dist and id.
 		virtual void match(const std::vector<cv::Point> &pv, std::vector<cv::Point2d> &best, double &dist, int &id) = 0;
 	};
+
+	//! dissimilarity
+	typedef double Distance(const std::vector<cv::Point> &, const std::vector<cv::Point> &);
 }
 
 

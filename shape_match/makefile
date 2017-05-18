@@ -14,6 +14,6 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	g++ $(LF) $(OBJ) $(LIBS) -o $(TARGET)
 %.o: %.cpp;
-	g++ $(CF) -c  $< -o $@
+	g++ $(CF) -c $< -o $@
 clean:
 	rm -f $(TARGET) $(OBJ)
