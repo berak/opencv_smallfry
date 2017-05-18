@@ -63,7 +63,7 @@ namespace hausdorff {
                     id = i;
                 }
             }
-            if (id!=-1) { // back to point2i
+            if (id!=-1) { // to point2d
                 std::vector<cv::Point> &p = shapes[id];
                 for (size_t i=0; i<p.size(); i++)
                     best.push_back(p[i]);

@@ -38,4 +38,9 @@ namespace hausdorff {
 	cv::Ptr<matching::Matcher> createMatcher();
 }
 
+namespace sampson {
+	double distance(const std::vector<cv::Point> &a, const std::vector<cv::Point> &b);
+	cv::Ptr<matching::Matcher> createMatcher();
+}
+
 #endif // __matching_onboard__
