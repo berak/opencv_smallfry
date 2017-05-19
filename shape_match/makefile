@@ -1,8 +1,8 @@
 INSTALL = c:/p/opencv/build/install
 TARGET  = match
 OBJ     = match.o hausdorff.o fourier.o onedollar.o sampson.o
-CF      = -std=c++11 -I. -I$(INSTALL)/include
-LF      = -O3 -L$(INSTALL)/x64/mingw/staticlib
+CFLAGS  = -g -std=c++11 -I. -I$(INSTALL)/include
+LFLAGS  = -O3 -L$(INSTALL)/x64/mingw/staticlib
 OCVLIBS = -lopencv_calib3d320 -lopencv_highgui320 -lopencv_imgcodecs320 -lopencv_imgproc320 -lopencv_core320
 OCVDEPS = -llibtiff -llibpng -llibjpeg -llibwebp -lz
 OGLLIBS = -lopengl32 -lglu32 -luser32
@@ -12,8 +12,8 @@ LIBS    = $(OCVLIBS) $(OCVDEPS) $(OGLLIBS) $(WINLIBS)
 
 all: $(TARGET)
 $(TARGET): $(OBJ)
-	g++ $(LF) $(OBJ) $(LIBS) -o $(TARGET)
+	g++ $(LFLAGS) $(OBJ) $(LIBS) -o $(TARGET)
 %.o: %.cpp;
-	g++ $(CF) -c $< -o $@
+	g++ $(CFLAGS) -c $< -o $@
 clean:
 	rm -f $(TARGET) $(OBJ)

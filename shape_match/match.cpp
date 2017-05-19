@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include "matching.h"
+#include "profile.h"
 
 using namespace cv;
 using namespace std;
@@ -7,7 +8,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
 	// cmdline args
-	String match = argc>1 ? argv[1] : "sampson";
+	String match = argc>1 ? argv[1] : "onedollar";
 	String scene = argc>2 ? argv[2] : "scene1.png";
 	int sizeThresh = argc>3 ? atoi(argv[3]) : 200;
 
@@ -16,8 +17,9 @@ int main(int argc, char **argv) {
 	Ptr<matching::Matcher> matcher;
 	if (match == "hausdorff") { matcher = hausdorff::createMatcher(); distance = &hausdorff::distance; }
 	if (match == "onedollar") { matcher = onedollar::createMatcher(); distance = &onedollar::distance; }
-	if (match == "sampson")   { matcher = sampson::createMatcher();   distance = &sampson::distance;   }
 	if (match == "fourier")   { matcher = fourier::createMatcher();   distance = &fourier::distance;   }
+	// broken (needs resampling of the shapes to equal size)
+	//if (match == "sampson")   { matcher = sampson::createMatcher();   distance = &sampson::distance;   }
 
 	// img processing
 	Mat m1, m2, m = imread(scene, IMREAD_GRAYSCALE);
@@ -35,6 +37,10 @@ int main(int argc, char **argv) {
 	    {
 	        contours.push_back(raw_contours[i]);
 	        //drawContours(mc, raw_contours, i, Scalar(128,128,128), 2);
+	        {
+	        	PROFILEX("matcher.add");
+	        	matcher->add(raw_contours[i]);
+	    	}
 	    }
 	}
 	cerr << contours.size() << " filtered contours." << endl;
@@ -44,11 +50,27 @@ int main(int argc, char **argv) {
 	Mat_<double> confusion(N,N,0.0);
 	for (size_t i=0; i<N; i++) {
 		for (size_t j=0; j<N; j++) {
+			PROFILEX("distance");
 			confusion(i, j) = distance(contours[i], contours[j]);
 		}
     }
     cerr << match << endl;
     cerr << confusion << endl;
+/*
+    Mat_<int> closest_i(1,N);
+    Mat_<double> closest_d(1,N);
+    for (size_t i=0; i<N; i++) {
+    	PROFILEX("matcher.match");
+    	vector<Point2d> best;
+    	int id;
+    	double d;
+    	matcher->match(contours[i],best,d,id);
+    	closest_i(0,i) = id;
+    	closest_d(0,i) = d;
+	}
+	cerr << closest_i << endl;
+	cerr << closest_d << endl;
+  */
     /*
 	int  ca=3, cb=2;
 	float alpha, phi, s;

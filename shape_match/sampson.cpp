@@ -24,7 +24,9 @@ double distance(const vector<Point> &a, const vector<Point> &b)
 {
     vector<Point2d> da = todouble(a);
     vector<Point2d> db = todouble(b);
-    Mat F = findFundamentalMat(da, db);
+    int xa = Mat(da).checkVector(2);
+    int xb = Mat(db).checkVector(2);
+    Mat F = findFundamentalMat(da, db); // requires len(da) == len(db), so i need to resample !
 
     Mat_<Point3d> ha, hb;
     convertPointsHomogeneous(da, ha);
@@ -46,22 +48,22 @@ namespace sampson {
 
         virtual void add(const vector<Point> &p) {
             vector<Point2d> dp = todouble(p);
-            Mat hp;
+            Mat_<Point3d> hp;
             convertPointsHomogeneous(dp, hp);
             shapes2d.push_back(dp);
-            shapes3d.push_back(hp);
+            shapes3d.push_back(hp.reshape(1,3));
         }
 
         virtual void match(const vector<Point> &pv, vector<Point2d> &best, double &dist, int &id){
             vector<Point2d> dp = todouble(pv);
-            vector<Point3d> hp;
+            Mat_<Point3d> hp;
             convertPointsHomogeneous(dp, hp);
 
             dist=99999999;
             id=-1;
             for (size_t i=0; i<shapes2d.size(); i++) {
                 Mat F = findFundamentalMat(shapes2d[i], dp);
-                double d = sampsonDistance(shapes3d[i], hp, F);
+                double d = sampsonDistance(shapes3d[i], hp.reshape(1,3), F);
                 if (d < dist) {
                     dist = d;
                     id = i;
