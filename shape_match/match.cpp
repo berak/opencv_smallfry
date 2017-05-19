@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     }
     cerr << match << endl;
     cerr << confusion << endl;
-/*
+
     Mat_<int> closest_i(1,N);
     Mat_<double> closest_d(1,N);
     for (size_t i=0; i<N; i++) {
@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 	}
 	cerr << closest_i << endl;
 	cerr << closest_d << endl;
-  */
+
     /*
 	int  ca=3, cb=2;
 	float alpha, phi, s;
