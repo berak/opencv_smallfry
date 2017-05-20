@@ -54,7 +54,7 @@ void resample(const vector<Point> &points, int n, vector<Point2d> &pts) {
 
 double distance(const vector<Point> &a, const vector<Point> &b)
 {
-    const int N(128);
+    const int N = std::min(a.size(), b.size());
     vector<Point2d> da; resample(a,N,da);
     vector<Point2d> db; resample(b,N,db);
     int xa = Mat(da).checkVector(2);

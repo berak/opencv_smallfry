@@ -31,7 +31,6 @@ int main(int argc, char **argv) {
 	if (match == "hausdorff") { matcher = hausdorff::createMatcher(); distance = &hausdorff::distance; }
 	if (match == "onedollar") { matcher = onedollar::createMatcher(); distance = &onedollar::distance; }
 	if (match == "fourier")   { matcher = fourier::createMatcher();   distance = &fourier::distance;   }
-	// broken (needs resampling of the shapes to equal size)
 	if (match == "sampson")   { matcher = sampson::createMatcher();   distance = &sampson::distance;   }
 
 	// img processing
