@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 	bitwise_not(m, m1);
 	blur(m1,m1,Size(3,3));
 	threshold(m1, m2, 5, 255, THRESH_BINARY);
-	Mat mc; cvtColor(m/8, mc, COLOR_GRAY2BGR); // for drawing
+	Mat mc; cvtColor(m/4, mc, COLOR_GRAY2BGR); // for drawing
 
 	// contours, filtered by size
 	vector<vector<Point> > raw_contours, contours;

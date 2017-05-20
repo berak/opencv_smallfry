@@ -94,8 +94,10 @@ namespace onedollar {
 	}
 
 	void rotateToZero(vector<Point2d> &pts, const Point &c) {
-		double angle = (c.y - pts[0].y, c.x - pts[0].x);
-		pts = rotateBy(pts, -angle, c);
+		double angle = atan2(c.y - pts[0].y, c.x - pts[0].x);
+		angle = 1.0 - angle;
+		angle /= (2*CV_PI);
+		pts = rotateBy(pts, angle, c);
 	}
 
 	void scaleTo(vector<Point2d> &pts, double nSize = 250.0) {

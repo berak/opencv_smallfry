@@ -13,13 +13,6 @@ using cv::Mat_;
 
 namespace sampson {
 
-vector<Point2d> todouble(const vector<Point> &x) {
-    vector<Point2d> y;
-    for (size_t i=0; i<x.size(); i++)
-        y.push_back(x[i]);
-    return y;
-}
-
 void resample(const vector<Point> &points, int n, vector<Point2d> &pts) {
     double D = 0, I = 0;
     for (int i=1; i<points.size(); ++i) {
@@ -59,7 +52,7 @@ double distance(const vector<Point> &a, const vector<Point> &b)
     vector<Point2d> db; resample(b,N,db);
     int xa = Mat(da).checkVector(2);
     int xb = Mat(db).checkVector(2);
-    Mat F = findFundamentalMat(da, db); // requires len(da) == len(db), so i need to resample !
+    Mat F = findFundamentalMat(da, db);
 
     Mat_<Point3d> ha, hb;
     convertPointsHomogeneous(da, ha);
@@ -111,6 +104,7 @@ namespace sampson {
             }
         }
     };
+
     cv::Ptr<Matcher> createMatcher(int n) {
         return cv::makePtr<MatcherImpl>(n);
     }
