@@ -6,13 +6,11 @@ using namespace cv;
 using namespace std;
 
 void normalize(const vector<Point2d> &z, vector<Point> &p, const Rect &bounds) {
-    for (int j=0; j<z.size(); j++)
+    for (size_t j=0; j<z.size(); j++)
         p.push_back(z[j]);
     Rect r = boundingRect(p);
-   	//Point off(bounds.tl()), siz(bounds.br() - bounds.tl());
     Point2d scale(double(bounds.width)/r.width, double(bounds.height)/r.height);
-    for (int j=0; j<p.size(); j++) {
-    	//p[j] -= bounds.tl();
+    for (size_t j=0; j<p.size(); j++) {
     	p[j] -= r.tl();
     	p[j].x *= scale.x;
     	p[j].y *= scale.y;
@@ -36,20 +34,18 @@ int main(int argc, char **argv) {
 	// img processing
 	Mat m1, m2, m = imread(scene, IMREAD_GRAYSCALE);
 	bitwise_not(m, m1);
-	blur(m1,m1,Size(6,6));
+	blur(m1,m1,Size(3,3));
 	threshold(m1, m2, 5, 255, THRESH_BINARY);
-
 	Mat mc; cvtColor(m/8, mc, COLOR_GRAY2BGR); // for drawing
 
 	// contours, filtered by size
 	vector<vector<Point> > raw_contours, contours;
 	findContours(m2, raw_contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-	for (int i=0; i<raw_contours.size(); i++)
+	for (size_t i=0; i<raw_contours.size(); i++)
 	{
 	    if (raw_contours[i].size() >= sizeThresh)
 	    {
 	        contours.push_back(raw_contours[i]);
-	        //drawContours(mc, raw_contours, i, Scalar(128,128,128), 2);
 	        {
 	        	PROFILEX("matcher.add");
 	        	matcher->add(raw_contours[i]);
@@ -74,14 +70,17 @@ int main(int argc, char **argv) {
     Mat_<int> closest_i(1,N);
     Mat_<double> closest_d(1,N);
     for (size_t i=0; i<N; i++) {
-    	PROFILEX("matcher.match");
+	    vector<vector<Point>> c(1);
     	int id;
     	double dist;
     	vector<Point2d> best;
+    	{
+    	PROFILEX("matcher.match");
     	matcher->match(contours[i], best, dist, id);
-	    vector<vector<Point>> c(1);
 	    for (int j = 0; j<best.size(); j++)
 	        c[0].push_back(best[j]);
+    	}
+    	// draw reprojected match result
     	Rect r = boundingRect(contours[i]);
     	normalize(best, c[0], r);
     	drawContours(mc(r), c, 0, Scalar(255,0,0), 2, LINE_AA);
