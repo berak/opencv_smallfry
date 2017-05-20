@@ -20,10 +20,43 @@ vector<Point2d> todouble(const vector<Point> &x) {
     return y;
 }
 
+void resample(const vector<Point> &points, int n, vector<Point2d> &pts) {
+    double D = 0, I = 0;
+    for (int i=1; i<points.size(); ++i) {
+        I += norm(points[i-1] - points[i]);
+    }
+    I /= (n - 1);
+
+    for (int i = 1; i < points.size(); ++i) {
+        Point2d curr = points[i];
+        Point2d prev = points[i-1];
+        Point2d dir = prev - curr;
+        double d = norm(dir);
+        if ( (D + d) >= I) {
+            double qx = prev.x + ((I-D)/d) * (curr.x - prev.x);
+            double qy = prev.y + ((I-D)/d) * (curr.y - prev.y);
+            Point2d resampled(qx, qy);
+            pts.push_back(resampled);
+            D = 0.0;
+        }
+        else {
+            D += d;
+        }
+    }
+    // we had to do some freaky resizing because of rounding issues.
+    while (pts.size() <= (n - 1)) {
+        pts.push_back(points.back());
+    }
+    if (pts.size() > n) {
+        pts.erase(pts.begin(), pts.begin()+n);
+    }
+}
+
 double distance(const vector<Point> &a, const vector<Point> &b)
 {
-    vector<Point2d> da = todouble(a);
-    vector<Point2d> db = todouble(b);
+    const int N(128);
+    vector<Point2d> da; resample(a,N,da);
+    vector<Point2d> db; resample(b,N,db);
     int xa = Mat(da).checkVector(2);
     int xb = Mat(db).checkVector(2);
     Mat F = findFundamentalMat(da, db); // requires len(da) == len(db), so i need to resample !
@@ -45,9 +78,12 @@ namespace sampson {
     struct MatcherImpl : Matcher {
         vector<Mat> shapes3d;
         vector<vector<Point2d>> shapes2d;
+        int N;
+        MatcherImpl(int n) : N(n) {}
 
         virtual void add(const vector<Point> &p) {
-            vector<Point2d> dp = todouble(p);
+            vector<Point2d> dp;
+            resample(p, N, dp);
             Mat_<Point3d> hp;
             convertPointsHomogeneous(dp, hp);
             shapes2d.push_back(dp);
@@ -55,7 +91,8 @@ namespace sampson {
         }
 
         virtual void match(const vector<Point> &pv, vector<Point2d> &best, double &dist, int &id){
-            vector<Point2d> dp = todouble(pv);
+            vector<Point2d> dp;
+            resample(pv, N, dp);
             Mat_<Point3d> hp;
             convertPointsHomogeneous(dp, hp);
 
@@ -74,7 +111,7 @@ namespace sampson {
             }
         }
     };
-    cv::Ptr<Matcher> createMatcher() {
-        return cv::makePtr<MatcherImpl>();
+    cv::Ptr<Matcher> createMatcher(int n) {
+        return cv::makePtr<MatcherImpl>(n);
     }
 }

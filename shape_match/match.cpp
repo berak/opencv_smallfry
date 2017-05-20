@@ -5,6 +5,19 @@
 using namespace cv;
 using namespace std;
 
+void normalize(const vector<Point2d> &z, vector<Point> &p, const Rect &bounds) {
+    for (int j=0; j<z.size(); j++)
+        p.push_back(z[j]);
+    Rect r = boundingRect(p);
+   	//Point off(bounds.tl()), siz(bounds.br() - bounds.tl());
+    Point2d scale(double(bounds.width)/r.width, double(bounds.height)/r.height);
+    for (int j=0; j<p.size(); j++) {
+    	//p[j] -= bounds.tl();
+    	p[j] -= r.tl();
+    	p[j].x *= scale.x;
+    	p[j].y *= scale.y;
+    }
+}
 
 int main(int argc, char **argv) {
 	// cmdline args
@@ -19,14 +32,15 @@ int main(int argc, char **argv) {
 	if (match == "onedollar") { matcher = onedollar::createMatcher(); distance = &onedollar::distance; }
 	if (match == "fourier")   { matcher = fourier::createMatcher();   distance = &fourier::distance;   }
 	// broken (needs resampling of the shapes to equal size)
-	//if (match == "sampson")   { matcher = sampson::createMatcher();   distance = &sampson::distance;   }
+	if (match == "sampson")   { matcher = sampson::createMatcher();   distance = &sampson::distance;   }
 
 	// img processing
 	Mat m1, m2, m = imread(scene, IMREAD_GRAYSCALE);
-	//Mat mc; cvtColor(m/8, mc, COLOR_GRAY2BGR); // for drawing
 	bitwise_not(m, m1);
 	blur(m1,m1,Size(6,6));
 	threshold(m1, m2, 5, 255, THRESH_BINARY);
+
+	Mat mc; cvtColor(m/8, mc, COLOR_GRAY2BGR); // for drawing
 
 	// contours, filtered by size
 	vector<vector<Point> > raw_contours, contours;
@@ -57,20 +71,29 @@ int main(int argc, char **argv) {
     cerr << match << endl;
     cerr << confusion << endl;
 
+
     Mat_<int> closest_i(1,N);
     Mat_<double> closest_d(1,N);
     for (size_t i=0; i<N; i++) {
     	PROFILEX("matcher.match");
-    	vector<Point2d> best;
     	int id;
-    	double d;
-    	matcher->match(contours[i],best,d,id);
+    	double dist;
+    	vector<Point2d> best;
+    	matcher->match(contours[i], best, dist, id);
+	    vector<vector<Point>> c(1);
+	    for (int j = 0; j<best.size(); j++)
+	        c[0].push_back(best[j]);
+    	Rect r = boundingRect(contours[i]);
+    	normalize(best, c[0], r);
+    	drawContours(mc(r), c, 0, Scalar(255,0,0), 2, LINE_AA);
     	closest_i(0,i) = id;
-    	closest_d(0,i) = d;
+    	closest_d(0,i) = dist;
 	}
 	cerr << closest_i << endl;
 	cerr << closest_d << endl;
 
+	imshow(match, mc);
+	waitKey();
     /*
 	int  ca=3, cb=2;
 	float alpha, phi, s;

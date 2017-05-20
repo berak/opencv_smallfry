@@ -287,7 +287,8 @@ double distance(const vector<Point> &a,const vector<Point> &b)
 
 // from Z
 // phi is the angle from a to b, so if you want to reconstruct b from a, reverse phi.
-vector<Point> reconstruct(const vector<Point2d> &Za, float alpha, float phi, float s)
+template<class RET>
+void reconstruct(const vector<Point2d> &Za, vector<RET> &c, float alpha, float phi, float s)
 {
     complex<float> expitheta = s * complex<float>(cos(phi), sin(phi));
     vector<Point2d> Zb(Za.size());
@@ -300,16 +301,19 @@ vector<Point> reconstruct(const vector<Point2d> &Za, float alpha, float phi, flo
     }
     vector<Point2d> z;
     dft(Zb, z, DFT_INVERSE);
-    vector<Point> c;
     for (int j = 0; j<z.size(); j++)
         c.push_back(z[j]);
-    return (c);
 }
 
 // from contour
-vector<Point> reconstruct(const vector<Point> &a, float alpha, float phi, float s)
+void reconstruct(const vector<Point> &a, vector<Point> &b, float alpha, float phi, float s)
 {
-	return reconstruct(zsample(a),alpha,phi,s);
+	reconstruct(zsample(a), b, alpha, phi, s);
+}
+// from contour
+void reconstruct(const vector<Point> &a, vector<Point2f> &b, float alpha, float phi, float s)
+{
+	reconstruct(zsample(a), b, alpha, phi, s);
 }
 
 }; // namespace fourier
@@ -334,16 +338,18 @@ namespace fourier {
 			vector<Point2d> Z = fourier::zsample(p, N); // compare in Z space
 			dist=99999999;
 			id=-1;
+			Point3f aps;
 			for (size_t i=0; i<shapes.size(); i++) {
 				float a,p,s;
-				double d = fourier::distance(shapes[i], Z, a,p,s);
+				double d = fourier::distance(shapes[i], Z, a, p, s);
 				if (d < dist) {
 					dist = d;
 					id = i;
+					aps=Point3f(a, p, s);
 				}
 			}
 			if (id!=-1) {
-				best = shapes[id];
+				fourier::reconstruct(shapes[id], best, aps.x, aps.y, aps.z);
 			}
 		}
 	};
