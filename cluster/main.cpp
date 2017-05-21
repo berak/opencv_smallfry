@@ -58,7 +58,7 @@ double meanEnergy(const Mat &features, const std::vector<Cluster> &clusters) {
 		e += clusters[k].meanEnergy(features);
 	}
 	e /= clusters.size();
-	return e;
+		return e;
 }
 
 namespace random {
@@ -82,7 +82,6 @@ namespace random {
 		init(features, cl);
 		//double e1=meanEnergy(features, cl);
 		//cout << "mean energy " << e1 << endl;
-
 		const int ATTEMPTS = 1e6;
 		int moved = 0, nomove = 0, i=0;
 		for (; i<ATTEMPTS; i++) {
@@ -109,7 +108,6 @@ namespace random {
 		cout << i << " gens, " << moved << " items moved." << endl;
 		//double e2 = meanEnergy(features, cl);
 		//cout << "mean energy " << e2 << endl;
-
 		centers.release();
 		for (int k=0; k<K; k++) {
 			centers.push_back(cl[k].cen.reshape(1,1));
@@ -122,10 +120,9 @@ namespace brute {
 	int cluster(const Mat &features, int K, Mat &centers) {
 		PROFILE
 		vector<Cluster> cl(K);
-		random::init(features,cl);
+		random::init(features, cl);
 		//double e1=meanEnergy(features, cl);
 		//cout << "mean energy " << e1 << endl;
-
 		const int ATTEMPTS = 1e5;
 		int moved = 0, nomove = 0, i=0, run=1;
 		for (; i<ATTEMPTS && run; i++) {
@@ -156,7 +153,6 @@ namespace brute {
 		cout << i << " gens, " << moved << " items moved." << endl;
 		//double e2 = meanEnergy(features, cl);
 		//cout << "mean energy " << e2 << endl;
-
 		centers.release();
 		for (int k=0; k<K; k++) {
 			centers.push_back(cl[k].cen.reshape(1,1));

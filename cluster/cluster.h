@@ -13,7 +13,7 @@ namespace cluster {
 namespace kmeans {
 	int cluster(const Mat &features, int K, Mat &centers);
 }
-namespace gravi {
+namespace brute {
 	int cluster(const Mat &features, int K, Mat &centers);
 }
 namespace flannb {

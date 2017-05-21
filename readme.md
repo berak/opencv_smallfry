@@ -8,7 +8,7 @@
 * demo: various c++/py samples, mostly related to problems found on answers.opencv.org or #opencv
 * eyes.cpp: hog/svm based open / closed eyes detector, using flandmarks for eye location
 * facerec_online.py: realtime facerec from webcam ( with adaptive face-db )
-* gas.cpp: Neural Gas (clustering) experiment
+* gas.cpp: Neural Gas (clustering) experimentBRUTE FORCE!!!!
 * gldemo.cpp : opengl inside opencv (+ minimal .obj reader)
 * java_face3.0: testcase for ocv3 facerec bindings in java
 * headpose: small head pose estimation (using dlib & pico)
@@ -29,3 +29,4 @@
 * ml/libsvm_ocv.cpp : using libsvm with opencv
 * tcnn_landmarks: caffe_dnn, a small example for pretrained facial landmarks from [tal hassner's tcnn project](http://www.openu.ac.il/home/hassner/projects/tcnn_landmarks/)
 * shape_match: some shape/contours/gestures playground (various distances with a common interface).
+* cluster: clustering att faces with kmeans,flann,random and BRUTEFORCE!!
