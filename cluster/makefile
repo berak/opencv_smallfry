@@ -1,6 +1,6 @@
 INSTALL = c:/p/opencv/build/install
-TARGET  = main
-OBJ     = main.o kmeans_flann.o brute_random.o
+TARGET  = cluster
+OBJ     = cluster.o kmeans_flann.o brute_random.o
 CFLAGS  = -std=c++11 -I. -I$(INSTALL)/include
 LFLAGS  = -O3 -L$(INSTALL)/x64/mingw/staticlib
 OCVLIBS = -lopencv_calib3d320 -lopencv_highgui320 -lopencv_imgcodecs320 -lopencv_imgproc320 -lopencv_core320
