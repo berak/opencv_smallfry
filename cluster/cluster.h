@@ -6,20 +6,20 @@ using cv::Mat;
 
 namespace cluster {
 
-	typedef int Cluster(const Mat &features, int K, Mat &centers);
+	typedef int Cluster(const Mat &features, int K, Mat &dictionary);
 
 }
 
 namespace kmeans {
-	int cluster(const Mat &features, int K, Mat &centers);
+	int cluster(const Mat &features, int K, Mat &dictionary);
 }
 namespace brute {
-	int cluster(const Mat &features, int K, Mat &centers);
+	int cluster(const Mat &features, int K, Mat &dictionary);
 }
 namespace flannb {
-	int cluster(const Mat &features, int K, Mat &centers);
+	int cluster(const Mat &features, int K, Mat &dictionary);
 }
 namespace random {
-	int cluster(const Mat &features, int K, Mat &centers);
+	int cluster(const Mat &features, int K, Mat &dictionary);
 }
 #endif // __cluster_onboard__

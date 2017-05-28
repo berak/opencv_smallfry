@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
 	int K2 = argc>2 ? atoi(argv[2]) : 4;
 	int SZ = argc>3 ? atoi(argv[3]) : 32;
 	int K = K2*K2;
+
 	cluster::Cluster *Cluster;
 	if (meth=="kmeans") Cluster = &kmeans::cluster;
 	if (meth=="flann")  Cluster = &flannb::cluster;
@@ -28,10 +29,12 @@ int main(int argc, char **argv) {
 		im.convertTo(im, CV_32F);
 		features.push_back(im.reshape(1,1));
 	}
+
 	cout << "start cluster " << meth << " " << K << endl;
 	Mat cen = Mat::zeros(K, features.cols, CV_32F); // needs to be persistant for flann
 	int n = Cluster(features,K,cen);
 	if (n<K) cout << n << " dictionary of " << K << endl;
+
 	Mat draw(SZ*K2,SZ*K2,CV_8U);
 	for (int i=0,k=0; i<K2; i++) {
 		for (int j=0; (j<K2) && (k<n); j++,k++) {
