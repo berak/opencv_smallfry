@@ -10,9 +10,10 @@ using namespace cv;
 
 bool DBGDRAW=0;
 
-// Rearrange the quadrants of Fourier image so that the origin is at
-// the image center
-// src & dst arrays of equal size & type
+//
+//! Rearrange the quadrants of Fourier image
+//!  so that the origin is at the image center
+//
 void shiftDFT(const Mat &src, Mat &dst) {
     PROFILE
     Size size = src.size();
@@ -41,20 +42,20 @@ void shiftDFT(const Mat &src, Mat &dst) {
     } else {
         Mat tmp;
         q3.copyTo(tmp);
-        q1.copyTo(q3);
-        tmp.copyTo(q1);
+        q1.copyTo(d3);
+        tmp.copyTo(d1);
         q4.copyTo(tmp);
-        q2.copyTo(q4);
-        tmp.copyTo(q2);
+        q2.copyTo(d4);
+        tmp.copyTo(d2);
     }
 }
 
 
 
 struct MACEImpl : MACE {
-    int IMGSIZE;
+    int IMGSIZE;            // images will get resized to this
     Mat_<Vec2d> maceFilter; // filled from compute()
-    Mat convFilter;
+    Mat convFilter;         // optional random convolution (cancellable)
 
     MACEImpl(int siz, int salt) : IMGSIZE(siz) {
         if (salt) {
@@ -185,8 +186,8 @@ struct MACEImpl : MACE {
         double num=0;
         int rad1=int(floor((double)(45.0/64.0)*(double)IMGSIZE));
         int rad2=int(floor((double)(27.0/64.0)*(double)IMGSIZE));
-        vector<float> r2(IMGSIZE_2X),l2(IMGSIZE_2X);
-        for (int l=0; l<IMGSIZE_2X; l++) {
+        vector<float> r2(IMGSIZE_2X);
+        for (int l=0; l<IMGSIZE_2X; l++) { // save a few pow's
             r2[l] = (l-IMGSIZE) * (l-IMGSIZE);
         }
         for (int l=0; l<IMGSIZE_2X; l++) {
