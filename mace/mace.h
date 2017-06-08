@@ -8,7 +8,7 @@
 //! Minimum Average Correlation Energy Filter
 //!   useful for authentification with (cancellable) biometrical features.
 //!   (does not need many positives to train (~10), and no negatives at all, also robust to noise/salting)
-// algorithm largely taken from : https://github.com/polyu/faceservergpl
+//  algorithm largely taken from : https://github.com/polyu/faceservergpl
 //
 
 struct MACE {
@@ -16,8 +16,8 @@ struct MACE {
     virtual void compute(const std::vector<cv::Mat> &images) = 0;
 
     //! predict correlation values on a query image
-    //! (100 * pcpe * pslr) makes a nice correlation value
-    virtual void correlate(const cv::Mat &img, double &peakCorrPlaneEnergy, double &peakToSideLobeRatio) = 0;
+    //!   return [0..1] based value is: (100 * pcpe * pslr)
+    virtual double correlate(const cv::Mat &img) = 0;
 };
 cv::Ptr<MACE> createMACE(int SIZE_OF_IMAGE);
 

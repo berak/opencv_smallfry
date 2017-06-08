@@ -12,13 +12,13 @@ using namespace std;
 // all-against-all test on att faces
 //
 int main() {
-    const float thresh = 0.25f;
-    const int N = 40;
+    const float thresh = 0.3f; // derived by experiment
+    const int N = 40; // 40 subjects.
 
     Ptr<MACE> mace = createMACE(80);
     String att = "c:/data/faces/att/";
     Mat_<int> confusion(N,N,0);
-    for (int p=1; p<=N; p++) {
+    for (int p=1; p<=N; p++) { // att starts counting from one ..
         vector<Mat> p1;
         for (int i=1; i<=10; i++) {
             Mat i1 = imread(att + format("s%d/%d.pgm", p, i), 0);
@@ -28,11 +28,9 @@ int main() {
         for (int q=1; q<=N; q++) {
             for (int i=1; i<=10; i++) {
                 Mat i2 = imread(att + format("s%d/%d.pgm", q, i), 0);
-                double pcpe, pslr;
-                mace->correlate(i2, pcpe, pslr);
-                double v1 = (100*pslr*pcpe);
-                if (v1 > thresh) {
-                    confusion(p-1,q-1) ++;
+                double pred = mace->correlate(i2);
+                if (pred > thresh) {
+                    confusion(p-1,q-1) ++; // positively detected.
                 }
             }
         }

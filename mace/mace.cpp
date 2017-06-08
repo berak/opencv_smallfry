@@ -73,6 +73,7 @@ struct MACEImpl : MACE {
 
     MACEImpl(int s) : SIZE_OF_IMAGE(s) {}
 
+
     void compute(const std::vector<Mat> &img) {
         PROFILE
         int size = img.size();
@@ -145,8 +146,8 @@ struct MACEImpl : MACE {
         }
     }
 
-    void correlate(const Mat &img, double &peakCorrPlaneEnergy, double &peakToSideLobeRatio)
-    {
+
+    double correlate(const Mat &img) {
         PROFILE
         CV_Assert(! maceFilterVisualize.empty()); // not trained.
 
@@ -160,7 +161,7 @@ struct MACEImpl : MACE {
         shiftDFT(chn[0], re);
         double m1,M1;
         minMaxLoc(re, &m1, &M1, 0, 0);
-        peakCorrPlaneEnergy = M1 / sqrt(sum(re)[0]);
+        double peakCorrPlaneEnergy = M1 / sqrt(sum(re)[0]);
 
         re -= m1;
 #if 0
@@ -199,9 +200,12 @@ waitKey();
         std2 /= num;
         std2 = sqrt(std2);
         double sca = re(SIZE_OF_IMAGE, SIZE_OF_IMAGE);
-        peakToSideLobeRatio = (sca - value) / std2;
+        double peakToSideLobeRatio = (sca - value) / std2;
+
+        return 100.0 * peakToSideLobeRatio * peakCorrPlaneEnergy;
     }
 };
+
 
 cv::Ptr<MACE> createMACE(int s) {
     return makePtr<MACEImpl>(s);
