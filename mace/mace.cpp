@@ -8,6 +8,8 @@
 
 using namespace cv;
 
+bool DBGDRAW=0;
+
 // Rearrange the quadrants of Fourier image so that the origin is at
 // the image center
 // src & dst arrays of equal size & type
@@ -47,48 +49,61 @@ void shiftDFT(const Mat &src, Mat &dst) {
     }
 }
 
-Mat dftImage(Mat img, int SIZE_OF_IMAGE) {
-    PROFILE;
-    Mat gray;
-    resize(img, gray, Size(SIZE_OF_IMAGE,SIZE_OF_IMAGE)) ;
-    equalizeHist(gray,gray);
-
-    Mat input[2];
-    gray.convertTo(input[0], CV_64F);
-    input[1] = Mat(input[0].size(), input[0].type(), 0.0);
-    Mat complexInput; merge(input, 2, complexInput);
-
-    Mat_<Vec2d> dftImg(SIZE_OF_IMAGE*2, SIZE_OF_IMAGE*2, 0.0);
-    complexInput.copyTo(dftImg(Rect(0,0,SIZE_OF_IMAGE,SIZE_OF_IMAGE)));
-
-    dft(dftImg, dftImg);
-    return dftImg;
-}
-
 
 
 struct MACEImpl : MACE {
-    int SIZE_OF_IMAGE;
-    Mat_<Vec2d> maceFilterVisualize; // filled from compute()
+    int IMGSIZE;
+    Mat_<Vec2d> maceFilter; // filled from compute()
+    Mat convFilter;
 
-    MACEImpl(int s) : SIZE_OF_IMAGE(s) {}
+    MACEImpl(int siz, int salt) : IMGSIZE(siz) {
+        if (salt) {
+            theRNG().state = salt;
+            convFilter.create(siz, siz, CV_64F);
+            randn(convFilter, 0, 1.0/(siz*siz));
+        }
+    }
 
 
-    void compute(const std::vector<Mat> &img) {
+    Mat dftImage(Mat img) {
+        PROFILE;
+        Mat gray;
+        resize(img, gray, Size(IMGSIZE,IMGSIZE)) ;
+        equalizeHist(gray,gray);
+        if (! convFilter.empty()) {
+            PROFILEX("dftImage.filter")
+            filter2D(gray, gray, -1, convFilter);
+        }
+        if (DBGDRAW) {
+            imshow("ORG",gray*(convFilter.empty() ? 1 : 100));
+        }
+        Mat input[2];
+        gray.convertTo(input[0], CV_64F);
+        input[1] = Mat(input[0].size(), input[0].type(), 0.0);
+        Mat complexInput; merge(input, 2, complexInput);
+
+        Mat_<Vec2d> dftImg(IMGSIZE*2, IMGSIZE*2, 0.0);
+        complexInput.copyTo(dftImg(Rect(0,0,IMGSIZE,IMGSIZE)));
+
+        dft(dftImg, dftImg);
+        return dftImg;
+    }
+
+    void compute(const std::vector<Mat> &images) {
         PROFILE
-        int size = img.size();
-        int SIZE_OF_IMAGE_2X = SIZE_OF_IMAGE * 2;
-        int TOTALPIXEL = SIZE_OF_IMAGE_2X * SIZE_OF_IMAGE_2X;
+        int size = images.size();
+        int IMGSIZE_2X = IMGSIZE * 2;
+        int TOTALPIXEL = IMGSIZE_2X * IMGSIZE_2X;
 
         Mat_<Vec2d> D(TOTALPIXEL, 1, 0.0);
         Mat_<Vec2d> S(TOTALPIXEL, size, 0.0);
         Mat_<Vec2d> SPLUS(size, TOTALPIXEL, 0.0);
 
         for (size_t i=0; i<size; i++) {
-            Mat_<Vec2d> dftImg = dftImage(img[i], SIZE_OF_IMAGE);
-            for (int l=0; l<SIZE_OF_IMAGE_2X; l++) {
-                for (int m=0; m<SIZE_OF_IMAGE_2X; m++) {
-                    int j = l * SIZE_OF_IMAGE_2X + m;
+            Mat_<Vec2d> dftImg = dftImage(images[i]);
+            for (int l=0; l<IMGSIZE_2X; l++) {
+                for (int m=0; m<IMGSIZE_2X; m++) {
+                    int j = l * IMGSIZE_2X + m;
                     Vec2d s = dftImg(l, m);
                     S(j, i) = s;
                     SPLUS(i, j) = Vec2d(s[0], -s[1]);
@@ -101,7 +116,7 @@ struct MACEImpl : MACE {
 
         Mat_<Vec2d> DINV(TOTALPIXEL, 1, 0.0);
         for (int i=0; i<TOTALPIXEL; i++) {
-            DINV(i,0) = Vec2d((SIZE_OF_IMAGE_2X*SIZE_OF_IMAGE_2X*size)/sqrt(D(i,0)[0]), 0);
+            DINV(i,0) = Vec2d((IMGSIZE_2X*IMGSIZE_2X*size)/sqrt(D(i,0)[0]), 0);
         }
 
         Mat_<Vec2d> DINV_S(TOTALPIXEL, size, 0.0);
@@ -138,10 +153,10 @@ struct MACEImpl : MACE {
         Mat Hmace = DINV_S * SPLUS_DINV_S_INV;
         Mat C(size,1,CV_64FC2, Scalar(1,0));
         Mat_<Vec2d> Hmace_FIN = Hmace * C;
-        maceFilterVisualize.create(SIZE_OF_IMAGE_2X, SIZE_OF_IMAGE_2X);
-        for (int l=0; l<SIZE_OF_IMAGE_2X; l++) {
-            for (int m=0; m<SIZE_OF_IMAGE_2X; m++) {
-                maceFilterVisualize(l, m) = Hmace_FIN(l * SIZE_OF_IMAGE_2X + m, 0);
+        maceFilter.create(IMGSIZE_2X, IMGSIZE_2X);
+        for (int l=0; l<IMGSIZE_2X; l++) {
+            for (int m=0; m<IMGSIZE_2X; m++) {
+                maceFilter(l, m) = Hmace_FIN(l * IMGSIZE_2X + m, 0);
             }
         }
     }
@@ -149,11 +164,10 @@ struct MACEImpl : MACE {
 
     double correlate(const Mat &img) {
         PROFILE
-        CV_Assert(! maceFilterVisualize.empty()); // not trained.
-
-        int  SIZE_OF_IMAGE_2X = SIZE_OF_IMAGE * 2;
-        Mat dftImg = dftImage(img, SIZE_OF_IMAGE);
-        mulSpectrums(dftImg , maceFilterVisualize, dftImg, CV_DXT_MUL_CONJ);
+        CV_Assert(! maceFilter.empty()); // not trained.
+        int  IMGSIZE_2X = IMGSIZE * 2;
+        Mat dftImg = dftImage(img);
+        mulSpectrums(dftImg, maceFilter, dftImg, CV_DXT_MUL_CONJ);
         dft(dftImg, dftImg, CV_DXT_INV_SCALE, 0);
         Mat chn[2];
         split(dftImg, chn);
@@ -162,20 +176,22 @@ struct MACEImpl : MACE {
         double m1,M1;
         minMaxLoc(re, &m1, &M1, 0, 0);
         double peakCorrPlaneEnergy = M1 / sqrt(sum(re)[0]);
-
         re -= m1;
-#if 0
-imshow("RE",re*10000);
-waitKey();
-#endif
+        if (DBGDRAW) {
+            imshow("RE",re*10000);
+            waitKey(5);
+        }
         double value=0;
         double num=0;
-        int rad1=int(floor((double)(45.0/64.0)*(double)SIZE_OF_IMAGE));
-        int rad2=int(floor((double)(27.0/64.0)*(double)SIZE_OF_IMAGE));
-
-        for (int l=0; l<SIZE_OF_IMAGE_2X; l++) {
-            for (int m=0; m<SIZE_OF_IMAGE_2X; m++) {
-                double rad=sqrt((pow(m-SIZE_OF_IMAGE,2) + pow(l-SIZE_OF_IMAGE,2)));
+        int rad1=int(floor((double)(45.0/64.0)*(double)IMGSIZE));
+        int rad2=int(floor((double)(27.0/64.0)*(double)IMGSIZE));
+        vector<float> r2(IMGSIZE_2X),l2(IMGSIZE_2X);
+        for (int l=0; l<IMGSIZE_2X; l++) {
+            r2[l] = (l-IMGSIZE) * (l-IMGSIZE);
+        }
+        for (int l=0; l<IMGSIZE_2X; l++) {
+            for (int m=0; m<IMGSIZE_2X; m++) {
+                double rad=sqrt(r2[m] + r2[l]);
                 if (rad < rad1) {
                     if (rad > rad2) {
                         value += re(l,m);
@@ -187,19 +203,20 @@ waitKey();
         value /= num;
 
         double std2=0;
-        for (int l=0; l<SIZE_OF_IMAGE_2X; l++) {
-            for (int m=0; m<SIZE_OF_IMAGE_2X; m++) {
-                double rad=sqrt((pow(m-SIZE_OF_IMAGE,2) + pow(l-SIZE_OF_IMAGE,2)));
+        for (int l=0; l<IMGSIZE_2X; l++) {
+            for (int m=0; m<IMGSIZE_2X; m++) {
+                double rad=sqrt(r2[m] + r2[l]);
                 if (rad < rad1) {
                     if (rad > rad2) {
-                        std2 += (pow(value - re(l,m), 2));
+                        double d = (value - re(l,m));
+                        std2 += d * d;
                     }
                 }
             }
         }
         std2 /= num;
         std2 = sqrt(std2);
-        double sca = re(SIZE_OF_IMAGE, SIZE_OF_IMAGE);
+        double sca = re(IMGSIZE, IMGSIZE);
         double peakToSideLobeRatio = (sca - value) / std2;
 
         return 100.0 * peakToSideLobeRatio * peakCorrPlaneEnergy;
@@ -207,6 +224,6 @@ waitKey();
 };
 
 
-cv::Ptr<MACE> createMACE(int s) {
-    return makePtr<MACEImpl>(s);
+cv::Ptr<MACE> MACE::create(int siz, int salt) {
+    return makePtr<MACEImpl>(siz, salt);
 }
