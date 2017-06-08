@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "opencv2/opencv.hpp"
 #include "mace.h"
-#include "profile.h"
 
 using namespace cv;
 
@@ -15,7 +14,6 @@ bool DBGDRAW=0;
 //!  so that the origin is at the image center
 //
 void shiftDFT(const Mat &src, Mat &dst) {
-    PROFILE
     Size size = src.size();
 
     if (dst.empty() || (dst.size().width != size.width || dst.size().height != size.height)) {
@@ -67,12 +65,10 @@ struct MACEImpl : MACE {
 
 
     Mat dftImage(Mat img) {
-        PROFILE;
         Mat gray;
         resize(img, gray, Size(IMGSIZE,IMGSIZE)) ;
         equalizeHist(gray,gray);
         if (! convFilter.empty()) {
-            PROFILEX("dftImage.filter")
             filter2D(gray, gray, -1, convFilter);
         }
         if (DBGDRAW) {
@@ -91,7 +87,6 @@ struct MACEImpl : MACE {
     }
 
     void compute(const std::vector<Mat> &images) {
-        PROFILE
         int size = images.size();
         int IMGSIZE_2X = IMGSIZE * 2;
         int TOTALPIXEL = IMGSIZE_2X * IMGSIZE_2X;
@@ -164,7 +159,6 @@ struct MACEImpl : MACE {
 
 
     double correlate(const Mat &img) {
-        PROFILE
         CV_Assert(! maceFilter.empty()); // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
         Mat dftImg = dftImage(img);
@@ -186,7 +180,7 @@ struct MACEImpl : MACE {
         double num=0;
         int rad1=int(floor((double)(45.0/64.0)*(double)IMGSIZE));
         int rad2=int(floor((double)(27.0/64.0)*(double)IMGSIZE));
-        vector<float> r2(IMGSIZE_2X);
+        std::vector<float> r2(IMGSIZE_2X);
         for (int l=0; l<IMGSIZE_2X; l++) { // save a few pow's
             r2[l] = (l-IMGSIZE) * (l-IMGSIZE);
         }
