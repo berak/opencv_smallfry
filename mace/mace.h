@@ -14,27 +14,17 @@
 struct MACE {
     //! train it on positive features
     virtual void compute(const std::vector<cv::Mat> &images) = 0;
-/*
-    //! minimal "same" threshold from the train images
-    virtual double computeThreshold(const std::vector<cv::Mat> &images) const = 0;
 
-    //! predict correlation values on a query image
-    //!   return [0..1] based value is: (100 * pcpe * pslr)
-    virtual double correlate(const cv::Mat &img) const = 0;
-*/
-    //! predict threshold on min positive value
+    //! correlate and compare to min positive value
     virtual bool same(const cv::Mat &img) const = 0;
 
     virtual bool save(const cv::String &filename) const = 0;
     virtual bool load(const cv::String &filename) = 0;
 
-	//
 	//! images will get resized to IMGSIZE
 	//! if salt is != 0, a random convolution, seeded by salt, will get applied to all images
 	//!   to achieve "cancellable features".
-	//
 	static cv::Ptr<MACE> create(int IMGSIZE, int salt=0);
-
 };
 
 #endif // __mace_h_onboard__

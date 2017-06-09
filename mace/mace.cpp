@@ -92,6 +92,7 @@ struct MACEImpl : MACE {
         return dftImg;
     }
 
+
     void compute(const std::vector<Mat> &images) {
         int size = images.size();
         int IMGSIZE_2X = IMGSIZE * 2;
@@ -165,6 +166,7 @@ struct MACEImpl : MACE {
         threshold = computeThreshold(images);
     }
 
+
     double computeThreshold(const std::vector<Mat> &images) const {
         double best=DBL_MAX;
         for (size_t i=0; i<images.size(); i++) {
@@ -178,8 +180,11 @@ struct MACEImpl : MACE {
         }
         return best;
     }
+
+
     double correlate(const Mat &img) const {
-        CV_Assert(! maceFilter.empty()); // not trained.
+        //CV_Assert(! maceFilter.empty()); // not trained.
+        if (maceFilter.empty()) return -1; // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
         Mat dftImg = dftImage(img);
         mulSpectrums(dftImg, maceFilter, dftImg, CV_DXT_MUL_CONJ);
