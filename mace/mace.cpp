@@ -54,12 +54,15 @@ struct MACEImpl : MACE {
     int IMGSIZE;            // images will get resized to this
     Mat_<Vec2d> maceFilter; // filled from compute()
     Mat convFilter;         // optional random convolution (cancellable)
-
-    MACEImpl(int siz, int salt) : IMGSIZE(siz) {
+    double threshold;       // minimal "sameness" threshold from the train images
+    MACEImpl(int siz, int salt) : IMGSIZE(siz), threshold(DBL_MAX) {
         if (salt) {
             theRNG().state = salt;
             convFilter.create(siz, siz, CV_64F);
             randn(convFilter, 0, 1.0/(siz*siz));
+            if (DBGDRAW) {
+                imshow("FIL", 0.5 + 1000*convFilter);
+            }
         }
     }
 
@@ -73,6 +76,7 @@ struct MACEImpl : MACE {
         if (! convFilter.empty()) { // optional, but unfortunately, it has to happen after resize/equalize ops.
             filter2D(gray, gray, -1, convFilter);
         }
+        //normalize(gray, gray, 1, 0, NORM_MINMAX);
         if (DBGDRAW) {
             imshow("ORG",gray*(convFilter.empty() ? 1 : 100));
         }
@@ -157,9 +161,23 @@ struct MACEImpl : MACE {
                 maceFilter(l, m) = Hmace_FIN(l * IMGSIZE_2X + m, 0);
             }
         }
+
+        threshold = computeThreshold(images);
     }
 
-
+    double computeThreshold(const std::vector<Mat> &images) const {
+        double best=DBL_MAX;
+        for (size_t i=0; i<images.size(); i++) {
+            double d = correlate(images[i]);
+            if (d < best) {
+                best = d;
+            }
+        }
+        if (best>9999999) {
+            best = 1.0;
+        }
+        return best;
+    }
     double correlate(const Mat &img) const {
         CV_Assert(! maceFilter.empty()); // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
@@ -176,7 +194,7 @@ struct MACEImpl : MACE {
         re -= m1;
         if (DBGDRAW) {
             imshow("RE",re*10000);
-            waitKey(5);
+            waitKey();
         }
         double value=0;
         double num=0;
@@ -218,18 +236,23 @@ struct MACEImpl : MACE {
 
         return 100.0 * peakToSideLobeRatio * peakCorrPlaneEnergy;
     }
+
+    bool same(const Mat &img) const {
+        return correlate(img) >= threshold;
+    }
     bool save(const cv::String &fn) const {
         FileStorage fs(fn,1);
         fs << "mace" << maceFilter;
         fs << "conv" << convFilter;
+        fs << "threshold" << threshold;
     }
     bool load(const cv::String &fn) {
         FileStorage fs(fn,0);
         fs["mace"] >> maceFilter;
         fs["conv"] >> convFilter;
+        fs["threshold"] >> threshold;
         IMGSIZE = maceFilter.cols/2;
     }
-
 };
 
 
