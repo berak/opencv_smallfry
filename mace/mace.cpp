@@ -64,11 +64,13 @@ struct MACEImpl : MACE {
     }
 
 
-    Mat dftImage(Mat img) {
+    Mat dftImage(Mat img) const {
         Mat gray;
         resize(img, gray, Size(IMGSIZE,IMGSIZE)) ;
-        equalizeHist(gray,gray);
-        if (! convFilter.empty()) {
+        if (gray.channels() > 1)
+            cvtColor(gray, gray, COLOR_BGR2GRAY);
+        equalizeHist(gray, gray);
+        if (! convFilter.empty()) { // optional, but unfortunately, it has to happen after resize/equalize ops.
             filter2D(gray, gray, -1, convFilter);
         }
         if (DBGDRAW) {
@@ -158,7 +160,7 @@ struct MACEImpl : MACE {
     }
 
 
-    double correlate(const Mat &img) {
+    double correlate(const Mat &img) const {
         CV_Assert(! maceFilter.empty()); // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
         Mat dftImg = dftImage(img);
@@ -216,6 +218,18 @@ struct MACEImpl : MACE {
 
         return 100.0 * peakToSideLobeRatio * peakCorrPlaneEnergy;
     }
+    bool save(const cv::String &fn) const {
+        FileStorage fs(fn,1);
+        fs << "mace" << maceFilter;
+        fs << "conv" << convFilter;
+    }
+    bool load(const cv::String &fn) {
+        FileStorage fs(fn,0);
+        fs["mace"] >> maceFilter;
+        fs["conv"] >> convFilter;
+        IMGSIZE = maceFilter.cols/2;
+    }
+
 };
 
 

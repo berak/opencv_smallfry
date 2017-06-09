@@ -17,14 +17,17 @@ struct MACE {
 
     //! predict correlation values on a query image
     //!   return [0..1] based value is: (100 * pcpe * pslr)
-    virtual double correlate(const cv::Mat &img) = 0;
+    virtual double correlate(const cv::Mat &img) const = 0;
+
+    virtual bool save(const cv::String &fn) const = 0;
+    virtual bool load(const cv::String &fn) = 0;
 
 	//
-	//! images will get resized to SIZE_OF_IMAGE
+	//! images will get resized to IMGSIZE
 	//! if salt is != 0, a random convolution, seeded by salt, will get applied to all images
 	//!   to achieve "cancellable features".
 	//
-	static cv::Ptr<MACE> create(int SIZE_OF_IMAGE, int salt=0);
+	static cv::Ptr<MACE> create(int IMGSIZE, int salt=0);
 
 };
 

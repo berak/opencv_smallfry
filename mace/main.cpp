@@ -50,6 +50,7 @@ namespace ROC {
     }
 } // ROC
 
+
 extern bool DBGDRAW;
 //
 // all-against-all test on att faces
@@ -59,7 +60,6 @@ int main(int argc, char **argv) {
             "{ help h usage ? ||     show this message }"
             "{ thresh t       |0.42| threshold }"
             "{ subj s         |40|   num subjects in test(max: 40) }"
-            "{ ocl o          ||     use opencl }"
             "{ siz z          |64|   image size }"
             "{ debug d        ||     show debug images }"
             "{ random r       ||     random convolute }"
@@ -68,8 +68,6 @@ int main(int argc, char **argv) {
         parser.printMessage();
         return 0;
     }
-    bool useocl = parser.has("ocl");
-    ocl::setUseOpenCL(useocl);
     int N = parser.get<int>("subj");
     int Z = parser.get<int>("siz");
     float thresh = parser.get<float>("thresh");
@@ -77,7 +75,7 @@ int main(int argc, char **argv) {
     DBGDRAW = parser.has("debug");
 
     String att = "c:/data/faces/att/";
-    cerr << att << " " << N << " " << thresh << " " << randomize << " " << useocl << endl;
+    cerr << att << " " << N << " " << thresh << " " << randomize << endl;
     Mat_<int> confusion(N,N,0);
     float tp=0,fp=0,tn=0,fn=0;
     Mat predict, truth;
