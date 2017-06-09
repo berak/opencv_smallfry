@@ -93,7 +93,10 @@ struct MACEImpl : MACE {
     }
 
 
-    void compute(const std::vector<Mat> &images) {
+    void train(InputArrayOfArrays input) {
+        std::vector<Mat> images;
+        input.getMatVector(images);
+
         int size = images.size();
         int IMGSIZE_2X = IMGSIZE * 2;
         int TOTALPIXEL = IMGSIZE_2X * IMGSIZE_2X;
@@ -163,7 +166,7 @@ struct MACEImpl : MACE {
             }
         }
 
-        threshold = computeThreshold(images);
+        threshold = computeThreshold(images); // todo: cache dft images
     }
 
 
@@ -242,20 +245,24 @@ struct MACEImpl : MACE {
         return 100.0 * peakToSideLobeRatio * peakCorrPlaneEnergy;
     }
 
-    bool same(const Mat &img) const {
-        return correlate(img) >= threshold;
+    bool same(InputArray img) const {
+        return correlate(img.getMat()) >= threshold;
     }
-    bool save(const cv::String &fn) const {
-        FileStorage fs(fn,1);
+
+    // cv::Algorithm:
+    void clear() {
+        maceFilter.release();
+        convFilter.release();
+    }
+    void write(cv::FileStorage &fs) const {
         fs << "mace" << maceFilter;
         fs << "conv" << convFilter;
         fs << "threshold" << threshold;
     }
-    bool load(const cv::String &fn) {
-        FileStorage fs(fn,0);
-        fs["mace"] >> maceFilter;
-        fs["conv"] >> convFilter;
-        fs["threshold"] >> threshold;
+    void read(const cv::FileNode &fn) {
+        fn["mace"] >> maceFilter;
+        fn["conv"] >> convFilter;
+        fn["threshold"] >> threshold;
         IMGSIZE = maceFilter.cols/2;
     }
 };

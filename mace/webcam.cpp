@@ -27,14 +27,15 @@ int main(int argc, char **argv) {
         parser.printMessage();
         return 1;
     }
-    int state = NEUTRAL;
     String pre = parser.get<String>("pre");
     int Z = parser.get<int>("siz");
     int S = parser.get<int>("salt");
+    int state = NEUTRAL;
 
     Ptr<MACE> mace = MACE::create(Z, S);
     if (!pre.empty()) {
-        mace->load(pre);
+        FileStorage fs(pre, 0);
+        mace->read(fs.root());
         state = PREDICT;
     }
 
@@ -56,7 +57,7 @@ int main(int argc, char **argv) {
 
             if (state == RECORD) {
                 if (tr_img.size() > 50) {
-                    mace->compute(tr_img);
+                    mace->train(tr_img);
                     tr_img.clear();
                     state = PREDICT;
                 } else {
@@ -79,7 +80,7 @@ int main(int argc, char **argv) {
         if (k== 27) break;
         if (k=='r') state = RECORD;
         if (k=='p') state = PREDICT;
-        if (k=='s') mace->save("my.xml");
+        if (k=='s') { FileStorage fs("my.xml",1); mace->write(fs); }
     }
 
     return 1;

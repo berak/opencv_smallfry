@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
             p1.push_back(i1);
         }
         Ptr<MACE> mace = MACE::create(Z, (randomize ? p+123 : 0));
-        mace->compute(p1);
+        mace->train(p1);
         //mace->save(format("p%d.xml.gz",p));
         for (int q=1; q<=N; q++) {
             for (int i=1; i<=10; i++) {

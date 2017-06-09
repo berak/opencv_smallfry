@@ -11,20 +11,17 @@
 //  algorithm largely taken from : https://github.com/polyu/faceservergpl
 //
 
-struct MACE {
-    //! train it on positive features
-    virtual void compute(const std::vector<cv::Mat> &images) = 0;
+struct MACE : cv::Algorithm {
+    //! train it on positive features (e.g. a vector<Mat>)
+    virtual void train(cv::InputArrayOfArrays images) = 0;
 
-    //! correlate and compare to min positive value
-    virtual bool same(const cv::Mat &img) const = 0;
+    //! correlate query img and compare to min positive value
+    virtual bool same(cv::InputArray query) const = 0;
 
-    virtual bool save(const cv::String &filename) const = 0;
-    virtual bool load(const cv::String &filename) = 0;
-
-	//! images will get resized to IMGSIZE
-	//! if salt is != 0, a random convolution, seeded by salt, will get applied to all images
-	//!   to achieve "cancellable features".
-	static cv::Ptr<MACE> create(int IMGSIZE, int salt=0);
+    //! images will get resized to IMGSIZE
+    //! if salt is != 0, a random convolution, seeded by salt, will get applied to all images
+    //!   to achieve "cancellable features".
+    static cv::Ptr<MACE> create(int IMGSIZE, int salt=0);
 };
 
 #endif // __mace_h_onboard__
