@@ -12,6 +12,10 @@
 //
 
 struct MACE : cv::Algorithm {
+
+    //! optionally encrypt images with seeded random convolution
+    virtual void salt(int salz) = 0;
+
     //! train it on positive features (e.g. a vector<Mat>)
     virtual void train(cv::InputArrayOfArrays images) = 0;
 
@@ -19,9 +23,10 @@ struct MACE : cv::Algorithm {
     virtual bool same(cv::InputArray query) const = 0;
 
     //! images will get resized to IMGSIZE
-    //! if salt is != 0, a random convolution, seeded by salt, will get applied to all images
-    //!   to achieve "cancellable features".
-    static cv::Ptr<MACE> create(int IMGSIZE, int salt=0);
+    static cv::Ptr<MACE> create(int IMGSIZE);
+
+    //! multiple filters applied to subregions given in [0..1] rects
+    static cv::Ptr<MACE> createSampler(int IMGSIZE, const std::vector<cv::Rect2f> &rects);
 };
 
 #endif // __mace_h_onboard__

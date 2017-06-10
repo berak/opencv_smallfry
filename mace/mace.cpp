@@ -55,17 +55,20 @@ struct MACEImpl : MACE {
     Mat_<Vec2d> maceFilter; // filled from compute()
     Mat convFilter;         // optional random convolution (cancellable)
     double threshold;       // minimal "sameness" threshold from the train images
-    MACEImpl(int siz, int salt) : IMGSIZE(siz), threshold(DBL_MAX) {
-        if (salt) {
-            theRNG().state = salt;
-            convFilter.create(siz, siz, CV_64F);
-            randn(convFilter, 0, 1.0/(siz*siz));
-            if (DBGDRAW) {
-                imshow("FIL", 0.5 + 1000*convFilter);
-            }
-        }
+
+
+    MACEImpl(int siz) : IMGSIZE(siz), threshold(DBL_MAX) {
     }
 
+    void salt(int salz) {
+        if (!salz) return;
+        theRNG().state = 5*salz<<7;
+        convFilter.create(IMGSIZE, IMGSIZE, CV_64F);
+        randn(convFilter, 0, 1.0/(IMGSIZE*IMGSIZE));
+        if (DBGDRAW) {
+            imshow("FIL", 0.5 + 1000*convFilter);
+        }
+    }
 
     Mat dftImage(Mat img) const {
         Mat gray;
@@ -73,16 +76,14 @@ struct MACEImpl : MACE {
         if (gray.channels() > 1)
             cvtColor(gray, gray, COLOR_BGR2GRAY);
         equalizeHist(gray, gray);
+        gray.convertTo(gray, CV_64F);
         if (! convFilter.empty()) { // optional, but unfortunately, it has to happen after resize/equalize ops.
-            filter2D(gray, gray, -1, convFilter);
+            filter2D(gray, gray, CV_64F, convFilter);
         }
-        //normalize(gray, gray, 1, 0, NORM_MINMAX);
         if (DBGDRAW) {
             imshow("ORG",gray*(convFilter.empty() ? 1 : 100));
         }
-        Mat input[2];
-        gray.convertTo(input[0], CV_64F);
-        input[1] = Mat(input[0].size(), input[0].type(), 0.0);
+        Mat input[2] = {gray, Mat(gray.size(), gray.type(), 0.0)};
         Mat complexInput; merge(input, 2, complexInput);
 
         Mat_<Vec2d> dftImg(IMGSIZE*2, IMGSIZE*2, 0.0);
@@ -120,12 +121,11 @@ struct MACEImpl : MACE {
             }
         }
 
-        Mat_<Vec2d> DINV(TOTALPIXEL, 1, 0.0);
-        for (int i=0; i<TOTALPIXEL; i++) {
-            DINV(i,0) = Vec2d((IMGSIZE_2X*IMGSIZE_2X*size)/sqrt(D(i,0)[0]), 0);
-        }
+        Mat sq; cv::sqrt(D, sq);
+        Mat_<Vec2d> DINV = TOTALPIXEL * size / sq;
 
         Mat_<Vec2d> DINV_S(TOTALPIXEL, size, 0.0);
+        //Mat_<Vec2d> DINV_S = DINV * S;
         Mat_<Vec2d> SPLUS_DINV(size, TOTALPIXEL, 0.0);
         for (int l=0; l<size; l++) {
             for (int m=0; m<TOTALPIXEL; m++) {
@@ -156,16 +156,9 @@ struct MACEImpl : MACE {
             }
         }
 
-        Mat Hmace = DINV_S * SPLUS_DINV_S_INV;
-        Mat C(size,1,CV_64FC2, Scalar(1,0));
-        Mat_<Vec2d> Hmace_FIN = Hmace * C;
-        maceFilter.create(IMGSIZE_2X, IMGSIZE_2X);
-        for (int l=0; l<IMGSIZE_2X; l++) {
-            for (int m=0; m<IMGSIZE_2X; m++) {
-                maceFilter(l, m) = Hmace_FIN(l * IMGSIZE_2X + m, 0);
-            }
-        }
-
+        Mat_<Vec2d> Hmace = DINV_S * SPLUS_DINV_S_INV;
+        Mat_<Vec2d> C(size,1, Vec2d(1,0));
+        maceFilter = Mat(Hmace * C).reshape(2,IMGSIZE_2X);
         threshold = computeThreshold(images); // todo: cache dft images
     }
 
@@ -202,7 +195,8 @@ struct MACEImpl : MACE {
         re -= m1;
         if (DBGDRAW) {
             imshow("RE",re*10000);
-            waitKey();
+            int k = waitKey(50);
+            if (k=='d') { DBGDRAW = false; destroyAllWindows(); }
         }
         double value=0;
         double num=0;
@@ -268,6 +262,89 @@ struct MACEImpl : MACE {
 };
 
 
-cv::Ptr<MACE> MACE::create(int siz, int salt) {
-    return makePtr<MACEImpl>(siz, salt);
+cv::Ptr<MACE> MACE::create(int siz) {
+    return makePtr<MACEImpl>(siz);
+}
+
+
+
+
+//
+// for even more accuracy, use several mace filters
+// (it might miss some positives, but it must **never** have false positives !)
+//
+struct MaceSampler : MACE {
+    struct Sampler {
+        Ptr<MACE> mace;
+        Rect2f r; // [0..1]
+        Mat sample(const Mat &img) const {
+            return img(Rect(r.x*img.cols, r.y*img.rows, r.width*img.cols, r.height*img.rows));
+        }
+    };
+    int siz;
+    std::vector<Sampler> samp;
+    /*MaceSampler(int siz) : samp(4), siz(siz) {
+        samp[0].mace = MACE::create(siz);   samp[0].r = Rect2f(0, 0, 1, 1);          // whole
+        samp[1].mace = MACE::create(siz/2); samp[1].r = Rect2f(0.25f,0.5f,0.5,0.5);  // bot center
+        samp[2].mace = MACE::create(siz/2); samp[2].r = Rect2f(0,0,0.5,0.5);         // top left
+        samp[3].mace = MACE::create(siz/2); samp[3].r = Rect2f(0.5,0,0.5,0.5);       // top right
+    }*/
+    MaceSampler(int siz, const std::vector<Rect2f> &rects) : siz(siz) {
+        for (size_t i=0; i<rects.size(); i++) {
+            samp.push_back({MACE::create(siz * rects[i].width), rects[i]});
+        }
+    }
+    void salt(int salz) {
+        for (size_t s=0; s<samp.size(); s++) {
+            samp[s].mace->salt(salz);
+        }
+    }
+    void train(cv::InputArrayOfArrays input) {
+        std::vector<Mat> images;
+        input.getMatVector(images);
+        for (size_t s=0; s<samp.size(); s++) {
+            if (samp[s].r.width < 1.0f) {
+                std::vector<Mat> vm;
+                for (size_t i=0; i<images.size(); i++) {
+                    vm.push_back(samp[s].sample(images[i]));
+                }
+                samp[s].mace->train(vm);
+            } else {
+                samp[s].mace->train(images);
+            }
+        }
+    }
+    bool same(InputArray _img) const { // all must agree.
+        Mat img = _img.getMat();
+        for (size_t s=0; s<samp.size(); s++) {
+            Mat roi = samp[s].sample(img);
+            if (! samp[s].mace->same(roi)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    void write(cv::FileStorage &fs) const {
+        fs << "filters" << "[";
+        for (size_t i=0; i<samp.size(); i++) {
+            fs << "{:";
+            samp[i].mace->write(fs);
+            fs << "roi" << samp[i].r;
+            fs << "}";
+        }
+        fs << "]";
+    }
+    void read(const cv::FileNode &fn) {
+        FileNode n = fn["filters"];
+        int i=0;
+        for (FileNodeIterator it=n.begin(); it!=n.end(); ++it) {
+            samp[i].mace->read(*it);
+            (*it)["roi"] >> samp[i].r;
+            i++;
+        }
+    }
+};
+
+cv::Ptr<MACE> MACE::createSampler(int siz, const std::vector<cv::Rect2f> &r) {
+    return cv::makePtr<MaceSampler>(siz, r);
 }

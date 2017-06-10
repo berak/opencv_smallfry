@@ -13,8 +13,10 @@ Minimum Average Correlation Energy Filter
 
 use it like:
 
-    vector<Mat> train_images = ...
-    Ptr<MACE> mace = MACE::create(64,0); // no salting
+    Ptr<MACE> mace = MACE::create(64);
+
+    vector<Mat> pos_images = ...
+    mace->train(pos_images);
 
     Mat query = ...
     bool same = mace->same(query);
