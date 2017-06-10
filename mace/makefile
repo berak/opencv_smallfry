@@ -10,9 +10,9 @@ LIBS    = $(OCVLIBS) $(OCVDEPS) $(OGLLIBS) $(WINLIBS)
 
 all: att webcam
 att: att.o mace.o
-	g++ $(LFLAGS) att.o mace.o $(LIBS) -o att
+	g++ $(LFLAGS) mace.o att.o $(LIBS) -o att
 webcam: webcam.o mace.o
-	g++ $(LFLAGS) webcam.o mace.o -lopencv_videoio320 -lopencv_objdetect320 $(LIBS) -o webcam
+	g++ $(LFLAGS) mace.o webcam.o -lopencv_videoio320 -lopencv_objdetect320 $(LIBS) -o webcam
 %.o: %.cpp;
 	g++ $(CFLAGS) -c $< -o $@
 clean:

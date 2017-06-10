@@ -26,7 +26,7 @@ struct MACE : cv::Algorithm {
     static cv::Ptr<MACE> create(int IMGSIZE);
 
     //! multiple filters applied to subregions given in [0..1] rects
-    static cv::Ptr<MACE> createSampler(int IMGSIZE, const std::vector<cv::Rect2f> &rects);
+    static cv::Ptr<MACE> createSampler(int IMGSIZE, cv::InputArray rects);
 };
 
 #endif // __mace_h_onboard__

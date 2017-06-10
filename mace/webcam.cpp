@@ -15,8 +15,7 @@ enum STATE {
 const char *help =
         "press 'r' to record images. once N trainimages were recorded, train the mace filter"
         "press 'p' to predict"
-        "press 'esc' to return"
-        "any other key will reset to neutral state";
+        "press 'esc' to return";
 
 int main(int argc, char **argv) {
     CommandLineParser parser(argc, argv,
@@ -39,7 +38,12 @@ int main(int argc, char **argv) {
 
     Ptr<MACE> mace;
     if (parser.has("multi"))
-        mace = MACE::createSampler(Z,{Rect2d(0,0,1,1),Rect2d(0.25,0.5,0.5,0.5),Rect2d(0,0,0.5,0.5),Rect2d(0.5,0,0.5,0.5)});
+        mace = MACE::createSampler(Z,vector<Rect2d>{
+            Rect2d(0,0,1,1),
+            Rect2d(0.25,0.5,0.5,0.5),
+            Rect2d(0,0,0.5,0.5),
+            Rect2d(0.5,0,0.5,0.5)
+        });
     else
         mace = MACE::create(Z);
 
@@ -85,7 +89,7 @@ int main(int argc, char **argv) {
             if (state == PREDICT) {
                 bool same = mace->same(frame(rects[0]));
                 if (same) col = Scalar(0,220,220);
-                else      col = Scalar(0,80,80);
+                else      col = Scalar(60,60,60);
             }
 
             rectangle(frame, rects[0], col, 2);

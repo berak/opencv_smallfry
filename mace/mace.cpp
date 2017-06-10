@@ -159,6 +159,7 @@ struct MACEImpl : MACE {
         Mat_<Vec2d> Hmace = DINV_S * SPLUS_DINV_S_INV;
         Mat_<Vec2d> C(size,1, Vec2d(1,0));
         maceFilter = Mat(Hmace * C).reshape(2,IMGSIZE_2X);
+
         threshold = computeThreshold(images); // todo: cache dft images
     }
 
@@ -283,15 +284,13 @@ struct MaceSampler : MACE {
     };
     int siz;
     std::vector<Sampler> samp;
-    /*MaceSampler(int siz) : samp(4), siz(siz) {
-        samp[0].mace = MACE::create(siz);   samp[0].r = Rect2f(0, 0, 1, 1);          // whole
-        samp[1].mace = MACE::create(siz/2); samp[1].r = Rect2f(0.25f,0.5f,0.5,0.5);  // bot center
-        samp[2].mace = MACE::create(siz/2); samp[2].r = Rect2f(0,0,0.5,0.5);         // top left
-        samp[3].mace = MACE::create(siz/2); samp[3].r = Rect2f(0.5,0,0.5,0.5);       // top right
-    }*/
+
     MaceSampler(int siz, const std::vector<Rect2f> &rects) : siz(siz) {
         for (size_t i=0; i<rects.size(); i++) {
-            samp.push_back({MACE::create(siz * rects[i].width), rects[i]});
+            samp.push_back({
+                MACE::create(siz * rects[i].width),
+                rects[i]
+            });
         }
     }
     void salt(int salz) {
@@ -337,14 +336,14 @@ struct MaceSampler : MACE {
     void read(const cv::FileNode &fn) {
         FileNode n = fn["filters"];
         int i=0;
-        for (FileNodeIterator it=n.begin(); it!=n.end(); ++it) {
+        for (FileNodeIterator it=n.begin(); it!=n.end(); ++it,++i) {
             samp[i].mace->read(*it);
             (*it)["roi"] >> samp[i].r;
-            i++;
         }
     }
 };
 
-cv::Ptr<MACE> MACE::createSampler(int siz, const std::vector<cv::Rect2f> &r) {
-    return cv::makePtr<MaceSampler>(siz, r);
+cv::Ptr<MACE> MACE::createSampler(int siz, cv::InputArray r) {
+    std::vector<cv::Rect2f> rects = r.getMat();
+    return cv::makePtr<MaceSampler>(siz, rects);
 }
