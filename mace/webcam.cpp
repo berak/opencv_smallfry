@@ -4,6 +4,18 @@
 using namespace cv;
 using namespace std;
 
+template <class T=int> T crc(const string &s) {
+    const unsigned n = sizeof(T);
+    unsigned r[n] = {0};
+    for (size_t i=0; i<s.size(); i++) {
+        r[i%n] ^= unsigned(s[i]);
+    }
+    T res=0;
+    for (int i=0; i<n; i++) {
+        res += (r[i] << (8*i));
+    }
+    return res;
+}
 
 
 enum STATE {
@@ -14,9 +26,10 @@ enum STATE {
 
 const char *help =
         "press 'r' to record images. once N trainimages were recorded, train the mace filter"
-        "press 'p' to predict"
+        "press 'p' to predict (twofactor mode will switch back to neutral after each prediction attempt)"
         "press 's' to save a trained model"
-        "press 'esc' to return";
+        "press 'esc' to return"
+        "any other key will reset to neutral state";
 
 int main(int argc, char **argv) {
     CommandLineParser parser(argc, argv,
@@ -24,19 +37,21 @@ int main(int argc, char **argv) {
         "{ pre p          ||     pretrained mace filter file  (e.g. my.xml) }"
         "{ multi m        ||     use multiple mace filters }"
         "{ num n          |50|   num train images }"
-        "{ siz z          |64|   image size }"
-        "{ salt s         |0|    if != 0, random convolute with this seed }"
+        "{ size s         |64|   image size }"
+        "{ twofactor t    ||     pass phrase(text) for 2 factor authentification.\n"
+        "                     (random convolute images seeded with the crc of this)\n"
+        "                     users will get prompted to guess the secrect, additional to the image. }"
     );
     if (parser.has("help")) {
         parser.printMessage();
         return 1;
     }
+    String defname = "my.xml.gz";
     String pre = parser.get<String>("pre");
+    String two = parser.get<String>("twofactor");
     int N = parser.get<int>("num");
     int Z = parser.get<int>("siz");
-    int S = parser.get<int>("salt");
     int state = NEUTRAL;
-    String defname = "my.xml.gz";
 
     Ptr<MACE> mace;
     if (parser.has("multi"))
@@ -48,6 +63,12 @@ int main(int argc, char **argv) {
         });
     else
         mace = MACE::create(Z);
+
+    if (! two.empty()) {
+        int S = crc(two);
+        cout << "'" << two << "' " << S << endl;
+        mace->salt(S);
+    }
 
     if (! pre.empty()) { // load pretrained model, if available
         FileStorage fs(pre, 0);
@@ -69,16 +90,10 @@ int main(int argc, char **argv) {
         vector<Rect> rects;
         head.detectMultiScale(frame,rects);
         if (rects.size()>0) {
-            Rect r = rects[0] & Rect(0,0,frame.cols,frame.rows);
-            if (! r.area()) {
-                cerr << "inv " << rects[0] << endl;
-                continue;
-            }
             Scalar col = Scalar(0,120,0);
 
             if (state == RECORD) {
                 if (tr_img.size() >= N) {
-                    mace->salt(S);
                     mace->train(tr_img);
                     tr_img.clear();
                     state = PREDICT;
@@ -89,9 +104,21 @@ int main(int argc, char **argv) {
             }
 
             if (state == PREDICT) {
+                if (! two.empty()) { // prompt for secret on console
+                    cout << "enter passphrase: ";
+                    string pass;
+                    getline(cin, pass);
+                    int S = crc(pass);
+                    mace->salt(S);
+                    state = NEUTRAL;
+                    cout <<"'" << pass << "' " << S << " ";
+                }
                 bool same = mace->same(frame(rects[0]));
                 if (same) col = Scalar(0,220,220);
                 else      col = Scalar(60,60,60);
+                if (!two.empty()) {
+                    cout << (same ? "accepted." : "denied.") << endl;
+                }
             }
 
             rectangle(frame, rects[0], col, 2);

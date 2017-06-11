@@ -62,7 +62,7 @@ struct MACEImpl : MACE {
 
     void salt(int salz) {
         if (!salz) return;
-        theRNG().state = 5*salz<<7;
+        theRNG().state = 5*salz<<13;
         convFilter.create(IMGSIZE, IMGSIZE, CV_64F);
         randn(convFilter, 0, 1.0/(IMGSIZE*IMGSIZE));
         if (DBGDRAW) {
@@ -103,27 +103,22 @@ struct MACEImpl : MACE {
         Mat_<Vec2d> D(TOTALPIXEL, 1, 0.0);
         Mat_<Vec2d> S(TOTALPIXEL, size, 0.0);
         Mat_<Vec2d> SPLUS(size, TOTALPIXEL, 0.0);
-
         for (size_t i=0; i<size; i++) {
             Mat_<Vec2d> dftImg = dftImage(images[i]);
             for (int l=0; l<IMGSIZE_2X; l++) {
                 for (int m=0; m<IMGSIZE_2X; m++) {
-                    int j = l * IMGSIZE_2X + m;
                     Vec2d s = dftImg(l, m);
+                    int j = l * IMGSIZE_2X + m;
                     S(j, i) = s;
                     SPLUS(i, j) = Vec2d(s[0], -s[1]);
-
-                    double val=((pow(s[0],2) + pow(s[1],2)));
-                    D(j, 0)[0] += val;
+                    D(j, 0)[0] += s[0]*s[0] + s[1]*s[1];
                 }
             }
         }
 
         Mat sq; cv::sqrt(D, sq);
         Mat_<Vec2d> DINV = TOTALPIXEL * size / sq;
-
         Mat_<Vec2d> DINV_S(TOTALPIXEL, size, 0.0);
-        //Mat_<Vec2d> DINV_S = DINV * S;
         Mat_<Vec2d> SPLUS_DINV(size, TOTALPIXEL, 0.0);
         for (int l=0; l<size; l++) {
             for (int m=0; m<TOTALPIXEL; m++) {
@@ -168,15 +163,11 @@ struct MACEImpl : MACE {
                 best = d;
             }
         }
-        if (best>9999999) {
-            best = 1.0;
-        }
         return best;
     }
 
 
     double correlate(const Mat &img) const {
-        //CV_Assert(! maceFilter.empty()); // not trained.
         if (maceFilter.empty()) return -1; // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
         Mat dftImg = dftImage(img);
