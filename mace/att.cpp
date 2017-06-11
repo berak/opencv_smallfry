@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     float tp=0,fp=0,tn=0,fn=0;
     for (int p=1; p<=N; p++) { // att starts counting from one ..
         vector<Mat> p1;
-        for (int i=1; i<=10; i++) {
+        for (int i=1; i<=10; i++) { // images, too. get used to it
             Mat i1 = imread(att + format("s%d/%d.pgm", p, i), 0);
             p1.push_back(i1);
         }
@@ -45,7 +45,6 @@ int main(int argc, char **argv) {
         if (randomize)
             mace->salt(p);
         mace->train(p1);
-        //mace->save(format("p%d.xml.gz",p));
         for (int q=1; q<=N; q++) {
             for (int i=1; i<=10; i++) {
                 Mat i2 = imread(att + format("s%d/%d.pgm", q, i), 0);
@@ -64,11 +63,12 @@ int main(int argc, char **argv) {
         }
         cerr << ".";
     }
-    if (N<=16)
+    if (N <= 16)
         cerr << endl << confusion << endl;
     else
         cerr << endl << confusion(Rect(0,0,16,16)) << endl;
-    float acc = (tp+tn) / (tp+tn+fp+fn);
-    cerr << "tp: " << tp << " fp: " << fp << " tn: " << tn << " fn: " << fn << " acc: " << acc << endl;
-    return 1;
+    float all = (tp+tn+fp+fn);
+    float acc = (tp+tn) / all;
+    cerr << "tp: " << tp << " fp: " << fp << " tn: " << tn << " fn: " << fn << " all: " << all << " acc: " << acc << endl;
+    return 0;
 }

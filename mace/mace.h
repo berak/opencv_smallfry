@@ -13,19 +13,27 @@
 
 struct MACE : cv::Algorithm {
 
-    //! optionally encrypt images with seeded random convolution
+    //! optionally encrypt images with random convolution
+    // @param int salz : the seed for the random convolution
     virtual void salt(int salz) = 0;
 
-    //! train it on positive features (e.g. a vector<Mat>)
+    //! train it on positive features,
+    //!   compute the mace filter: `h = D(-1) * X * (X(+) * D(-1) * X)(-1) * C`
+    //!   also calculate a minimal threshold for this class, the smallest self-similarity from the  train images
+    // @param images : a vector<Mat>
     virtual void train(cv::InputArrayOfArrays images) = 0;
 
-    //! correlate query img and compare to min positive value
+    //! correlate query img and threshold to min class value
+    // @param query : a Mat with query image
     virtual bool same(cv::InputArray query) const = 0;
 
-    //! images will get resized to IMGSIZE
+
+    // @param IMGSIZE : images will get resized to this
     static cv::Ptr<MACE> create(int IMGSIZE);
 
-    //! multiple filters applied to subregions given in [0..1] rects
+    //! multiple filters applied to subregions of the image.
+    // @param IMGSIZE : images will get resized to this internally
+    // @param rects : vector<Rect2f> in [0..1] coords
     static cv::Ptr<MACE> createSampler(int IMGSIZE, cv::InputArray rects);
 };
 

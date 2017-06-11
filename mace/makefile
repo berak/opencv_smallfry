@@ -16,4 +16,4 @@ webcam: webcam.o mace.o
 %.o: %.cpp;
 	g++ $(CFLAGS) -c $< -o $@
 clean:
-	rm -f webcam att mace.o webcam.o mace.o att.o
+	rm -f *.exe *.o

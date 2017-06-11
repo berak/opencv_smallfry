@@ -84,7 +84,8 @@ struct MACEImpl : MACE {
             imshow("ORG",gray*(convFilter.empty() ? 1 : 100));
         }
         Mat input[2] = {gray, Mat(gray.size(), gray.type(), 0.0)};
-        Mat complexInput; merge(input, 2, complexInput);
+        Mat complexInput;
+        merge(input, 2, complexInput);
 
         Mat_<Vec2d> dftImg(IMGSIZE*2, IMGSIZE*2, 0.0);
         complexInput.copyTo(dftImg(Rect(0,0,IMGSIZE,IMGSIZE)));
@@ -94,10 +95,7 @@ struct MACEImpl : MACE {
     }
 
 
-    void train(InputArrayOfArrays input) {
-        std::vector<Mat> images;
-        input.getMatVector(images);
-
+    void compute(std::vector<Mat> images) {
         int size = images.size();
         int IMGSIZE_2X = IMGSIZE * 2;
         int TOTALPIXEL = IMGSIZE_2X * IMGSIZE_2X;
@@ -159,8 +157,6 @@ struct MACEImpl : MACE {
         Mat_<Vec2d> Hmace = DINV_S * SPLUS_DINV_S_INV;
         Mat_<Vec2d> C(size,1, Vec2d(1,0));
         maceFilter = Mat(Hmace * C).reshape(2,IMGSIZE_2X);
-
-        threshold = computeThreshold(images); // todo: cache dft images
     }
 
 
@@ -203,8 +199,8 @@ struct MACEImpl : MACE {
         double num=0;
         int rad1=int(floor((double)(45.0/64.0)*(double)IMGSIZE));
         int rad2=int(floor((double)(27.0/64.0)*(double)IMGSIZE));
-        std::vector<float> r2(IMGSIZE_2X);
-        for (int l=0; l<IMGSIZE_2X; l++) { // save a few pow's
+        std::vector<float> r2(IMGSIZE_2X); // cache a few pow's
+        for (int l=0; l<IMGSIZE_2X; l++) {
             r2[l] = (l-IMGSIZE) * (l-IMGSIZE);
         }
         for (int l=0; l<IMGSIZE_2X; l++) {
@@ -240,6 +236,13 @@ struct MACEImpl : MACE {
         return 100.0 * peakToSideLobeRatio * peakCorrPlaneEnergy;
     }
 
+    // MACE interface
+    void train(InputArrayOfArrays input) {
+        std::vector<Mat> images;
+        input.getMatVector(images);
+        compute(images);
+        threshold = computeThreshold(images); // todo: cache dft images
+    }
     bool same(InputArray img) const {
         return correlate(img.getMat()) >= threshold;
     }
@@ -272,7 +275,7 @@ cv::Ptr<MACE> MACE::create(int siz) {
 
 //
 // for even more accuracy, use several mace filters
-// (it might miss some positives, but it must **never** have false positives !)
+//   (it might miss some positives, but it must **never** have false positives !)
 //
 struct MaceSampler : MACE {
     struct Sampler {
@@ -302,7 +305,7 @@ struct MaceSampler : MACE {
         std::vector<Mat> images;
         input.getMatVector(images);
         for (size_t s=0; s<samp.size(); s++) {
-            if (samp[s].r.width < 1.0f) {
+            if (samp[s].r.width < 1.0f) { // we need patches
                 std::vector<Mat> vm;
                 for (size_t i=0; i<images.size(); i++) {
                     vm.push_back(samp[s].sample(images[i]));
@@ -323,7 +326,7 @@ struct MaceSampler : MACE {
         }
         return true;
     }
-    void write(cv::FileStorage &fs) const {
+    void write(cv::FileStorage &fs) const { // make it a "list of objects"
         fs << "filters" << "[";
         for (size_t i=0; i<samp.size(); i++) {
             fs << "{:";
