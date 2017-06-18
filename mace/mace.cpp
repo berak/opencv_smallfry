@@ -49,26 +49,38 @@ void shiftDFT(const Mat &src, Mat &dst) {
 }
 
 
+// crc32 encode
+int MACE::crc(const String &s) {
+    unsigned r[4] = {0};
+    for (size_t i=0; i<s.size(); i++) {
+        r[i%4] ^= unsigned(s[i]);
+    }
+    int res = 0;
+    for (int i=0; i<4; i++) {
+        res += (r[i] << (8*i));
+    }
+    return res;
+}
 
 struct MACEImpl : MACE {
-    int IMGSIZE;            // images will get resized to this
     Mat_<Vec2d> maceFilter; // filled from compute()
     Mat convFilter;         // optional random convolution (cancellable)
     double threshold;       // minimal "sameness" threshold from the train images
+    int IMGSIZE;            // images will get resized to this
 
 
-    MACEImpl(int siz) : IMGSIZE(siz), threshold(DBL_MAX) {
-    }
+    MACEImpl(int siz) : IMGSIZE(siz), threshold(DBL_MAX) {}
 
     void salt(int salz) {
         if (!salz) return;
-        theRNG().state = 5*salz<<13;
+        theRNG().state = salz<0xffff ? 5*salz<<13 : salz;
         convFilter.create(IMGSIZE, IMGSIZE, CV_64F);
         randn(convFilter, 0, 1.0/(IMGSIZE*IMGSIZE));
         if (DBGDRAW) {
             imshow("FIL", 0.5 + 1000*convFilter);
         }
     }
+
 
     Mat dftImage(Mat img) const {
         Mat gray;
@@ -81,7 +93,7 @@ struct MACEImpl : MACE {
             filter2D(gray, gray, CV_64F, convFilter);
         }
         if (DBGDRAW) {
-            imshow("ORG",gray*(convFilter.empty() ? 1 : 100));
+            imshow("ORG",gray*(convFilter.empty() ? 1 : 10));
         }
         Mat input[2] = {gray, Mat(gray.size(), gray.type(), 0.0)};
         Mat complexInput;
@@ -95,6 +107,7 @@ struct MACEImpl : MACE {
     }
 
 
+    // compute the mace filter: `h = D(-1) * X * (X(+) * D(-1) * X)(-1) * C`
     void compute(std::vector<Mat> images) {
         int size = images.size();
         int IMGSIZE_2X = IMGSIZE * 2;
@@ -107,11 +120,11 @@ struct MACEImpl : MACE {
             Mat_<Vec2d> dftImg = dftImage(images[i]);
             for (int l=0; l<IMGSIZE_2X; l++) {
                 for (int m=0; m<IMGSIZE_2X; m++) {
-                    Vec2d s = dftImg(l, m);
                     int j = l * IMGSIZE_2X + m;
+                    Vec2d s = dftImg(l, m);
                     S(j, i) = s;
                     SPLUS(i, j) = Vec2d(s[0], -s[1]);
-                    D(j, 0)[0] += s[0]*s[0] + s[1]*s[1];
+                    D(j, 0)[0] += (s[0]*s[0]) + (s[1]*s[1]);
                 }
             }
         }
@@ -154,7 +167,8 @@ struct MACEImpl : MACE {
         maceFilter = Mat(Hmace * C).reshape(2,IMGSIZE_2X);
     }
 
-
+    // get the lowest (worst) positive train correlation,
+    // our lower bound threshold for the "same()" test later
     double computeThreshold(const std::vector<Mat> &images) const {
         double best=DBL_MAX;
         for (size_t i=0; i<images.size(); i++) {
@@ -166,7 +180,9 @@ struct MACEImpl : MACE {
         return best;
     }
 
-
+    // convolute macefilter and dft image,
+    // calculate the peak to sidelobe ratio
+    // on the real part of the inverse dft
     double correlate(const Mat &img) const {
         if (maceFilter.empty()) return -1; // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
@@ -185,6 +201,7 @@ struct MACEImpl : MACE {
             imshow("RE",re*10000);
             int k = waitKey(50);
             if (k=='d') { DBGDRAW = false; destroyAllWindows(); }
+            if (k== 27) { exit(0); }
         }
         double value=0;
         double num=0;
@@ -194,6 +211,7 @@ struct MACEImpl : MACE {
         for (int l=0; l<IMGSIZE_2X; l++) {
             r2[l] = (l-IMGSIZE) * (l-IMGSIZE);
         }
+        // mean of the sidelobe:
         for (int l=0; l<IMGSIZE_2X; l++) {
             for (int m=0; m<IMGSIZE_2X; m++) {
                 double rad=sqrt(r2[m] + r2[l]);
@@ -206,7 +224,7 @@ struct MACEImpl : MACE {
             }
         }
         value /= num;
-
+        // normalize it
         double std2=0;
         for (int l=0; l<IMGSIZE_2X; l++) {
             for (int m=0; m<IMGSIZE_2X; m++) {

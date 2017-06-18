@@ -4,19 +4,6 @@
 using namespace cv;
 using namespace std;
 
-template <class T=int> T crc(const string &s) {
-    const unsigned n = sizeof(T);
-    unsigned r[n] = {0};
-    for (size_t i=0; i<s.size(); i++) {
-        r[i%n] ^= unsigned(s[i]);
-    }
-    T res=0;
-    for (int i=0; i<n; i++) {
-        res += (r[i] << (8*i));
-    }
-    return res;
-}
-
 
 enum STATE {
     NEUTRAL,
@@ -25,11 +12,11 @@ enum STATE {
 };
 
 const char *help =
-        "press 'r' to record images. once N trainimages were recorded, train the mace filter"
-        "press 'p' to predict (twofactor mode will switch back to neutral after each prediction attempt)"
-        "press 's' to save a trained model"
-        "press 'esc' to return"
-        "any other key will reset to neutral state";
+        "press 'r' to record images. once N trainimages were recorded, train the mace filter\n"
+        "press 'p' to predict (twofactor mode will switch back to neutral after each prediction attempt)\n"
+        "press 's' to save a trained model\n"
+        "press 'esc' to return\n"
+        "any other key will reset to neutral state\n";
 
 int main(int argc, char **argv) {
     CommandLineParser parser(argc, argv,
@@ -45,12 +32,14 @@ int main(int argc, char **argv) {
     if (parser.has("help")) {
         parser.printMessage();
         return 1;
+    } else {
+        cout << help << endl;
     }
     String defname = "my.xml.gz";
     String pre = parser.get<String>("pre");
     String two = parser.get<String>("twofactor");
     int N = parser.get<int>("num");
-    int Z = parser.get<int>("siz");
+    int Z = parser.get<int>("size");
     int state = NEUTRAL;
 
     Ptr<MACE> mace;
@@ -65,7 +54,7 @@ int main(int argc, char **argv) {
         mace = MACE::create(Z);
 
     if (! two.empty()) {
-        int S = crc(two);
+        int S = MACE::crc(two);
         cout << "'" << two << "' " << S << endl;
         mace->salt(S);
     }
@@ -108,15 +97,15 @@ int main(int argc, char **argv) {
                     cout << "enter passphrase: ";
                     string pass;
                     getline(cin, pass);
-                    int S = crc(pass);
+                    int S = MACE::crc(pass);
                     mace->salt(S);
                     state = NEUTRAL;
-                    cout <<"'" << pass << "' " << S << " ";
+                    cout << "'" << pass << "' " << S << " ";
                 }
                 bool same = mace->same(frame(rects[0]));
                 if (same) col = Scalar(0,220,220);
                 else      col = Scalar(60,60,60);
-                if (!two.empty()) {
+                if (! two.empty()) {
                     cout << (same ? "accepted." : "denied.") << endl;
                 }
             }

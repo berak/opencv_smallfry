@@ -8,11 +8,13 @@ WINLIBS = -luser32 -lkernel32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -l
 LIBS    = $(OCVLIBS) $(OCVDEPS) $(OGLLIBS) $(WINLIBS)
 
 
-all: att webcam
+all: att webcam fingerprint
 att: att.o mace.o
 	g++ $(LFLAGS) mace.o att.o $(LIBS) -o att
 webcam: webcam.o mace.o
 	g++ $(LFLAGS) mace.o webcam.o -lopencv_videoio320 -lopencv_objdetect320 $(LIBS) -o webcam
+fingerprint: fingerprint.o mace.o
+	g++ $(LFLAGS) mace.o fingerprint.o $(LIBS) -o fingerprint
 %.o: %.cpp;
 	g++ $(CFLAGS) -c $< -o $@
 clean:
