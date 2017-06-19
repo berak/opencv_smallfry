@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "opencv2/opencv.hpp"
 #include "mace.h"
+#include "profile.h"
 
 using namespace cv;
 
@@ -72,6 +73,7 @@ struct MACEImpl : MACE {
     MACEImpl(int siz) : IMGSIZE(siz), threshold(DBL_MAX) {}
 
     void salt(int salz) {
+        PROFILE;
         if (!salz) return;
         theRNG().state = salz<0xffff ? 5*salz<<13 : salz;
         convFilter.create(IMGSIZE, IMGSIZE, CV_64F);
@@ -83,6 +85,7 @@ struct MACEImpl : MACE {
 
 
     Mat dftImage(Mat img) const {
+        PROFILE;
         Mat gray;
         resize(img, gray, Size(IMGSIZE,IMGSIZE)) ;
         if (gray.channels() > 1)
@@ -90,10 +93,11 @@ struct MACEImpl : MACE {
         equalizeHist(gray, gray);
         gray.convertTo(gray, CV_64F);
         if (! convFilter.empty()) { // optional, but unfortunately, it has to happen after resize/equalize ops.
+            PROFILEX("convolute");
             filter2D(gray, gray, CV_64F, convFilter);
         }
         if (DBGDRAW) {
-            imshow("ORG",gray*(convFilter.empty() ? 1 : 10));
+            imshow("ORG",gray*(convFilter.empty() ? 0.001 : 10));
         }
         Mat input[2] = {gray, Mat(gray.size(), gray.type(), 0.0)};
         Mat complexInput;
@@ -109,6 +113,10 @@ struct MACEImpl : MACE {
 
     // compute the mace filter: `h = D(-1) * X * (X(+) * D(-1) * X)(-1) * C`
     void compute(std::vector<Mat> images) {
+        return compute(images, false);
+    }
+    void compute(std::vector<Mat> images, bool isdft) {
+        PROFILE;
         int size = images.size();
         int IMGSIZE_2X = IMGSIZE * 2;
         int TOTALPIXEL = IMGSIZE_2X * IMGSIZE_2X;
@@ -117,7 +125,7 @@ struct MACEImpl : MACE {
         Mat_<Vec2d> S(TOTALPIXEL, size, 0.0);
         Mat_<Vec2d> SPLUS(size, TOTALPIXEL, 0.0);
         for (size_t i=0; i<size; i++) {
-            Mat_<Vec2d> dftImg = dftImage(images[i]);
+            Mat_<Vec2d> dftImg = isdft ? images[i] : dftImage(images[i]);
             for (int l=0; l<IMGSIZE_2X; l++) {
                 for (int m=0; m<IMGSIZE_2X; m++) {
                     int j = l * IMGSIZE_2X + m;
@@ -169,10 +177,11 @@ struct MACEImpl : MACE {
 
     // get the lowest (worst) positive train correlation,
     // our lower bound threshold for the "same()" test later
-    double computeThreshold(const std::vector<Mat> &images) const {
+    double computeThreshold(const std::vector<Mat> &images, bool isdft) const {
+        PROFILE;
         double best=DBL_MAX;
         for (size_t i=0; i<images.size(); i++) {
-            double d = correlate(images[i]);
+            double d = correlate(images[i], isdft);
             if (d < best) {
                 best = d;
             }
@@ -184,9 +193,13 @@ struct MACEImpl : MACE {
     // calculate the peak to sidelobe ratio
     // on the real part of the inverse dft
     double correlate(const Mat &img) const {
+        return correlate(img, false);
+    }
+    double correlate(const Mat &img, bool isdft) const {
+        PROFILE;
         if (maceFilter.empty()) return -1; // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
-        Mat dftImg = dftImage(img);
+        Mat dftImg = isdft ? img : dftImage(img);
         mulSpectrums(dftImg, maceFilter, dftImg, CV_DXT_MUL_CONJ);
         dft(dftImg, dftImg, CV_DXT_INV_SCALE, 0);
         Mat chn[2];
@@ -211,7 +224,7 @@ struct MACEImpl : MACE {
         for (int l=0; l<IMGSIZE_2X; l++) {
             r2[l] = (l-IMGSIZE) * (l-IMGSIZE);
         }
-        // mean of the sidelobe:
+        // mean of the sidelobe area:
         for (int l=0; l<IMGSIZE_2X; l++) {
             for (int m=0; m<IMGSIZE_2X; m++) {
                 double rad=sqrt(r2[m] + r2[l]);
@@ -247,12 +260,17 @@ struct MACEImpl : MACE {
 
     // MACE interface
     void train(InputArrayOfArrays input) {
-        std::vector<Mat> images;
+        PROFILE;
+        std::vector<Mat> images, dftImg;
         input.getMatVector(images);
-        compute(images);
-        threshold = computeThreshold(images); // todo: cache dft images
+        for (auto im: images) { // cache dft images
+            dftImg.push_back(dftImage(im));
+        }
+        compute(dftImg, true);
+        threshold = computeThreshold(dftImg, true);
     }
     bool same(InputArray img) const {
+        PROFILE;
         return correlate(img.getMat()) >= threshold;
     }
 
