@@ -8,6 +8,7 @@
 * demo: various c++/py samples, mostly related to problems found on answers.opencv.org or #opencv
 * eyes.cpp: hog/svm based open / closed eyes detector, using flandmarks for eye location
 * facerec_online.py: realtime facerec from webcam ( with adaptive face-db )
+* facerec_online.cpp: same in c++
 * gas.cpp: Neural Gas (clustering) experimentBRUTE FORCE!!!!
 * gldemo.cpp : opengl inside opencv (+ minimal .obj reader)
 * java_face3.0: testcase for ocv3 facerec bindings in java
