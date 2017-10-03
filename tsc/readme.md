@@ -28,4 +28,4 @@ new: transfer learning!
     tsv_transfer.cpp will try to abuse https://storage.googleapis.com/download.tensorflow.org/models/inception5h.zip
     (as a glorified feature preprocessor for a 4 stage cv::ANN_MLP)
     transfer accuracy: 0.971575 !
-    (takes ages, though, given like half a seconf per image)
+    (takes ages, though, like half a second per image)
