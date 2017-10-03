@@ -1,2 +1,9 @@
-all:
-	g++ -std=c++11 tsc.cpp -DDNN_USE_IMAGE_API=1 -DCNN_USE_OMP=0 -Ic:\p\tiny-dnn -Ic:\p\opencv\build -Ic:\p\opencv\build\install\include -Lc:\p\opencv\build\install\x64\mingw\staticlib -lopencv_bioinspired320 -lopencv_tracking320 -lopencv_datasets320 -lopencv_face320 -lopencv_xfeatures2d320 -lopencv_features2d320 -lopencv_calib3d320 -lopencv_flann320 -lopencv_objdetect320 -lopencv_ml320 -lopencv_photo320 -lopencv_video320 -lopencv_videoio320 -lopencv_highgui320 -lopencv_imgcodecs320 -lopencv_ximgproc320 -lopencv_imgproc320 -lopencv_core320 -lkernel32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lvfw32 -llibpng -llibjpeg -llibwebp -llibtiff -lopengl32 -lglu32 -luser32 -lz -lgcov -O3 -o tsc
+TINY = -DDNN_USE_IMAGE_API=1 -DCNN_USE_OMP=0 -Ic:\p\tiny-dnn
+OCV  = -Ic:\p\opencv\build -Ic:\p\opencv\build\install\include
+LIBOCV = -Lc:\p\opencv\build\install\x64\mingw\staticlib -lopencv_dnn330 -lopencv_ml330 -lopencv_highgui330 -lopencv_imgcodecs330  -lopencv_imgproc330 -lopencv_core330  -llibprotobuf
+LIBWIN =  -lkernel32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lvfw32 -llibpng -llibjpeg -llibwebp -llibtiff -lopengl32 -lglu32 -luser32 -lz -lgcov
+all: tsc transfer
+tsc:
+	g++ -std=c++11 tsc.cpp $(TINY) $(OCV) $(LIBOCV) $(LIBWIN) -O3 -o tsc
+transfer:
+	g++ -std=c++11 tsc_transfer.cpp $(OCV) $(LIBOCV) $(LIBWIN) -O3 -o transfer
