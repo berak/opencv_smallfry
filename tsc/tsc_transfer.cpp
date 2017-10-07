@@ -1,4 +1,3 @@
-//#include "tiny_dnn/tiny_dnn.h" // order matters, on win, this has to go before opencv (ACCESS_WRITE)
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
 #include <iostream>
@@ -6,6 +5,7 @@
 using namespace cv;
 using namespace std;
 
+#include "printnet.h"
 
 int WINSIZE = 224;
 
@@ -52,6 +52,7 @@ double cv_load(const String &dir, vector<Mat> &data, Mat &labels, int max_classe
             labels.push_back(label);
         }
     }
+    cout << "loaded " << data.size() << " images" << endl;
     int64 t1 = getTickCount();
     return  ((t1-t0)/getTickFrequency());
 }
@@ -80,17 +81,19 @@ void cv_results(int classes, Mat &results, Mat &labels, const String &title)
 
 int main(int argc, char **argv)
 {
-    //using namespace tiny_dnn;
-
     CommandLineParser parser(argc, argv,
         "{ help h usage ? |      | show this message }"
         "{ batch b        |    16| batch size for dnn training }"
-        "{ maxc M         |    16| restrict to M classes (for speedup) }"
+        "{ maxc M         |    62| restrict to M classes (for speedup, originally, there are 62) }"
         "{ l1             |   256| first layer }"
         "{ l2             |   128| 2nd layer }"
         "{ learn l        |0.0004| initial learning rate for the (newly added) ANN layers }"
-        "{ output o       |nn1/reshape| stop forward pass here }"
+        "{ input i        |input | how to find the input in the model file }"
+        "{ output o       |head1_bottleneck/reshape| stop forward pass here }"
         "{ data D         |C:/data/BelgiumTSC/| path to dataset }"
+        "{ model m        |c:/data/dnn/tensorflow_inception_graph.pb| path to model }"
+        "{ proto p        |      | proto file }"
+        "{ print P        |      | print out net structure }"
     );
 
     if (parser.has("help"))
@@ -98,43 +101,46 @@ int main(int argc, char **argv)
         parser.printMessage();
         return 0;
     }
-    String tscdir = parser.get<string>("data"); // global
+    string tscdir = parser.get<string>("data");
     int max_classes = parser.get<int>("maxc");
     int batch_size = parser.get<int>("batch");
     int l1 = parser.get<int>("l1");
     int l2 = parser.get<int>("l2");
     float learn = parser.get<float>("learn");
 
-    string inBlobName  = "input";
-    string outBlobName =  parser.get<string>("output");
-    string modelFile   = "c:/data/dnn/tensorflow_inception_graph.pb";
-    dnn::Net net = dnn::readNetFromTensorflow(modelFile);
+    string inBlobName  = parser.get<string>("input");
+    string outBlobName = parser.get<string>("output");
+    string modelFile   = parser.get<string>("model");
+    string protoFile   = parser.get<string>("proto");
+    dnn::Net net = (protoFile=="") ?
+        dnn::readNetFromTensorflow(modelFile):
+        dnn::readNetFromCaffe(protoFile, modelFile);
     CV_Assert(!net.empty());
+
+    if (parser.has("print")) printnet(net, batch_size, 3, WINSIZE);
 
     Mat labels, features;
     vector<Mat> data;
-    auto pre_process = [&]() {
+    auto transfer = [&]() { // reused for the test batches
         for (int i=0; i<int(data.size())-batch_size; i+=batch_size) {
             vector<Mat> batch(data.begin() + i, data.begin() + i + batch_size);
-            Mat blob = dnn::blobFromImages(batch);   //Convert Mat to image batch
-            blob -= 117.0;
-            net.setInput(blob, inBlobName);        //set the network input
-            Mat result = net.forward(outBlobName);
+            Mat blob = dnn::blobFromImages(batch);  // Convert Mat to image batch
+            blob -= 117.0;                          // magic mean
+            net.setInput(blob, inBlobName);
+            Mat result = net.forward(outBlobName);  // sadly, batches are not any faster
             result = result.reshape(1,batch_size);
             features.push_back(result);
             cout << " [" << blob.size[0] << " " << blob.size[1] << " " << blob.size[2] << " " << blob.size[3] << "]";
             cout << " [" << result.size[0] << " " << result.size[1] << "] "<< features.size() <<"\r";
         }
         cout << "\n";
-        labels.resize(features.rows);
+        labels.resize(features.rows); // since i'm throwing away features
     };
 
     FileStorage fs("trainf.yml.gz",0);
     if (! fs.isOpened()) {
         double t = cv_load(tscdir + "Training/", data, labels, max_classes);
-        cout << "loaded " << data.size() << " images" << endl;
-        pre_process();
-        cout << "transfer to " << features.size() << endl;
+        transfer();
 
         FileStorage fs1("trainf.yml.gz",1);
         fs1 << "features" << features;
@@ -171,7 +177,7 @@ int main(int argc, char **argv)
     FileStorage fs2("testf.yml.gz",0);
     if (! fs2.isOpened()) {
         double t2 = cv_load(tscdir + "testing/", data, labels, max_classes);
-        pre_process();
+        transfer();
         FileStorage fs3("testf.yml.gz",1);
         fs3 << "features" << features;
         fs3 << "labels" << labels;
@@ -181,8 +187,8 @@ int main(int argc, char **argv)
         fs2["labels"] >> labels;
         fs2.release();
     }
+
     Mat results;
-    // doing single predictions is slower, but this avoids having to unroll each result manually
     for (int r=0; r<features.rows; r++) {
         float p = nn->predict(features.row(r));
         results.push_back(p);
