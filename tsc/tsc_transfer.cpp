@@ -117,7 +117,7 @@ int main(int argc, char **argv)
         dnn::readNetFromCaffe(protoFile, modelFile);
     CV_Assert(!net.empty());
 
-    if (parser.has("print")) printnet(net, batch_size, 3, WINSIZE);
+    if (parser.has("print")) printnet(net, batch_size, 3, WINSIZE, WINSIZE);
 
     Mat labels, features;
     vector<Mat> data;
