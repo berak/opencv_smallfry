@@ -37,9 +37,9 @@ class Mosse
     cv::Mat B;
 
     void preProcess(cv::Mat &window);
-    double correlate(const cv::Mat &image_sub, cv::Point &delta_xy);
     cv::Mat randWarp(const cv::Mat &a);
     cv::Mat divDFTs(const cv::Mat &src1, const cv::Mat &src2);
+    double correlate(const cv::Mat &image_sub, cv::Point &delta_xy);
 
 public:
     // interface
@@ -151,22 +151,21 @@ void Mosse::preProcess(Mat &window) {
     window=window.mul(HanWin);
 }
 
-double Mosse::correlate(const Mat &image_sub,Point &delta_xy) {
+double Mosse::correlate(const Mat &image_sub, Point &delta_xy) {
     Mat IMAGE_SUB, RESPONSE, response;
-
+    // filter in dft space
     dft(image_sub,IMAGE_SUB,DFT_COMPLEX_OUTPUT);
     mulSpectrums(IMAGE_SUB, H, RESPONSE, 0, true );
     idft(RESPONSE, response, DFT_SCALE|DFT_REAL_OUTPUT);
-
+    // update center position
     double maxVal; Point maxLoc;
     minMaxLoc(response, 0, &maxVal, 0, &maxLoc);
-
-    delta_xy.x=maxLoc.x-int(response.size().width/2);
-    delta_xy.y=maxLoc.y-int(response.size().height/2);
-
-    Scalar Mean,Std;
-    meanStdDev(response, Mean, Std);
-    return (maxVal-Mean[0])/(Std[0]+eps); // PSR
+    delta_xy.x = maxLoc.x - int(response.size().width/2);
+    delta_xy.y = maxLoc.y - int(response.size().height/2);
+    // normalize response
+    Scalar mean,std;
+    meanStdDev(response, mean, std);
+    return (maxVal-mean[0])/(std[0]+eps); // PSR
 }
 
 
@@ -194,7 +193,7 @@ Mat Mosse::randWarp(const Mat& a) {
 
 bool Mosse::update(const Mat &frame, Rect &found) {
     if (H.empty())
-      return false;
+        return false;
 
     double PSR=0;
     Point delta_xy;
@@ -203,15 +202,13 @@ bool Mosse::update(const Mat &frame, Rect &found) {
         getRectSubPix(frame, size, center, image_sub); //image_sub is the output array
         preProcess(image_sub);
 
-        //Run is the only function call correlate. return delta_xy
-        PSR=correlate(image_sub,delta_xy);
+        PSR = correlate(image_sub, delta_xy);
 
-        if (abs(delta_xy.x)<w*InRangeParameter && abs(delta_xy.y)<h*InRangeParameter)
+        if (abs(delta_xy.x) < w*InRangeParameter && abs(delta_xy.y) < h*InRangeParameter)
             break;
     }
 
-    if (PSR<psrThreshold) {
-        //std::cout<<"PSR is low :"<<PSR<<std::endl;
+    if (PSR < psrThreshold) {
         return false;
     }
     //update location
@@ -226,14 +223,14 @@ bool Mosse::update(const Mat &frame, Rect &found) {
     Mat F;
     Mat A_new;
     Mat B_new;
-    dft(img_sub_new,F,DFT_COMPLEX_OUTPUT);
+    dft(img_sub_new, F, DFT_COMPLEX_OUTPUT);
     mulSpectrums(G, F, A_new, 0, true );
     mulSpectrums(F, F, B_new, 0, true );
 
     // update A ,B, and H
-    A=A*(1-rate)+A_new*rate;
-    B=B*(1-rate)+B_new*rate;
-    H=divDFTs(A,B);
+    A = A*(1-rate) + A_new*rate;
+    B = B*(1-rate) + B_new*rate;
+    H = divDFTs(A, B);
 
     // return tracked rect
     double x=center.x, y=center.y;
