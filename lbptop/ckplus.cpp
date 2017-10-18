@@ -7,19 +7,7 @@ using namespace cv;
 using namespace std;
 
 // -----8<-----------------------------------------------------------
-static const vector<Point> samps_face { // 15 fixed, tl() landmarks in (96,96) space
-        	      Point(22,8),  Point(50,8),
-	Point(12,24), Point(24,20), Point(48,20), Point(60,24),
-    Point(16,40), Point(22,40), Point(50,40), Point(54,40),
-        	  Point(16,60), Point(36,60), Point(54,60),
-        	      Point(22,70), Point(50,70)
-};
-
-// -----8<-----------------------------------------------------------
 int make_data() {
-    int BS = 24;
-    lbp_set_blocksize(BS); // only 1 single block in t for whole video, 8496 features.
-
 	CascadeClassifier cad("haarcascade_frontalface_alt.xml");
 	String path = "c:/data/faces/ckplus/";
 	vector<String> emos;
@@ -40,46 +28,34 @@ int make_data() {
 		cerr << e << " " << sub << " " << em << " " << frm << endl;
 		String imgbase = path + "cohn-kanade-images/" + sub + "/" + em + "/";
 		int nfrm = stoi(frm);
-		deque<Mat> images;
+		Sequence seq;
 		Rect box;
 		for (int i=0; i<nfrm; i++) {
 			Mat gray;
-			{ PROFILEX("load")
-			gray = imread(imgbase+txt.substr(0,17)+".png", 0);
-			if (gray.empty())
-				continue;
+			{
+				PROFILEX("load")
+				gray = imread(imgbase+txt.substr(0,17)+".png", 0);
+				if (gray.empty())
+					continue;
 			}
 			equalizeHist(gray,gray);
 	    	if (i==0) {
 	    		PROFILEX("detect")
 				vector<Rect> faces;
-		   		cad.detectMultiScale(gray,faces,1.1,4,CV_HAAR_FIND_BIGGEST_OBJECT,cv::Size(BS,BS));
+		   		cad.detectMultiScale(gray,faces,1.1,4,CV_HAAR_FIND_BIGGEST_OBJECT,cv::Size(30,30));
 			    if (faces.size()) {
 			    	box = faces[0];
 			    }
 	    	}
 	    	Mat det;
-	    	resize(gray(box), det, Size(96,96));
-			images.push_back(det);
-			rectangle(gray, box, Scalar(200), 1);
-			imshow("F",gray);
-			waitKey(1);
+	    	resize(gray(box), det, Size(200,200));
+			seq.push_back(det);
 		}
-    	// procrustes
-		while(images.size() < BS) {
-			int N = int(images.size()) - 1;
-			int n = theRNG().uniform(0,N);
-			images.insert(images.begin() + n, images.at(n));
+    	// mirror images in t, so peak expr is in the middle of seq.
+		for (int i=(seq.size())-1; i>=0; i--) {
+			seq.push_back(seq.at(i));
 		}
-		while(images.size() > BS) {
-			int N = int(images.size()) - 1;
-			int n = theRNG().uniform(0,N);
-			images.erase(images.begin() + n);
-		}
-
-		Sequence seq;
-		for (auto i:images) seq.push_back(i);
-		Mat hist = lbptop(seq, samps_face);
+		Mat hist = lbptop(seq);
 
 		data.push_back(hist);
 		labels.push_back((int)e);
@@ -93,7 +69,7 @@ int make_data() {
 }
 
 int main() {
-	//make_data();
+	make_data();
 
 	Mat data, labels;
 	FileStorage fs("ckplus_lbp.yml.gz",0);

@@ -10,8 +10,7 @@ using namespace std;
 
 // http://www.scholarpedia.org/article/Local_Binary_Patterns
 
-int NZ = 48;
-int BS = 24; // override for hockey
+int NB = 4;  // n blocks in x and y
 
 static const int uniform[256] = { // uniform2 pattern lookup
     0,1,2,3,4,58,5,6,7,58,58,58,8,58,9,10,11,58,58,58,58,58,58,58,12,58,58,58,13,58,
@@ -33,21 +32,12 @@ static const int off_9[] = { // neighbours
     -1, 1, 0, 1, 1, 1,
 };
 
-void lbp_set_blocksize(int s)
-{
-	BS = s;
-}
-int lbp_get_blocksize()
-{
-	return BS;
-}
 
-
-void lbp_xy(const Sequence &seq, Mat &hist, Point p) {
+void lbp_xy(const Sequence &seq, Mat &hist, const Rect &rec) {
     Mat_<float> H(1,59, 0.0f);
     const int m = 1, fixed = seq.size() / 2;
-    for (int c=p.x+m; c<p.x+BS-m; c++) {
-        for (int r=p.y+m; r<p.y+BS-m; r++) {
+    for (int c=rec.x+m; c<rec.x+rec.width-m; c++) {
+        for (int r=rec.y+m; r<rec.y+rec.height-m; r++) {
             uchar v = 0;
             uchar cen = seq[fixed](r,c);
 	        for (int o=0; o<8; o++)
@@ -58,11 +48,11 @@ void lbp_xy(const Sequence &seq, Mat &hist, Point p) {
     normalize(H,H);
     hist.push_back(H);
 }
-void lbp_xz(const Sequence &seq, Mat &hist, Point p) {
+void lbp_xz(const Sequence &seq, Mat &hist, const Rect &rec) {
     Mat_<float> H(1,59, 0.0f);
     const int m = 1, fixed = seq[0].rows / 2;
-    for (int c=p.x+m; c<p.x+BS-m; c++) {
-        for (int z=m; z<BS-m; z++) {
+    for (int c=rec.x+m; c<rec.x+rec.width-m; c++) {
+        for (int z=m; z<int(seq.size())-m; z++) {
             uchar v = 0;
             uchar cen = seq[z](fixed,c);
 	        for (int o=0; o<8; o++)
@@ -73,11 +63,11 @@ void lbp_xz(const Sequence &seq, Mat &hist, Point p) {
     normalize(H,H);
     hist.push_back(H);
 }
-void lbp_yz(const Sequence &seq, Mat &hist, Point p) {
+void lbp_yz(const Sequence &seq, Mat &hist, const Rect &rec) {
     Mat_<float> H(1,59,0.0f);
     const int m = 1, fixed = seq[0].cols / 2;
-    for (int r=p.y+m; r<p.y+BS-m; r++) {
-        for (int z=m; z<BS-m; z++) {
+    for (int r=rec.y+m; r<rec.y+rec.height-m; r++) {
+        for (int z=m; z<int(seq.size())-m; z++) {
             uchar v = 0;
             uchar cen = seq[z](r,fixed);
 	        for (int o=0; o<8; o++)
@@ -91,36 +81,73 @@ void lbp_yz(const Sequence &seq, Mat &hist, Point p) {
 
 
 
-Mat lbptop(const Sequence &seq, const vector<Point> &samps) {
+Mat lbptop(const Sequence &seq) {
 	PROFILE;
+    int w = seq[0].cols / NB;
+    int h = seq[0].rows / NB;
 	Mat hist;
-	for (Point p:samps) {
-		lbp_xy(seq, hist, p);
-		lbp_xz(seq, hist, p);
-		lbp_yz(seq, hist, p);
-	}
+    for (int i=0;i<NB; i++) {
+    	for (int j=0;j<NB; j++) {
+    		Rect r(j*h, i*w, w, h);
+            r &= Rect(0,0,seq[0].cols, seq[0].rows);
+            lbp_xy(seq, hist, r);
+    		lbp_xz(seq, hist, r);
+    		lbp_yz(seq, hist, r);
+    	}
+    }
 	return hist.reshape(1,1);
 }
 
 
-Mat img_yz(const Sequence &seq, Point p) {
-	Mat r(BS, BS, CV_8U);
-	int x = p.x + BS/2;
+Mat img_yz(const Sequence &seq, const Rect &r) {
+	Mat im(r.height, r.width, CV_8U);
+	int x = r.x + r.width/2;
 	for (int z=0; z<seq.size(); z++) {
-		for (int y=0; y<BS; y++) {
-			r.at<uchar>(y,z) = seq[z].at<uchar>(y+p.y,x);
+		for (int y=0; y<r.height; y++) {
+			im.at<uchar>(y,z) = seq[z].at<uchar>(y+r.y,x);
 		}
 	}
-	return r;
+	return im;
 }
 
-Mat img_xz(const Sequence &seq, Point p) {
-	Mat r(BS, BS, CV_8U);
-	int y = p.y + BS/2;
+Mat img_xz(const Sequence &seq, const Rect &r) {
+    Mat im(r.height, r.width, CV_8U);
+	int y = r.y + r.height/2;
 	for (int z=0; z<seq.size(); z++) {
-		for (int x=0; x<BS; x++) {
-			r.at<uchar>(x,z) = seq[z].at<uchar>(y,x+p.x);
+		for (int x=0; x<r.width; x++) {
+			im.at<uchar>(x,z) = seq[z].at<uchar>(y,x+r.x);
 		}
 	}
-	return r;
+	return im;
+}
+
+int lbpFlow(const String &filename, Mat &desc, int frameFrom, int frameTo) {
+    VideoCapture cap(filename);
+    if ( !cap.isOpened() )
+        return -1;
+
+    cap.set(CAP_PROP_POS_FRAMES, frameFrom);
+
+    Mat frame,gray;
+    Sequence seq;
+
+    for (;;) {
+        if ((frameTo != 0) && ((int)cap.get(CAP_PROP_POS_FRAMES) == frameTo))
+            break;
+
+        cap >> frame;
+        if (frame.empty())
+            break;
+
+        resize(frame,frame,Size(320,240));
+        cvtColor(frame, gray, COLOR_BGR2GRAY);
+        equalizeHist(gray,gray);
+        seq.push_back(gray);
+    }
+    // repeat for shorter vids !
+    for (int i=0; seq.size()<(frameTo-frameFrom); i++) seq.push_back(seq[i]);
+    //cout << seq.size() << seq[0].size() << endl;
+
+    desc = lbptop(seq);
+    return 0;
 }

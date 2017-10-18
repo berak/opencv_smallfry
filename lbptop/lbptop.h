@@ -12,13 +12,15 @@ void lbp_xz(const Sequence &seq, cv::Mat &hist, cv::Point p);
 void lbp_yz(const Sequence &seq, cv::Mat &hist, cv::Point p);
 */
 
-void lbp_set_blocksize(int s);
-int  lbp_get_blocksize();
+//void lbp_set_blocksize(int s);
+//int  lbp_get_blocksize();
 
-cv::Mat lbptop(const Sequence &seq, const std::vector<cv::Point> &samps);
+cv::Mat lbptop(const Sequence &seq);
 
-cv::Mat img_yz(const Sequence &seq, cv::Point p);
-cv::Mat img_xz(const Sequence &seq, cv::Point p);
+cv::Mat img_yz(const Sequence &seq, const cv::Rect &r);
+cv::Mat img_xz(const Sequence &seq, const cv::Rect &r);
+
+int lbpFlow(const cv::String &filename, cv::Mat &desc, int frameFrom=0, int frameTo=0);
 
 
 #endif // __lbptop_onboard__
