@@ -34,6 +34,7 @@ int main(int argc, const char* argv[]) {
                cad.detectMultiScale(gray,faces,1.1,4,CV_HAAR_FIND_BIGGEST_OBJECT,cv::Size(30,30));
             if (faces.size()) {
                 box = faces[0];
+                box.height *= 1.05;
             }
         }
         box &= screen;

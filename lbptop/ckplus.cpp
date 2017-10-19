@@ -24,7 +24,7 @@ int make_data(bool singleImage=false, bool useDiff=false) {
         String sub = txt.substr(0, 4);
         String em  = txt.substr(5, 3);
         String frm = txt.substr(9, 8);
-        cerr << e << " " << sub << " " << em << " " << frm << endl;
+        cerr << e << " " << sub << " " << em << " " << frm << '\r';
         String imgbase = path + "cohn-kanade-images/" + sub + "/" + em + "/";
         int nfrm = stoi(frm);
         Sequence seq;
@@ -41,6 +41,7 @@ int make_data(bool singleImage=false, bool useDiff=false) {
                 cad.detectMultiScale(gray,faces,1.1,4,CV_HAAR_FIND_BIGGEST_OBJECT,cv::Size(30,30));
                 if (faces.size()) {
                     box = faces[0];
+                    box.height *= 1.05; // cascade tends to cut off mouth
                 }
             }
             Mat det;
@@ -65,9 +66,12 @@ int make_data(bool singleImage=false, bool useDiff=false) {
 			    }
 			    data.push_back(hist.reshape(1,1));
 			    labels.push_back(i<5?0:(int)e);
+
             } else {
             	seq.push_back(det);
             }
+            imshow("I",det);
+            waitKey(5);
         }
         if (singleImage)
         	continue;
@@ -81,6 +85,7 @@ int make_data(bool singleImage=false, bool useDiff=false) {
         data.push_back(hist);
         labels.push_back((int)e);
     }
+    cerr << '\n';
     cerr << "saving " << data.size() << " " << labels.size() << endl;
     FileStorage fs("ckplus_lbp.yml.gz",1);
     fs << "labels" << labels;
@@ -90,8 +95,21 @@ int make_data(bool singleImage=false, bool useDiff=false) {
     return 0;
 }
 
+/* best i can do, currently ;(
+[0, 45, 18, 59, 25, 69, 28, 83] // class distribution
+accuracy: 0.642857
+confusion:
+[0, 0, 0, 0, 0, 0, 0, 0;
+ 0, 9, 2, 2, 0, 0, 2, 1;
+ 0, 0, 3, 1, 1, 0, 1, 0;
+ 0, 3, 1, 16, 0, 1, 1, 0;
+ 0, 0, 0, 0, 1, 0, 1, 0;
+ 0, 0, 1, 4, 2, 14, 1, 0;
+ 0, 2, 1, 0, 3, 0, 1, 0;
+ 0, 0, 1, 0, 1, 1, 1, 19]
+ */
 int main() {
-    make_data(false,true);
+    make_data(false,false);
 
     Mat data, labels;
     FileStorage fs("ckplus_lbp.yml.gz",0);

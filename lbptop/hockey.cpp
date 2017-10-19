@@ -24,9 +24,9 @@ int main() {
             if (-1 == lbpFlow(fn[i], desc,0,40))
                 continue;
             data.push_back(desc);
-            cerr << fn[i] <<  " " << desc.size() << endl;
+            cerr << fn[i] <<  " " << desc.size() << '\r';
         }
-        cerr << "writing " << data.size() << " elems, " << data.total() * data.elemSize() << " bytes." << endl;
+        cerr << '\n' << "writing " << data.size() << " elems, " << data.total() * data.elemSize() << " bytes." << endl;
         FileStorage fs("hockey_lbpflow.yml.gz", 1);
         fs << "lbp" << data;
         fs.release();
