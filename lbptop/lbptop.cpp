@@ -2,7 +2,6 @@
 #include "opencv2/core/ocl.hpp"
 #include <iostream>
 #include <deque>
-#include "profile.h"
 #include "lbptop.h"
 
 using namespace cv;
@@ -33,20 +32,24 @@ static const int off_9[] = { // neighbours
 };
 
 
-void lbp_xy(const Sequence &seq, Mat &hist, const Rect &rec) {
+void lbp_xy(const Mat_<uchar> &img, Mat &hist, const Rect &rec) {
     Mat_<float> H(1,59, 0.0f);
-    const int m = 1, fixed = seq.size() / 2;
+    const int m = 1;
     for (int c=rec.x+m; c<rec.x+rec.width-m; c++) {
         for (int r=rec.y+m; r<rec.y+rec.height-m; r++) {
             uchar v = 0;
-            uchar cen = seq[fixed](r,c);
+            uchar cen = img(r,c);
             for (int o=0; o<8; o++)
-                v |= (seq[fixed](r + off_9[o*2+1], c + off_9[o*2]) > cen) << o;
+                v |= (img(r + off_9[o*2+1], c + off_9[o*2]) > cen) << o;
             H(uniform[v])++;
         }
     }
     normalize(H,H);
     hist.push_back(H);
+}
+void lbp_xy(const Sequence &seq, Mat &hist, const Rect &rec) {
+    const int fixed = seq.size() / 2;
+    lbp_xy(seq[fixed], hist, rec);
 }
 void lbp_xz(const Sequence &seq, Mat &hist, const Rect &rec) {
     Mat_<float> H(1,59, 0.0f);
@@ -82,7 +85,6 @@ void lbp_yz(const Sequence &seq, Mat &hist, const Rect &rec) {
 
 
 Mat lbptop(const Sequence &seq) {
-    PROFILE;
     int w = seq[0].cols / NB;
     int h = seq[0].rows / NB;
     Mat hist;

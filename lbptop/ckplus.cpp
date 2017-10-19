@@ -6,19 +6,19 @@ using namespace cv;
 using namespace std;
 
 // -----8<-----------------------------------------------------------
-int make_data() {
+int make_data(bool singleImage=false, bool useDiff=false) {
     CascadeClassifier cad("haarcascade_frontalface_alt.xml");
     String path = "c:/data/faces/ckplus/";
     vector<String> emos;
     glob(path+"Emotion/*.txt", emos, true);
     cerr << emos.size() << endl;
-    vector<float> hist(8,0);
+    vector<float> histo(8,0);
     Mat data,labels;
     for (auto f:emos) {
         ifstream emo(f);
         float e;
         emo >> e;
-        hist[(int)e] ++;
+        histo[(int)e] ++;
         int l = f.find_last_of('\\');
         String txt = f.substr(l + 1);
         String sub = txt.substr(0, 4);
@@ -29,6 +29,7 @@ int make_data() {
         int nfrm = stoi(frm);
         Sequence seq;
         Rect box;
+        Mat first;
         for (int i=0; i<nfrm; i++) {
             Mat gray;
             gray = imread(imgbase+txt.substr(0,17)+".png", 0);
@@ -37,15 +38,40 @@ int make_data() {
             equalizeHist(gray,gray);
             if (i==0) {
                 vector<Rect> faces;
-                   cad.detectMultiScale(gray,faces,1.1,4,CV_HAAR_FIND_BIGGEST_OBJECT,cv::Size(30,30));
+                cad.detectMultiScale(gray,faces,1.1,4,CV_HAAR_FIND_BIGGEST_OBJECT,cv::Size(30,30));
                 if (faces.size()) {
                     box = faces[0];
                 }
             }
             Mat det;
             resize(gray(box), det, Size(200,200));
-            seq.push_back(det);
+            if (useDiff && i==0) {
+            	first = det;
+            	continue;
+            }
+            if (useDiff)
+            	absdiff(det,first,det);
+            if (singleImage) {
+                int NB=4;
+                int w = det.cols / NB;
+			    int h = det.rows / NB;
+			    Mat hist;
+			    for (int i=0;i<NB; i++) {
+			        for (int j=0;j<NB; j++) {
+			            Rect r(j*h, i*w, w, h);
+			            r &= Rect(0,0,det.cols, det.rows);
+			            lbp_xy(det, hist, r);
+			        }
+			    }
+			    data.push_back(hist.reshape(1,1));
+			    labels.push_back(i<5?0:(int)e);
+            } else {
+            	seq.push_back(det);
+            }
         }
+        if (singleImage)
+        	continue;
+
         // mirror images in t, so peak expr is in the middle of seq.
         for (int i=(seq.size())-1; i>=0; i--) {
             seq.push_back(seq.at(i));
@@ -55,16 +81,17 @@ int make_data() {
         data.push_back(hist);
         labels.push_back((int)e);
     }
+    cerr << "saving " << data.size() << " " << labels.size() << endl;
     FileStorage fs("ckplus_lbp.yml.gz",1);
     fs << "labels" << labels;
     fs << "data" << data;
     fs.release();
-    cerr << Mat(hist).t() <<  endl;
+    cerr << Mat(histo).t() <<  endl;
     return 0;
 }
 
 int main() {
-    make_data();
+    make_data(false,true);
 
     Mat data, labels;
     FileStorage fs("ckplus_lbp.yml.gz",0);
@@ -77,7 +104,7 @@ int main() {
     data   = tdata->getTrainSamples();
     labels = tdata->getTrainResponses();
     labels.convertTo(labels, CV_32S); // hrrm!
-    cerr << "training with " << data.size() << endl;
+    cerr << "training with " << data.size() << " " << labels.size() << endl;
 
     Ptr<ml::SVM> svm = ml::SVM::create();
     svm->setKernel(ml::SVM::LINEAR);

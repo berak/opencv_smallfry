@@ -6,14 +6,11 @@
 
 typedef std::deque< cv::Mat_<uchar> > Sequence;
 
-/*
-void lbp_xy(const Sequence &seq, cv::Mat &hist, cv::Point p);
-void lbp_xz(const Sequence &seq, cv::Mat &hist, cv::Point p);
-void lbp_yz(const Sequence &seq, cv::Mat &hist, cv::Point p);
-*/
+void lbp_xy(const cv::Mat_<uchar> &img, cv::Mat &hist, const cv::Rect &rec);
 
-//void lbp_set_blocksize(int s);
-//int  lbp_get_blocksize();
+void lbp_xy(const Sequence &seq, cv::Mat &hist, const cv::Rect &rec);
+void lbp_xz(const Sequence &seq, cv::Mat &hist, const cv::Rect &rec);
+void lbp_yz(const Sequence &seq, cv::Mat &hist, const cv::Rect &rec);
 
 cv::Mat lbptop(const Sequence &seq);
 
