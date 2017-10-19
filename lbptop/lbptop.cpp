@@ -40,8 +40,8 @@ void lbp_xy(const Sequence &seq, Mat &hist, const Rect &rec) {
         for (int r=rec.y+m; r<rec.y+rec.height-m; r++) {
             uchar v = 0;
             uchar cen = seq[fixed](r,c);
-	        for (int o=0; o<8; o++)
-	            v |= (seq[fixed](r + off_9[o*2+1], c + off_9[o*2]) > cen) << o;
+            for (int o=0; o<8; o++)
+                v |= (seq[fixed](r + off_9[o*2+1], c + off_9[o*2]) > cen) << o;
             H(uniform[v])++;
         }
     }
@@ -55,8 +55,8 @@ void lbp_xz(const Sequence &seq, Mat &hist, const Rect &rec) {
         for (int z=m; z<int(seq.size())-m; z++) {
             uchar v = 0;
             uchar cen = seq[z](fixed,c);
-	        for (int o=0; o<8; o++)
-	            v |= (seq[z + off_9[o*2+1]](fixed, c + off_9[o*2]) > cen) << o;
+            for (int o=0; o<8; o++)
+                v |= (seq[z + off_9[o*2+1]](fixed, c + off_9[o*2]) > cen) << o;
             H(uniform[v])++;
         }
     }
@@ -70,8 +70,8 @@ void lbp_yz(const Sequence &seq, Mat &hist, const Rect &rec) {
         for (int z=m; z<int(seq.size())-m; z++) {
             uchar v = 0;
             uchar cen = seq[z](r,fixed);
-	        for (int o=0; o<8; o++)
-	            v |= (seq[z + off_9[o*2]](r + off_9[o*2+1], fixed) > cen) << o;
+            for (int o=0; o<8; o++)
+                v |= (seq[z + off_9[o*2]](r + off_9[o*2+1], fixed) > cen) << o;
             H(uniform[v])++;
         }
     }
@@ -82,43 +82,43 @@ void lbp_yz(const Sequence &seq, Mat &hist, const Rect &rec) {
 
 
 Mat lbptop(const Sequence &seq) {
-	PROFILE;
+    PROFILE;
     int w = seq[0].cols / NB;
     int h = seq[0].rows / NB;
-	Mat hist;
+    Mat hist;
     for (int i=0;i<NB; i++) {
-    	for (int j=0;j<NB; j++) {
-    		Rect r(j*h, i*w, w, h);
+        for (int j=0;j<NB; j++) {
+            Rect r(j*h, i*w, w, h);
             r &= Rect(0,0,seq[0].cols, seq[0].rows);
             lbp_xy(seq, hist, r);
-    		lbp_xz(seq, hist, r);
-    		lbp_yz(seq, hist, r);
-    	}
+            lbp_xz(seq, hist, r);
+            lbp_yz(seq, hist, r);
+        }
     }
-	return hist.reshape(1,1);
+    return hist.reshape(1,1);
 }
 
 
 Mat img_yz(const Sequence &seq, const Rect &r) {
-	Mat im(r.height, r.width, CV_8U);
-	int x = r.x + r.width/2;
-	for (int z=0; z<seq.size(); z++) {
-		for (int y=0; y<r.height; y++) {
-			im.at<uchar>(y,z) = seq[z].at<uchar>(y+r.y,x);
-		}
-	}
-	return im;
+    Mat im(r.height, r.width, CV_8U);
+    int x = r.x + r.width/2;
+    for (int z=0; z<seq.size(); z++) {
+        for (int y=0; y<r.height; y++) {
+            im.at<uchar>(y,z) = seq[z].at<uchar>(y+r.y,x);
+        }
+    }
+    return im;
 }
 
 Mat img_xz(const Sequence &seq, const Rect &r) {
     Mat im(r.height, r.width, CV_8U);
-	int y = r.y + r.height/2;
-	for (int z=0; z<seq.size(); z++) {
-		for (int x=0; x<r.width; x++) {
-			im.at<uchar>(x,z) = seq[z].at<uchar>(y,x+r.x);
-		}
-	}
-	return im;
+    int y = r.y + r.height/2;
+    for (int z=0; z<seq.size(); z++) {
+        for (int x=0; x<r.width; x++) {
+            im.at<uchar>(x,z) = seq[z].at<uchar>(y,x+r.x);
+        }
+    }
+    return im;
 }
 
 int lbpFlow(const String &filename, Mat &desc, int frameFrom, int frameTo) {
