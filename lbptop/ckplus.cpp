@@ -1,6 +1,5 @@
 #include "opencv2/opencv.hpp"
 #include <iostream>
-#include "profile.h"
 #include "lbptop.h"
 
 using namespace cv;
@@ -32,15 +31,11 @@ int make_data() {
         Rect box;
         for (int i=0; i<nfrm; i++) {
             Mat gray;
-            {
-                PROFILEX("load")
-                gray = imread(imgbase+txt.substr(0,17)+".png", 0);
-                if (gray.empty())
-                    continue;
-            }
+            gray = imread(imgbase+txt.substr(0,17)+".png", 0);
+            if (gray.empty())
+                continue;
             equalizeHist(gray,gray);
             if (i==0) {
-                PROFILEX("detect")
                 vector<Rect> faces;
                    cad.detectMultiScale(gray,faces,1.1,4,CV_HAAR_FIND_BIGGEST_OBJECT,cv::Size(30,30));
                 if (faces.size()) {

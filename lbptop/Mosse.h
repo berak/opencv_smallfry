@@ -31,10 +31,8 @@ class Mosse
 
     //Desired output
     cv::Mat G;
-
-    cv::Mat H;
-    cv::Mat A;
-    cv::Mat B;
+    //State
+    cv::Mat H, A, B;
 
     void preProcess(cv::Mat &window);
     cv::Mat randWarp(const cv::Mat &a);
@@ -94,9 +92,7 @@ void Mosse::init(const Mat &frame, const Rect &rect) {
         Mat window_warp=randWarp(window);
         preProcess(window_warp);
 
-        Mat WINDOW_WARP;
-        Mat A_i;
-        Mat B_i;
+        Mat WINDOW_WARP, A_i, B_i;
         dft(window_warp,WINDOW_WARP,DFT_COMPLEX_OUTPUT);
         mulSpectrums(G          , WINDOW_WARP, A_i, 0, true );
         mulSpectrums(WINDOW_WARP, WINDOW_WARP, B_i, 0, true );
@@ -207,10 +203,9 @@ bool Mosse::update(const Mat &frame, Rect &found) {
         if (abs(delta_xy.x) < w*InRangeParameter && abs(delta_xy.y) < h*InRangeParameter)
             break;
     }
-
-    if (PSR < psrThreshold) {
+    if (PSR < psrThreshold)
         return false;
-    }
+
     //update location
     center.x+=delta_xy.x;
     center.y+=delta_xy.y;
@@ -220,9 +215,7 @@ bool Mosse::update(const Mat &frame, Rect &found) {
     preProcess(img_sub_new);
 
     // new state for A and B
-    Mat F;
-    Mat A_new;
-    Mat B_new;
+    Mat F, A_new, B_new;
     dft(img_sub_new, F, DFT_COMPLEX_OUTPUT);
     mulSpectrums(G, F, A_new, 0, true );
     mulSpectrums(F, F, B_new, 0, true );
