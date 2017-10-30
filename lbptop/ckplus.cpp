@@ -5,11 +5,11 @@
 using namespace cv;
 using namespace std;
 
-// -----8<-----------------------------------------------------------
+
 int make_data(bool singleImage=false, bool useDiff=false) {
     CascadeClassifier cad("haarcascade_frontalface_alt.xml");
     String path = "c:/data/faces/ckplus/";
-    vector<String> emos;
+    vector<String> emos; // only 327 of all sequences are labelled, we have to check those 1st.
     glob(path+"Emotion/*.txt", emos, true);
     cerr << emos.size() << endl;
     vector<float> histo(8,0);
@@ -149,7 +149,5 @@ int main() {
         confusion(p,t) ++;
     }
     cerr << "confusion:\n" << confusion << endl;
-    //cerr << truth.t() << endl;
-    //cerr << predict.t() << endl;
     return 0;
 }

@@ -263,8 +263,8 @@ struct MACEImpl : MACE {
         PROFILE;
         std::vector<Mat> images, dftImg;
         input.getMatVector(images);
-        for (auto im: images) { // cache dft images
-            dftImg.push_back(dftImage(im));
+        for (size_t i=0; i<images.size(); i++) { // cache dft images
+            dftImg.push_back(dftImage(images[i]));
         }
         compute(dftImg, true);
         threshold = computeThreshold(dftImg, true);

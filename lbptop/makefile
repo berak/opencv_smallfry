@@ -1,7 +1,7 @@
 INSTALL = c:/p/opencv/build/install
 CFLAGS  = -std=c++11 -I. -I$(INSTALL)/include
 LFLAGS  = -O3 -L$(INSTALL)/x64/mingw/staticlib
-OCVLIBS = -lopencv_videoio330 -lopencv_ml330 -lopencv_objdetect330 -lopencv_highgui330 -lopencv_imgcodecs330 -lopencv_imgproc330 -lopencv_core330
+OCVLIBS = -lopencv_videoio331 -lopencv_ml331 -lopencv_objdetect331 -lopencv_highgui331 -lopencv_imgcodecs331 -lopencv_imgproc331 -lopencv_core331
 OCVDEPS = -llibtiff -llibpng -llibjpeg -llibwebp -lz
 OGLLIBS = -lopengl32 -lglu32
 WINLIBS = -luser32 -lkernel32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lvfw32

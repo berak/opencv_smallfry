@@ -18,12 +18,12 @@ class Mosse
     const double eps=0.00001;
     const double rate=0.2; //learning rate
     const double psrThreshold=5.7;
-    const double InRangeParameter=0.08;
+    //const double InRangeParameter=0.08;
     const int MaxIteration=4;
 
-    Point_<double> center; //center of the bounding box
-    Size size; //size of the bounding box
-    Mat HanWin;
+    cv::Point_<double> center; //center of the bounding box
+    cv::Size size; //size of the bounding box
+    cv::Mat HanWin;
 
     //Optimal size for DFT processing
     int h=0;
@@ -77,25 +77,25 @@ void Mosse::init(const Mat &frame, const Rect &rect) {
 
     // goal
     Mat g=Mat::zeros(size,CV_32F);
-    g.at<float>(h/2,w/2)=1;
-    GaussianBlur(g,g, Size(-1,-1), 2.0);
+    g.at<float>(h/2, w/2) = 1;
+    GaussianBlur(g, g, Size(-1,-1), 2.0);
     double maxVal;
     minMaxLoc(g, 0, &maxVal);
-    g=g/maxVal;
-    dft(g,G,DFT_COMPLEX_OUTPUT);
+    g = g / maxVal;
+    dft(g, G, DFT_COMPLEX_OUTPUT);
 
     // update A,B and H
     // affine image
     A=Mat::zeros(G.size(), G.type()); // A.size()=B.size()=G.size()
     B=Mat::zeros(G.size(), G.type()); // A.size()=B.size()=G.size()
     for(int i=0; i<8; i++) {
-        Mat window_warp=randWarp(window);
+        Mat window_warp = randWarp(window);
         preProcess(window_warp);
 
         Mat WINDOW_WARP, A_i, B_i;
-        dft(window_warp,WINDOW_WARP,DFT_COMPLEX_OUTPUT);
-        mulSpectrums(G          , WINDOW_WARP, A_i, 0, true );
-        mulSpectrums(WINDOW_WARP, WINDOW_WARP, B_i, 0, true );
+        dft(window_warp, WINDOW_WARP, DFT_COMPLEX_OUTPUT);
+        mulSpectrums(G          , WINDOW_WARP, A_i, 0, true);
+        mulSpectrums(WINDOW_WARP, WINDOW_WARP, B_i, 0, true);
         A+=A_i;
         B+=B_i;
     }
@@ -114,7 +114,7 @@ Mat Mosse::divDFTs(const Mat &src1, const Mat &src2) {
     //   denom is same for both channels
     cv::multiply(c2[0], c2[0], s1);
     cv::multiply(c2[1], c2[1], s2);
-    cv::add(s1,s2,denom);
+    cv::add(s1, s2, denom);
 
     // (Re1*Re2 + Im1*Im1)/(Re2*Re2 + Im2*Im2) = Re
     cv::multiply(c1[0], c2[0], a1);
@@ -134,23 +134,23 @@ Mat Mosse::divDFTs(const Mat &src1, const Mat &src2) {
 
 
 void Mosse::preProcess(Mat &window) {
-    window.convertTo(window,CV_32FC1);
-    Mat Dia=Mat::ones(window.size(),window.type());
-    log(window+Dia,window);
+    window.convertTo(window, CV_32FC1);
+    Mat Dia=Mat::ones(window.size(), window.type());
+    log(window + Dia, window);
 
     //normalize
     Scalar mean,StdDev;
-    meanStdDev(window,mean,StdDev);
-    window=(window-mean[0])/(StdDev[0]+eps);
+    meanStdDev(window, mean, StdDev);
+    window = (window-mean[0]) / (StdDev[0]+eps);
 
     //Gaussain weighting
-    window=window.mul(HanWin);
+    window = window.mul(HanWin);
 }
 
 double Mosse::correlate(const Mat &image_sub, Point &delta_xy) {
     Mat IMAGE_SUB, RESPONSE, response;
     // filter in dft space
-    dft(image_sub,IMAGE_SUB,DFT_COMPLEX_OUTPUT);
+    dft(image_sub, IMAGE_SUB, DFT_COMPLEX_OUTPUT);
     mulSpectrums(IMAGE_SUB, H, RESPONSE, 0, true );
     idft(RESPONSE, response, DFT_SCALE|DFT_REAL_OUTPUT);
     // update center position
@@ -161,7 +161,7 @@ double Mosse::correlate(const Mat &image_sub, Point &delta_xy) {
     // normalize response
     Scalar mean,std;
     meanStdDev(response, mean, std);
-    return (maxVal-mean[0])/(std[0]+eps); // PSR
+    return (maxVal-mean[0]) / (std[0]+eps); // PSR
 }
 
 
@@ -191,24 +191,18 @@ bool Mosse::update(const Mat &frame, Rect &found) {
     if (H.empty())
         return false;
 
-    double PSR=0;
+    Mat image_sub;
+    getRectSubPix(frame, size, center, image_sub);
+    preProcess(image_sub);
+
     Point delta_xy;
-    for (int iter=0; iter<MaxIteration; iter++) {
-        Mat image_sub;
-        getRectSubPix(frame, size, center, image_sub); //image_sub is the output array
-        preProcess(image_sub);
-
-        PSR = correlate(image_sub, delta_xy);
-
-        if (abs(delta_xy.x) < w*InRangeParameter && abs(delta_xy.y) < h*InRangeParameter)
-            break;
-    }
+    double PSR = correlate(image_sub, delta_xy);
     if (PSR < psrThreshold)
         return false;
 
     //update location
-    center.x+=delta_xy.x;
-    center.y+=delta_xy.y;
+    center.x += delta_xy.x;
+    center.y += delta_xy.y;
 
     Mat img_sub_new;
     getRectSubPix(frame, size, center, img_sub_new);
