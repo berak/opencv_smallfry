@@ -33,3 +33,4 @@
 * cluster: clustering att faces with kmeans,flann,random and BRUTEFORCE!!
 * kotlin: jikes, opencv java bindings in [kotlin](http://kotlinlang.org/) ;)
 * mace: Minimum Average Correlation Energy Filter, useful for authentification with (cancellable) biometrical features from small datasets.
+* ica: An Introduction to Independent Component Analysis: InfoMax and FastICA algorithms

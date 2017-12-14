@@ -1,0 +1,32 @@
+{
+    "nodes": [
+        {
+            "type": "fully_connected",
+            "in_size": 136,
+            "out_size": 170,
+            "has_bias": true
+        },
+        {
+            "type": "sigmoid",
+            "in_size" : {
+                "width": 170,
+                "height": 1,
+                "depth": 1
+            }
+        },
+        {
+            "type": "fully_connected",
+            "in_size": 170,
+            "out_size": 8,
+            "has_bias": true
+        },
+        {
+            "type": "softmax",
+            "in_size": {
+                "width": 8,
+                "height": 1,
+                "depth": 1
+            }
+        }
+    ]
+}

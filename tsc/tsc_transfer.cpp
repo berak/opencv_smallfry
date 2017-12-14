@@ -9,6 +9,11 @@ using namespace std;
 
 int WINSIZE = 224;
 
+//
+// transfer learning using inceptionv5 as a fixed preprocessing pipeline,
+//   and opencv's ANN_MLP at the top
+//
+
 //! load images for max_classes classes from train or test dir.
 //  note, that the csv files *claim* to have W,h,x,y order, but actually, it's the other way round ! (H,W,y,x)
 double cv_load(const String &dir, vector<Mat> &data, Mat &labels, int max_classes=-1, bool gray=true, int skip=0)

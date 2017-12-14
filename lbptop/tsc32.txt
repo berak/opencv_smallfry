@@ -1,0 +1,128 @@
+{
+    "nodes": [
+        {
+            "type": "conv",
+            "in_size": {
+                "width": 64,
+                "height": 64,
+                "depth": 1
+            },
+            "window_width": 5,
+            "window_height": 5,
+            "out_channels": 6,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 1,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
+        },
+        {
+            "type": "tanh",
+            "in_size" : {
+                "width": 64,
+                "height": 64,
+                "depth": 6
+            }
+        },
+        {
+            "type": "maxpool",
+            "in_size": {
+                "width": 64,
+                "height": 64,
+                "depth": 6
+            },
+            "pool_size_x": 2,
+            "pool_size_y": 2,
+            "stride_x": 2,
+            "stride_y": 2,
+            "pad_type": 0
+        },
+        {
+            "type": "conv",
+            "in_size": {
+                "width": 32,
+                "height": 32,
+                "depth": 6
+            },
+            "window_width": 3,
+            "window_height": 3,
+            "out_channels": 6,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 1,
+            "has_bias": true,
+            "w_stride": 1,
+            "h_stride": 1
+        },
+        {
+            "type": "tanh",
+            "in_size" : {
+                "width": 32,
+                "height": 32,
+                "depth": 6
+            }
+        },
+        {
+            "type": "maxpool",
+            "in_size": {
+                "width": 32,
+                "height": 32,
+                "depth": 6
+            },
+            "pool_size_x": 2,
+            "pool_size_y": 2,
+            "stride_x": 2,
+            "stride_y": 2,
+            "pad_type": 0
+        },
+        {
+            "type": "conv",
+            "in_size": {
+                "width": 16,
+                "height": 16,
+                "depth": 6
+            },
+            "window_width": 3,
+            "window_height": 3,
+            "out_channels": 6,
+            "connection_table": {
+                "rows": 0,
+                "cols": 0,
+                "connection": "all"
+            },
+            "pad_type": 1,
+            "has_bias": true,
+            "w_stride": 2,
+            "h_stride": 2
+        },
+        {
+            "type": "tanh",
+            "in_size" : {
+                "width": 8,
+                "height": 8,
+                "depth": 6
+            }
+        },
+        {
+            "type": "fully_connected",
+            "in_size": 384,
+            "out_size": 8,
+            "has_bias": true
+        },
+        {
+            "type": "softmax",
+            "in_size": {
+                "width": 8,
+                "height": 1,
+                "depth": 1
+            }
+        }
+    ]
+}

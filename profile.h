@@ -15,21 +15,21 @@ struct Profile
     cv::String name;
     int64 t;     // accumulated time
     int64 c;     // function calls
-    double d_t;  // must cache, (getTickCount() etc will not be availabe in destructor)
-    double d_c;
+    double d_t;
+    double d_tc; // must cache, (getTickCount() etc will not be availabe in destructor)
 
     Profile(cv::String name)
         : name(name)
         , t(0)
         , c(0)
-        , d_c(0)
         , d_t(0)
+        , d_tc(0)
     {}
 
     ~Profile()
     {
         fprintf(stderr, "%-24s %8lld ",name.c_str(),c);
-        fprintf(stderr, "%13.6f ",d_c);
+        fprintf(stderr, "%13.6f ",d_tc);
         fprintf(stderr, "%13.6f ",d_t);
         fprintf(stderr, "%16lld",t);
         fprintf(stderr, "\n");
@@ -41,8 +41,8 @@ struct Profile
 
         c ++;
         t += delta;
-        d_t = double(t) / get_freq(); 
-        d_c = double(d_t) / c;
+        d_t  = double(t) / get_freq();
+        d_tc = double(d_t)/c;
     }
 
 
@@ -69,19 +69,3 @@ struct Profile
 
 #endif // __profile_onboard__
 
-/*****
-//usage:
-
-#include "profile.h"
-
-void foo() 
-{
-    PROFILE; // will measure execution of "foo"
-    ... lots of code
-
-    {  
-        PROFILEX("some_scope"); // will measure execution of this scope between the {}
-        ... some code
-    }
-}
-*****/
