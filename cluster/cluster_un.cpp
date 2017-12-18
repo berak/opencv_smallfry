@@ -24,7 +24,6 @@ int main(int argc, char **argv) {
 		if (im.empty()) continue;
 		resize(im,im,cv::Size(SZ,SZ));
 		im.convertTo(im, CV_32F);
-		im.at<float>(0,0) = (id/10);
 		features.push_back(im.reshape(1,1));
 		id ++;
 	}
@@ -43,19 +42,28 @@ int main(int argc, char **argv) {
 
 	vector<int> labels;
 	//int n = partition::cluster(features,labels);
-	int n = whispers::cluster(projected,labels);
-	//int n = dbscan::cluster(projected,labels);
+	//int n = whispers::cluster(projected,labels);
+	int n = dbscan::cluster(projected,labels);
 	cout << " found " << n << " clusters and " <<  labels.size() << " labels."  << endl;
     cout << Mat(labels).t() << endl;
 
+    float err = 0;
     for (int i=0; i<n; i++) {
     	vector<int> lb;
+ 		Mat stats(1, 40, CV_32S, Scalar(0));
     	for (int j=0; j<labels.size(); j++) {
     		if (i != labels[j]) continue;
     		lb.push_back(j);
+    		int id = j/10;
+    		stats.at<int>(id) ++;
     	}
-    	cout << format("%3d %3d", i, lb.size()) << " " << Mat(lb).t() << endl;
+    	Point p; double d;
+    	minMaxLoc(stats, 0, &d, 0, &p);
+    	int missed = abs(std::max(10, int(lb.size())) - int(d));
+    	err += missed;
+    	cout << format("%3d %3d %3d %3d %3d", i, lb.size(), int(d), p.x, missed) << " " << Mat(lb).t() << endl;
     }
+    cout << "error: " << err / 400 << endl;;
     return 0;
 }
 
