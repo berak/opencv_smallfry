@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
 	cout << "start cluster " << meth << " " << K << endl;
 	Mat cen = Mat::zeros(K, features.cols, CV_32F); // needs to be persistant for flann
 	int n = Cluster(features,K,cen);
+	cout << n << " clusters" << endl;
 	if (n<K) cout << n << " dictionary of " << K << endl;
 
 	Mat draw(SZ*K2,SZ*K2,CV_8U);

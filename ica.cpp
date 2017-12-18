@@ -7,7 +7,7 @@ using namespace std;
 
 //
 // An Introduction to Independent Component Analysis: InfoMax and FastICA algorithms
-//   Dominic Langlois, Sylvain Chartier, and Dominique Gosselin   University of OttawaAn
+//   Dominic Langlois, Sylvain Chartier, and Dominique Gosselin   University of Ottawa
 //   Tutorials in Quantitative Methods for Psychology 2010, Vol. 6(1), p. 31-38.
 //
 
@@ -32,7 +32,7 @@ Mat tanh(const Mat &y) {
 }
 
 // https://github.com/vislab205/Simo-Lore-FastIca
-void fastICA(Mat mix, Mat &w, Mat &output, int snum=0)
+void fastICA(const Mat &mix, Mat &w, Mat &output, int snum=0)
 {
     PROFILE
     const  int M = mix.rows;    // number of data
@@ -56,7 +56,7 @@ void fastICA(Mat mix, Mat &w, Mat &output, int snum=0)
     {
         PROFILEX("fastica.snum")
         int iteration = 0;
-        Mat P = R.row(i).clone(); // [1,N]
+        Mat P = R.row(i).clone(); // 1,N
         while (iteration <= maxIterations)
         {
             PROFILEX("fastica.iter")
@@ -154,7 +154,7 @@ int main()
     Mat i2 = imread("img/h2.png",0);    resize(i2,i2,siz);
     Mat i3 = imread("img/h3.png",0);    resize(i3,i3,siz);
 
-    // to seperate 3 inputs, we need 3 mixes
+    // to seperate 3 inputs, we need (at least) 3 mixes
     Mat m1 = i1*.4 + i2*.3 + i3*.3;
     Mat m2 = i1*.3 + i2*.4 + i3*.3;
     Mat m3 = i1*.3 + i2*.3 + i3*.4;
