@@ -161,13 +161,10 @@ namespace whispers {
 	        {
 	        	double v = norm(features[i] - features[j]);
 	        	//cout << i << " " <<j << " "<< v << endl;
-	            if (v < 1200)
+	            if (v < 1250)
 	                edges.push_back(sample_pair(i,j));
 	        }
     	}
-    	cout << "chinese "<< edges.size() << endl;
-    	int n = chinese_whispers(edges,labels,100);
-    	cout << n << "\n" << Mat(labels).t() << endl;
-		return n;
+       	return chinese_whispers(edges,labels,100);
 	}
 }

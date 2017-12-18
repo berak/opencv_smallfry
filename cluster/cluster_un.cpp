@@ -7,7 +7,7 @@ using namespace std;
 
 namespace partition {
 	int cluster(vector<Mat> &images, vector<int> &labels) {
-		return cv::partition(images,labels,[](const Mat &a, const Mat &b){return norm(a,b)<1150;});
+		return cv::partition(images,labels,[](const Mat &a, const Mat &b){return norm(a,b)<1100;});
 	}
 }
 
@@ -41,11 +41,10 @@ int main(int argc, char **argv) {
 
 
 	vector<int> labels;
-	//int n = partition::cluster(features,labels);
+	int n = partition::cluster(features,labels);
 	//int n = whispers::cluster(projected,labels);
-	int n = dbscan::cluster(projected,labels);
+	//int n = dbscan::cluster(projected,labels);
 	cout << " found " << n << " clusters and " <<  labels.size() << " labels."  << endl;
-    cout << Mat(labels).t() << endl;
 
     float err = 0;
     for (int i=0; i<n; i++) {
