@@ -15,7 +15,7 @@ namespace cv {
 class BOWKmajorityTrainer: public BOWTrainer {
 
 public:
-    BOWKmajorityTrainer(int clusterCount, const TermCriteria& termcrit=TermCriteria());
+    BOWKmajorityTrainer(int clusterCount, int maxIterations=100);
     virtual ~BOWKmajorityTrainer();
     virtual Mat cluster() const;
     virtual Mat cluster(const Mat& descriptors) const;
