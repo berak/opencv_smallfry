@@ -26,13 +26,13 @@ namespace random {
 
 // these don't
 namespace partition {
-	int cluster(vector<Mat> &images, vector<int> &labels);
+	int cluster(const vector<Mat> &images, vector<int> &labels, double eps);
 }
 namespace whispers {
-	int cluster(const vector<Mat> &features, vector<int> &labels);
+	int cluster(const vector<Mat> &images, vector<int> &labels, double eps);
 }
 namespace dbscan {
-	int cluster(const vector<Mat> &features, vector<int> &labels);
+	int cluster(const vector<Mat> &images, vector<int> &labels, double eps);
 }
 
 #endif // __cluster_onboard__

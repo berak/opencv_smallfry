@@ -6,8 +6,8 @@ using namespace std;
 #include "cluster.h"
 
 namespace partition {
-	int cluster(vector<Mat> &images, vector<int> &labels) {
-		return cv::partition(images,labels,[](const Mat &a, const Mat &b){return norm(a,b)<1100;});
+	int cluster(vector<Mat> &images, vector<int> &labels, double eps) {
+		return cv::partition(images,labels,[eps](const Mat &a, const Mat &b){return norm(a,b)<eps;});
 	}
 }
 
@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
 	int SZ=32;
 	vector<cv::String> fn;
 	cv::glob("c:/data/faces/att/*.pgm", fn, true);
+	//cv::glob("c:/data/faces/tv10/*.png", fn, true);
 	cout << fn.size() << " files." << endl;
 	vector<Mat> features;
 	int id=0;
@@ -41,9 +42,9 @@ int main(int argc, char **argv) {
 
 
 	vector<int> labels;
-	int n = partition::cluster(features,labels);
-	//int n = whispers::cluster(projected,labels);
-	//int n = dbscan::cluster(projected,labels);
+	//int n = partition::cluster(features, labels, 1150);
+	//int n = whispers::cluster(projected, labels, 1250);
+	int n = dbscan::cluster(projected, labels, 1000); // 1000
 	cout << " found " << n << " clusters and " <<  labels.size() << " labels."  << endl;
 
     float err = 0;

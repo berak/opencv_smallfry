@@ -150,7 +150,7 @@ namespace whispers {
 
 
 
-	int cluster(const vector<Mat> &features, vector<int> &labels)
+	int cluster(const vector<Mat> &features, vector<int> &labels, double eps)
 	{
 		PROFILE;
 		Mat indices;
@@ -161,7 +161,7 @@ namespace whispers {
 	        {
 	        	double v = norm(features[i] - features[j]);
 	        	//cout << i << " " <<j << " "<< v << endl;
-	            if (v < 1250)
+	            if (v < eps)
 	                edges.push_back(sample_pair(i,j));
 	        }
     	}

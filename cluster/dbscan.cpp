@@ -73,10 +73,10 @@ namespace dbscan
         return C;
     };
 
-	int cluster(const vector<Mat> &features, vector<int> &labels)
+	int cluster(const vector<Mat> &features, vector<int> &labels, double eps)
 	{
 		PROFILE;
-        int n = dbscan(features, labels, 3, 1000);
+        int n = dbscan(features, labels, 3, eps);
 		return n;
 	}
 }
