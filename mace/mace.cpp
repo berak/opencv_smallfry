@@ -50,6 +50,31 @@ void shiftDFT(const Mat &src, Mat &dst) {
 }
 
 
+// Computes 64-bit "cyclic redundancy check" sum, as specified in ECMA-182
+static uint64 crc64( const uchar* data, size_t size, uint64 crc0=0 )
+{
+    static uint64 table[256];
+    static bool initialized = false;
+
+    if( !initialized )
+    {
+        for( int i = 0; i < 256; i++ )
+        {
+            uint64 c = i;
+            for( int j = 0; j < 8; j++ )
+                c = ((c & 1) ? CV_BIG_UINT(0xc96c5795d7870f42) : 0) ^ (c >> 1);
+            table[i] = c;
+        }
+        initialized = true;
+    }
+
+    uint64 crc = ~crc0;
+    for( size_t idx = 0; idx < size; idx++ )
+        crc = table[(uchar)crc ^ data[idx]] ^ (crc >> 8);
+
+    return ~crc;
+}
+
 // crc32 encode
 int MACE::crc(const String &s) {
     unsigned r[4] = {0};

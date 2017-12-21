@@ -34,3 +34,4 @@
 * kotlin: jikes, opencv java bindings in [kotlin](http://kotlinlang.org/) ;)
 * mace: Minimum Average Correlation Energy Filter, useful for authentification with (cancellable) biometrical features from small datasets.
 * ica: An Introduction to Independent Component Analysis: InfoMax and FastICA algorithms
+* facerec_dnn: using opencv's dnn module and a pretrained (torch) facenet for transfer learning. also a realtime webcam demo.

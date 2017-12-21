@@ -4,8 +4,8 @@ OBJ     = cluster.o kmeans_flann.o brute_random.o
 OBJ_UN  = cluster_un.o whispers.o dbscan.o
 CFLAGS  = -std=c++11 -I. -I$(INSTALL)/include
 LFLAGS  = -O3 -L$(INSTALL)/x64/mingw/staticlib
-OCVLIBS = -lopencv_highgui330 -lopencv_imgcodecs330 -lopencv_imgproc330 -lopencv_core330
-OCVDEPS = -llibtiff -llibpng -llibjpeg -llibwebp -lz
+OCVLIBS = -lopencv_dnn340 -lopencv_highgui340 -lopencv_imgcodecs340 -lopencv_imgproc340 -lopencv_core340
+OCVDEPS = -llibprotobuf -llibtiff -llibpng -llibjpeg -llibwebp -lz
 OGLLIBS = -lopengl32 -lglu32 -luser32
 WINLIBS = -lkernel32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -lvfw32
 LIBS    = $(OCVLIBS) $(OCVDEPS) $(OGLLIBS) $(WINLIBS)

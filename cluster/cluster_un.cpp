@@ -2,6 +2,7 @@
 using namespace std;
 
 #include "opencv2/opencv.hpp"
+#include "opencv2/dnn.hpp"
 #include "profile.h"
 #include "cluster.h"
 
@@ -12,22 +13,21 @@ namespace partition {
 }
 
 int main(int argc, char **argv) {
-	int SZ=32;
+	int SZ=96;
 	vector<cv::String> fn;
-	cv::glob("c:/data/faces/att/*.pgm", fn, true);
+	//cv::glob("c:/data/faces/att/*.pgm", fn, true);
+	cv::glob("c:/data/faces/lfw40_crop/*.jpg", fn, false);
 	//cv::glob("c:/data/faces/tv10/*.png", fn, true);
 	cout << fn.size() << " files." << endl;
 	vector<Mat> features;
-	int id=0;
 	for (auto f : fn) {
-	//	cout << (id/10) << " " << f << endl;
-		Mat im = cv::imread(f,0);
+		Mat im = cv::imread(f,1);
 		if (im.empty()) continue;
 		resize(im,im,cv::Size(SZ,SZ));
-		im.convertTo(im, CV_32F);
-		features.push_back(im.reshape(1,1));
-		id ++;
+		//im.convertTo(im, CV_32F);
+		features.push_back(im);
 	}
+	/*
 	Mat pcafeat;
 	for (auto m: features)
 		pcafeat.push_back(m);
@@ -38,13 +38,35 @@ int main(int argc, char **argv) {
 	cout << features[0].size() << endl;
 	cout << norm(features[0],features[1]) << endl;
 	cout << norm(features[0],features[30]) << endl;
-	//cout << features[0] << endl;
-
+	*/
+	vector<Mat> projected;
+    dnn::Net net = dnn::readNetFromTorch("c:/data/openface.nn4.small2.v1.t7");
+    for (auto f: features) {
+	    Mat inputBlob = dnn::blobFromImage(f, 1./255, Size(SZ, SZ), Scalar(), true, false);   //Convert Mat to image batch
+	    net.setInput(inputBlob);
+		Mat vec = net.forward();
+		//cout << vec.size[0] << " "<< vec.size[1] << " " << vec.size[2] << " "<< vec.size[3] << endl;
+		projected.push_back(vec);
+//		cout << vec << endl;
+    }
+    double md=0;
+    double MD=0;
+    int k=0;
+    for (int i=0; i<400; i++) {
+    	for (int j=i+1; j<400; j++,k++) {
+    		double d = norm(projected[i], projected[j]);
+    		cout << i << " " << j << " " << d << endl;
+    		md += d;
+    		MD = std::max(d,MD);
+    	}
+    }
+    md /= k;
+	cout << md << " " << MD << endl;
 
 	vector<int> labels;
 	//int n = partition::cluster(features, labels, 1150);
-	//int n = whispers::cluster(projected, labels, 1250);
-	int n = dbscan::cluster(projected, labels, 1000); // 1000
+	int n = whispers::cluster(projected, labels, 0.6);//1250);
+	//int n = dbscan::cluster(projected, labels, 0.6); // 1000
 	cout << " found " << n << " clusters and " <<  labels.size() << " labels."  << endl;
 
     float err = 0;

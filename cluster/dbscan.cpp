@@ -4,7 +4,7 @@
 
 
 #include <vector>
-#include <functional>
+
 
 namespace dbscan
 {
@@ -23,9 +23,8 @@ namespace dbscan
         for (int p = 0; p < points.size(); ++p) {
             if (q == p)
                 continue;
-            if (distanceMatrix[q][p] < eps) {
+            if (distanceMatrix[q][p] < eps)
                 neighbors.push_back(p);
-            }
         }
         return neighbors;
     }
