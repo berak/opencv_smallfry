@@ -1,5 +1,5 @@
 //
-// realtime face recognition/training demo (using facenet features, and an SVM).
+// realtime face recognition/transfer learning demo (using facenet features, and an SVM).
 // you'll need the pretrained facenet dnn model from here (30.1mb):
 //    https://raw.githubusercontent.com/pyannote/pyannote-data/master/openface.nn4.small2.v1.t7
 //
@@ -54,7 +54,7 @@ public:
         Mat features, labels;
 
         vector<String> vec_cls;
-        utils::fs::glob(imgdir,"*",vec_cls,false,true);
+        utils::fs::glob(imgdir,"",vec_cls,false,true);
         if (vec_cls.empty())
             return 0;
 
@@ -118,7 +118,7 @@ int main(int argc, const char *argv[])
     else if (cp == "1") cap.open(1);
     else cap.open(cp);
     if (! cap.isOpened()) {
-        cerr << "Could not open capture " << cp << endl;
+        cerr << "Could not open capture: " << cp << endl;
         return -2;
     }
 
@@ -135,7 +135,6 @@ int main(int argc, const char *argv[])
 
     vector<Mat> images;
     String caption = "";
-    int showCaption = 0;
     int frameNo = 0;
     int state = NEUTRAL;
     Scalar color[3] = {
@@ -191,8 +190,8 @@ int main(int argc, const char *argv[])
         }
         if (k==' ') {
             if ((state == RECORD ) && (!images.empty())) {
-                // query for a name, and write the images to that folder:
-                cout << endl << "please enter a name(leave empty to ignore) :" << endl;
+                // ask for a name, and write the images to that folder:
+                cout << endl << "please enter a name (leave empty to ignore) :" << endl;
                 string n; cin >> n;
                 if ((!n.empty()) && (images.size() > 0)) {
                     String folder(imgpath + String("/") + String(n));
