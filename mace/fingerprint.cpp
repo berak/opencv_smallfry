@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
             "{ siz z          |70|   image size }"
             "{ debug d        ||     show debug images }"
             "{ random r       ||     random convolute }"
-            "{ m multi        ||     use 4 maze detectors }"
+//            "{ m multi        ||     use 4 maze detectors }"
             "{ n nodeskew     ||     disable deskewing of input image }"
             "{ b basedir      |C:/data/fingerprints/DB4_B/|      }"
     );
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     int OFF = 100; // "109_3.tif", both numbers 1 based
     int Z = parser.get<int>("siz");
     bool randomize = parser.has("random");
-    bool multi = parser.has("multi");
+  //  bool multi = parser.has("multi");
     String base = parser.get<String>("basedir");
     DBGDRAW = parser.has("debug");
     nodeskew = parser.has("nodeskew");
@@ -73,16 +73,16 @@ int main(int argc, char **argv) {
             p1.push_back(i1);
         }
         Ptr<MACE> mace;
-        if (multi) {
+        /*if (multi) {
             mace = MACE::createSampler(Z,vector<Rect2d>{
                 Rect2d(0,0,1,1),           // whole image
                 Rect2d(0.25,0.25,0.5,0.5), // center
                 Rect2d(0.1,0.1,0.5,0.5),   // top left
                 Rect2d(0.2,0.3,0.5,0.5)    // bot something
             });
-        } else {
-            mace = MACE::create(Z);
-        }
+        } else {*/
+        mace = MACE::create(Z);
+        //}
         if (randomize) {
             mace->salt(p);
         }

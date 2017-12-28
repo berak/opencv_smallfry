@@ -102,8 +102,8 @@ int main(int argc, char** argv) {
         for (int p=0; p<nclasses; p++) { // persons
             cerr << "p " << p << "\r";
             for (int i=0; i<10; i++) {
-                int k = p * 10 + i; // + 1; // att image index starts from 1
-                cv::Mat image = cv::imread(fn[k], (method==FACENET) ? 1 : 0);
+                int k = p * 10 + i;
+                cv::Mat image = cv::imread(fn[k], (method==FACENET) ? 1 : 0); // color for facenet, gray else
                 if (image.empty()) {cerr << "no !" << fn[k] << endl; continue; }
                 Mat feature;
                 if (method==FACENET) {

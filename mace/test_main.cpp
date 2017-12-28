@@ -38,14 +38,14 @@ protected:
 MaceTest::MaceTest(string _video, int salt, bool multi)
 {
     int Z = 64; // window size
-    if (multi)
+    /*if (multi)
         mace = MACE::createSampler(Z,vector<Rect2d>{
             Rect2d(0,0,1,1),           // whole image
             Rect2d(0.25,0.5,0.5,0.5),  // bottom center(mouth)
             Rect2d(0,0,0.5,0.5),       // top left (eye)
             Rect2d(0.5,0,0.5,0.5)      // top right (eye)
         });
-    else
+    else*/
         mace = MACE::create(Z);
 
     video = _video;

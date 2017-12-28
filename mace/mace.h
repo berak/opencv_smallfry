@@ -8,7 +8,6 @@
 //! Minimum Average Correlation Energy Filter
 //!   useful for authentification with (cancellable) biometrical features.
 //!   (does not need many positives to train (~10), and no negatives at all, also robust to noise/salting)
-//    algorithm largely taken from : https://github.com/polyu/faceservergpl
 //    s.a: "CANCELABLE BIOMETRIC FILTERS FOR FACE RECOGNITION", Marios Savvides, B.V.K. Vijaya Kumar and P.K. Khosla
 //
 
@@ -16,8 +15,10 @@ struct MACE : cv::Algorithm {
 
     //! optionally encrypt images with random convolution
     // @param int seed : the seed for the random convolution
-    virtual void salt(int seed) = 0;
-    static int crc(const cv::String &passphrase); // passphrase to crc32 helper
+    virtual void salt(int64 seed) = 0;
+    //! optionally encrypt images with random convolution
+    // @param passphrase: generates a crc64 seed for the random convolution
+    virtual void salt(const cv::String &passphrase) = 0;
 
     //! train it on positive features,
     //!   compute the mace filter: `h = D(-1) * X * (X(+) * D(-1) * X)(-1) * C`
@@ -30,13 +31,8 @@ struct MACE : cv::Algorithm {
     virtual bool same(cv::InputArray query) const = 0;
 
 
-    // @param IMGSIZE : images will get resized to this
-    static cv::Ptr<MACE> create(int IMGSIZE);
-
-    //! multiple filters applied to subregions of the image.
-    // @param IMGSIZE : images will get resized to this internally
-    // @param rects : vector<Rect2f> in [0..1] coords
-    static cv::Ptr<MACE> createSampler(int IMGSIZE, cv::InputArray rects);
+    // @param IMGSIZE : images will get resized to this (should be even)
+    static cv::Ptr<MACE> create(int IMGSIZE=64);
 };
 
 #endif // __mace_h_onboard__

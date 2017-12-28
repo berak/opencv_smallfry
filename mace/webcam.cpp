@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     CommandLineParser parser(argc, argv,
         "{ help h usage ? ||     show this message }"
         "{ pre p          ||     pretrained mace filter file  (e.g. my.xml) }"
-        "{ multi m        ||     use multiple mace filters }"
+//        "{ multi m        ||     use multiple mace filters }"
         "{ num n          |50|   num train images }"
         "{ size s         |64|   image size }"
         "{ twofactor t    ||     pass phrase(text) for 2 factor authentification.\n"
@@ -43,20 +43,20 @@ int main(int argc, char **argv) {
     int state = NEUTRAL;
 
     Ptr<MACE> mace;
-    if (parser.has("multi"))
+
+    /*if (parser.has("multi"))
         mace = MACE::createSampler(Z,vector<Rect2d>{
             Rect2d(0,0,1,1),           // whole image
             Rect2d(0.25,0.5,0.5,0.5),  // bottom center(mouth)
             Rect2d(0,0,0.5,0.5),       // top left (eye)
             Rect2d(0.5,0,0.5,0.5)      // top right (eye)
         });
-    else
-        mace = MACE::create(Z);
+    else*/
+    mace = MACE::create(Z);
 
     if (! two.empty()) {
-        int S = MACE::crc(two);
-        cout << "'" << two << "' " << S << endl;
-        mace->salt(S);
+        cout << "'" << two << "' initial passphrase" << endl;
+        mace->salt(two);
     }
 
     if (! pre.empty()) { // load pretrained model, if available
@@ -97,10 +97,9 @@ int main(int argc, char **argv) {
                     cout << "enter passphrase: ";
                     string pass;
                     getline(cin, pass);
-                    int S = MACE::crc(pass);
-                    mace->salt(S);
+                    mace->salt(pass);
                     state = NEUTRAL;
-                    cout << "'" << pass << "' " << S << " ";
+                    cout << "'" << pass << "' : ";
                 }
                 bool same = mace->same(frame(rects[0]));
                 if (same) col = Scalar(0,220,220);

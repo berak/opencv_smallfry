@@ -75,19 +75,6 @@ static uint64 crc64( const uchar* data, size_t size, uint64 crc0=0 )
     return ~crc;
 }
 
-// crc32 encode
-int MACE::crc(const String &s) {
-    unsigned r[4] = {0};
-    for (size_t i=0; i<s.size(); i++) {
-        r[i%4] ^= unsigned(s[i]);
-    }
-    int res = 0;
-    for (int i=0; i<4; i++) {
-        res += (r[i] << (8*i));
-    }
-    return res;
-}
-
 struct MACEImpl : MACE {
     Mat_<Vec2d> maceFilter; // filled from compute()
     Mat convFilter;         // optional random convolution (cancellable)
@@ -97,7 +84,7 @@ struct MACEImpl : MACE {
 
     MACEImpl(int siz) : IMGSIZE(siz), threshold(DBL_MAX) {}
 
-    void salt(int salz) {
+    void salt(int64 salz) {
         PROFILE;
         if (!salz) return;
         theRNG().state = salz<0xffff ? 5*salz<<13 : salz;
@@ -106,6 +93,10 @@ struct MACEImpl : MACE {
         if (DBGDRAW) {
             imshow("FIL", 0.5 + 1000*convFilter);
         }
+    }
+    void salt(const String &passphrase) {
+        PROFILE;
+        salt((int64)crc64((uchar*)passphrase.c_str(), passphrase.size()));
     }
 
 
@@ -245,14 +236,22 @@ struct MACEImpl : MACE {
         double num=0;
         int rad1=int(floor((double)(45.0/64.0)*(double)IMGSIZE));
         int rad2=int(floor((double)(27.0/64.0)*(double)IMGSIZE));
-        std::vector<float> r2(IMGSIZE_2X); // cache a few pow's
+        // cache a few pow's and sqrts
+        std::vector<float> r2(IMGSIZE_2X);
+        Mat_<float> radtab(IMGSIZE_2X,IMGSIZE_2X);
         for (int l=0; l<IMGSIZE_2X; l++) {
             r2[l] = (l-IMGSIZE) * (l-IMGSIZE);
+        }
+        for (int l=0; l<IMGSIZE_2X; l++) {
+            for (int m=l+1; m<IMGSIZE_2X; m++) {
+                double rad = sqrt(r2[m] + r2[l]);
+                radtab(l,m) = radtab(m,l) = rad;
+            }
         }
         // mean of the sidelobe area:
         for (int l=0; l<IMGSIZE_2X; l++) {
             for (int m=0; m<IMGSIZE_2X; m++) {
-                double rad=sqrt(r2[m] + r2[l]);
+                double rad = radtab(l,m);
                 if (rad < rad1) {
                     if (rad > rad2) {
                         value += re(l,m);
@@ -266,7 +265,7 @@ struct MACEImpl : MACE {
         double std2=0;
         for (int l=0; l<IMGSIZE_2X; l++) {
             for (int m=0; m<IMGSIZE_2X; m++) {
-                double rad=sqrt(r2[m] + r2[l]);
+                double rad = radtab(l,m);
                 if (rad < rad1) {
                     if (rad > rad2) {
                         double d = (value - re(l,m));
@@ -320,85 +319,4 @@ struct MACEImpl : MACE {
 
 cv::Ptr<MACE> MACE::create(int siz) {
     return makePtr<MACEImpl>(siz);
-}
-
-
-
-
-//
-// for even more accuracy, use several mace filters
-//   (it might miss some positives, but it must **never** have false positives !)
-//
-struct MaceSampler : MACE {
-    struct Sampler {
-        Ptr<MACE> mace;
-        Rect2f r; // [0..1]
-        Mat sample(const Mat &img) const {
-            return img(Rect(r.x*img.cols, r.y*img.rows, r.width*img.cols, r.height*img.rows));
-        }
-    };
-    int siz;
-    std::vector<Sampler> samp;
-
-    MaceSampler(int siz, const std::vector<Rect2f> &rects) : siz(siz) {
-        for (size_t i=0; i<rects.size(); i++) {
-            samp.push_back({
-                MACE::create(siz * rects[i].width),
-                rects[i]
-            });
-        }
-    }
-    void salt(int salz) {
-        for (size_t s=0; s<samp.size(); s++) {
-            samp[s].mace->salt(salz);
-        }
-    }
-    void train(cv::InputArrayOfArrays input) {
-        std::vector<Mat> images;
-        input.getMatVector(images);
-        for (size_t s=0; s<samp.size(); s++) {
-            if (samp[s].r.width < 1.0f) { // we need patches
-                std::vector<Mat> vm;
-                for (size_t i=0; i<images.size(); i++) {
-                    vm.push_back(samp[s].sample(images[i]));
-                }
-                samp[s].mace->train(vm);
-            } else {
-                samp[s].mace->train(images);
-            }
-        }
-    }
-    bool same(InputArray _img) const { // all must agree.
-        Mat img = _img.getMat();
-        for (size_t s=0; s<samp.size(); s++) {
-            Mat roi = samp[s].sample(img);
-            if (! samp[s].mace->same(roi)) {
-                return false;
-            }
-        }
-        return true;
-    }
-    void write(cv::FileStorage &fs) const { // make it a "list of objects"
-        fs << "filters" << "[";
-        for (size_t i=0; i<samp.size(); i++) {
-            fs << "{:";
-            samp[i].mace->write(fs);
-            fs << "roi" << samp[i].r;
-            fs << "}";
-        }
-        fs << "]";
-    }
-    void read(const cv::FileNode &fn) {
-        FileNode n = fn["filters"];
-        int i=0;
-        for (FileNodeIterator it=n.begin(); it!=n.end(); ++it,++i) {
-            samp[i].mace->read(*it);
-            (*it)["roi"] >> samp[i].r;
-        }
-    }
-};
-
-cv::Ptr<MACE> MACE::createSampler(int siz, cv::InputArray r) {
-    std::vector<cv::Rect2f> rects = r.getMat();
-    return cv::makePtr<MaceSampler>(siz, rects);
 }

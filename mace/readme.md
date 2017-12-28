@@ -22,6 +22,7 @@ use it like:
     bool same = mace->same(query);
 
 
-2 samples are supplied,
+3 samples are supplied,
 * att.cpp:  shootout on att faces (you'll need the db for this)
 * webcam.cpp: train & test from webcam images
+* fingerprints.cpp: train & test on fingerprint images (from the opencv-blueprints book)
