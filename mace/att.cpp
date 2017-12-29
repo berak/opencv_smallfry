@@ -41,11 +41,7 @@ int main(int argc, char **argv) {
         vector<Mat> p1;
         for (int i=0; i<10; i++) {
             String f = fnames[p*10+i];
-            //cout << (p*10+i) << " " << f << endl;
             Mat i1 = imread(f, 0);
-            if (i1.empty())
-                continue;
-                //CV_Warning(-5, f);
             p1.push_back(i1);
         }
         Ptr<MACE> mace = MACE::create(Z);
@@ -57,14 +53,10 @@ int main(int argc, char **argv) {
                 mace->salt(fnames[q*10]);
             for (int i=0; i<10; i++) {
                 String f = fnames[q*10+i];
-                //cout << (q*10+i) << " " << f << endl;
                 Mat i2 = imread(f, 0);
-                if (i2.empty())
-                    continue;
-                    //CV_Error(-5, f);
                 bool same = mace->same(i2);
                 if (same) {
-                    confusion(p-1,q-1) ++; // positively detected.
+                    confusion(p,q) ++; // positively detected.
                     if (p==q)  tp ++;
                     else       fp ++;
                 } else {
