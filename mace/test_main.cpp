@@ -6,6 +6,9 @@ using namespace cv;
 using namespace testing;
 using namespace std;
 
+//
+// try to test on one person, and test against the other 2
+//
 #define TESTSET_NAMES testing::Values("david","dudek","faceocc2")
 
 const string TRACKING_DIR = "tracking";
@@ -16,7 +19,7 @@ class MaceTest
 {
 public:
 
-    MaceTest(string _video, int salt, bool multi);
+    MaceTest(string _video, bool salt);
     void run();
 
 protected:
@@ -32,21 +35,13 @@ protected:
     int nSampsTest;
     int nSampsTrain;
     int nStep;
-    int salt;
+    bool salt;
 };
 
-MaceTest::MaceTest(string _video, int salt, bool multi)
+MaceTest::MaceTest(string _video, bool salt)
 {
     int Z = 64; // window size
-    /*if (multi)
-        mace = MACE::createSampler(Z,vector<Rect2d>{
-            Rect2d(0,0,1,1),           // whole image
-            Rect2d(0.25,0.5,0.5,0.5),  // bottom center(mouth)
-            Rect2d(0,0,0.5,0.5),       // top left (eye)
-            Rect2d(0.5,0,0.5,0.5)      // top right (eye)
-        });
-    else*/
-        mace = MACE::create(Z);
+    mace = MACE::create(Z);
 
     video = _video;
     if (video=="david") { vidA="dudek"; vidB="faceocc2"; }
@@ -55,7 +50,7 @@ MaceTest::MaceTest(string _video, int salt, bool multi)
 
     nStep = 2;
     nSampsTest = 5;
-    nSampsTrain = 30;
+    nSampsTrain = 35;
     this->salt = salt;
 }
 
@@ -74,16 +69,15 @@ vector<Rect> MaceTest::boxes(const string &fn)
 
 void MaceTest::run() {
     vector<Mat> sam_train = samples(video, nSampsTrain, 0);
-    if (salt)
-        mace->salt(salt); // "owner's" salt with "two factor"
+    if (salt) mace->salt(video); // "owner's" salt with "two factor"
     mace->train(sam_train);
     int self_ok = found(video);
-    if (salt)
-        mace->salt(~salt); // emulate a "random guess"
+    if (salt) mace->salt(vidA); // "other's" salt
     int false_A = found(vidA);
+    if (salt) mace->salt(vidB); // "other's" salt
     int false_B = found(vidB);
     ASSERT_GE(self_ok, nSampsTest/2);  // it may miss positives
-    ASSERT_EQ(false_A, 0);  // but absolutely no false positives allowed.
+    ASSERT_EQ(false_A, 0);  // but *absolutely* no false positives allowed.
     ASSERT_EQ(false_B, 0);
 }
 
@@ -114,9 +108,9 @@ vector<Mat> MaceTest::samples(const string &name, int N, int off) {
         Rect r = bb[off];
         off += nStep;
         samps.push_back(frame(r));
-        rectangle(frame,r,Scalar(200,0,0));
-        imshow("W", frame);
-        waitKey(30);
+      //  rectangle(frame,r,Scalar(200,0,0));
+      //  imshow("W", frame);
+      //  waitKey(30);
     }
     c.release();
     return samps;
@@ -133,21 +127,13 @@ PARAM_TEST_CASE(MACE_, string)
 };
 
 
-TEST_P(MACE_, unsalted_single)
+TEST_P(MACE_, unsalted)
 {
-    MaceTest test(dataset, 0, false); test.run();
+    MaceTest test(dataset, false); test.run();
 }
-TEST_P(MACE_, unsalted_multi)
+TEST_P(MACE_, salted)
 {
-    MaceTest test(dataset, 0, true); test.run();
-}
-TEST_P(MACE_, salted_single)
-{
-    MaceTest test(dataset, 627364238, false); test.run();
-}
-TEST_P(MACE_, salted_multi)
-{
-    MaceTest test(dataset, 627364238, true); test.run();
+    MaceTest test(dataset, true); test.run();
 }
 
 

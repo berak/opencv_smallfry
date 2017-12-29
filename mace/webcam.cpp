@@ -22,7 +22,6 @@ int main(int argc, char **argv) {
     CommandLineParser parser(argc, argv,
         "{ help h usage ? ||     show this message }"
         "{ pre p          ||     pretrained mace filter file  (e.g. my.xml) }"
-//        "{ multi m        ||     use multiple mace filters }"
         "{ num n          |50|   num train images }"
         "{ size s         |64|   image size }"
         "{ twofactor t    ||     pass phrase(text) for 2 factor authentification.\n"
@@ -42,17 +41,7 @@ int main(int argc, char **argv) {
     int Z = parser.get<int>("size");
     int state = NEUTRAL;
 
-    Ptr<MACE> mace;
-
-    /*if (parser.has("multi"))
-        mace = MACE::createSampler(Z,vector<Rect2d>{
-            Rect2d(0,0,1,1),           // whole image
-            Rect2d(0.25,0.5,0.5,0.5),  // bottom center(mouth)
-            Rect2d(0,0,0.5,0.5),       // top left (eye)
-            Rect2d(0.5,0,0.5,0.5)      // top right (eye)
-        });
-    else*/
-    mace = MACE::create(Z);
+    Ptr<MACE> mace = MACE::create(Z);
 
     if (! two.empty()) {
         cout << "'" << two << "' initial passphrase" << endl;

@@ -8,7 +8,7 @@
 
 using namespace cv;
 
-bool DBGDRAW=0;
+bool DBGDRAW=2;
 
 //
 //! Rearrange the quadrants of Fourier image
@@ -87,10 +87,11 @@ struct MACEImpl : MACE {
     void salt(int64 salz) {
         PROFILE;
         if (!salz) return;
-        theRNG().state = salz<0xffff ? 5*salz<<13 : salz;
+        theRNG().state = abs(salz)<0xffff ? 5*salz<<13 : salz;
         convFilter.create(IMGSIZE, IMGSIZE, CV_64F);
         randn(convFilter, 0, 1.0/(IMGSIZE*IMGSIZE));
         if (DBGDRAW) {
+            cout << "salt " << salz << endl;
             imshow("FIL", 0.5 + 1000*convFilter);
         }
     }
