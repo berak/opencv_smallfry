@@ -3,7 +3,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include "opencv2/opencv.hpp"
-#include "opencv2/core/ocl.hpp"
 #include "mace.h"
 
 using namespace cv;
@@ -31,25 +30,38 @@ int main(int argc, char **argv) {
     bool randomize = parser.has("random");
     DBGDRAW = parser.has("debug");
 
-    String att = "c:/data/faces/att/";
+    String att = "c:/data/faces/att/*.pgm";
     cerr << att << " " << N  << " " << Z << " " << randomize << endl;
+    vector<String> fnames;
+    glob(att,fnames,true);
+
     Mat_<int> confusion(N,N,0);
     float tp=0,fp=0,tn=0,fn=0;
-    for (int p=1; p<=N; p++) { // att starts counting from one ..
+    for (int p=0; p<N; p++) {
         vector<Mat> p1;
-        for (int i=1; i<=10; i++) { // images, too. get used to it
-            Mat i1 = imread(att + format("s%d/%d.pgm", p, i), 0);
+        for (int i=0; i<10; i++) {
+            String f = fnames[p*10+i];
+            //cout << (p*10+i) << " " << f << endl;
+            Mat i1 = imread(f, 0);
+            if (i1.empty())
+                continue;
+                //CV_Warning(-5, f);
             p1.push_back(i1);
         }
         Ptr<MACE> mace = MACE::create(Z);
         if (randomize)
-            mace->salt(p);
+            mace->salt(fnames[p*10]);
         mace->train(p1);
-        for (int q=1; q<=N; q++) {
-            for (int i=1; i<=10; i++) {
-                Mat i2 = imread(att + format("s%d/%d.pgm", q, i), 0);
-                if (randomize)
-                    mace->salt(q);
+        for (int q=0; q<N; q++) {
+            if (randomize)
+                mace->salt(fnames[q*10]);
+            for (int i=0; i<10; i++) {
+                String f = fnames[q*10+i];
+                //cout << (q*10+i) << " " << f << endl;
+                Mat i2 = imread(f, 0);
+                if (i2.empty())
+                    continue;
+                    //CV_Error(-5, f);
                 bool same = mace->same(i2);
                 if (same) {
                     confusion(p-1,q-1) ++; // positively detected.
