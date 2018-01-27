@@ -217,7 +217,7 @@ struct MACEImpl : MACE {
         if (maceFilter.empty()) return -1; // not trained.
         int  IMGSIZE_2X = IMGSIZE * 2;
         Mat dftImg = isdft ? img : dftImage(img);
-        mulSpectrums(dftImg, maceFilter, dftImg, CV_DXT_MUL_CONJ);
+        mulSpectrums(dftImg, maceFilter, dftImg, DFT_ROWS, true);
         dft(dftImg, dftImg, CV_DXT_INV_SCALE, 0);
         Mat chn[2];
         split(dftImg, chn);
