@@ -25,13 +25,16 @@ enum
     PREDICT = 2
 };
 
+// our database, each row in the Mat is a facenet feature
 typedef map<String,Mat> Person;
 
 class FaceNet
 {
     dnn::Net net;
     Person persons;
+
 public:
+
     FaceNet(const String &pathToTorchnet)
     {
         try {
@@ -52,6 +55,7 @@ public:
         inf += format("%d persons, %d features, %dk floats\n", persons.size(), n, (n*128)/1024);
         return inf;
     }
+
     Mat process(const Mat &image)
     {
         PROFILE
