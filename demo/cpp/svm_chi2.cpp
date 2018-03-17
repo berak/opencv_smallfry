@@ -7,7 +7,8 @@ using namespace cv;
 int main(int argc, char **argv)
 {
     Ptr<ml::SVM> svm = ml::SVM::create();
-    svm->setKernel(ml::SVM::CHI2);
+    svm->setKernel(ml::SVM::POLY);
+    svm->setDegree(2.3);
 
     Mat_<float> data(4,2);
     data << 1,1,  1.2,0.9,  3.3,2.8, 3.1,3.6;
@@ -18,7 +19,8 @@ int main(int argc, char **argv)
     Mat_<float> query(4,2);
     query << 0.8,1,  1.5,1.3,  3.9,2.5, 2.9,3.1;
     Mat result;
-    svm->predict(query, result, 0); // use ml::StatModel::RAW_OUTPUT for the raw dot product;
+    svm->predict(query, result, 0);//ml::StatModel::RAW_OUTPUT);// for the raw dot product;
     cerr << result.t() << endl;
+
     return 0;
 }

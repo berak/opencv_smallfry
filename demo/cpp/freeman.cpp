@@ -47,12 +47,12 @@ Mat chain_image(const vector<vector<Point> > &contours, const Size &size) {
 
 // backward pass
 Point next(const Point &p, uchar code) {
-    int o[8*2] = {-1,0, -1,1, 0,1, 1,1, 1,0, 1,-1, 0,-1, -1,-1};
+    int o[8*2] = {0,1, 1,1, 1,0, 1,-1, 0,-1, -1,-1, -1,0, -1,1};
     return Point(p.x+o[code*2], p.x+o[code*2+1]);
 }
 void reconstruct(const vector<uchar> &_chain, vector<Point> &contours, Point offset, float scale=1.0) {
     for (int i=0; i<_chain.size(); i++) {
-        Point p = next(offset, _chain[i] * scale);
+        Point p = next(offset, _chain[i]) * scale;
         contours.push_back(p);
         offset = p;
     }
@@ -62,12 +62,12 @@ void reconstruct(const vector<uchar> &_chain, vector<Point> &contours, Point off
 
 int main ()
 {
-    Mat img = imread("img/shadow.png",0);
+    Mat img = imread("../img/shadow.png",0);
     pyrUp(img, img);
     Mat bin = img<30;
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;
-    findContours(bin, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE, Point(0, 0));
+    findContours(bin, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, Point(0, 0));
     Mat draw;
     cvtColor(img,draw,COLOR_GRAY2BGR);
     drawContours(draw, contours, -1, Scalar(0, 255, 0), 1);

@@ -26,7 +26,7 @@ void ascii(const Mat &m) {
 int main_loop(String vid)
 {
     int     H=30,
-            W=80;
+            W=100;
 
     namedWindow("gr",0);
     VideoCapture cap;
@@ -38,12 +38,13 @@ int main_loop(String vid)
         cap >> f;
         if (f.empty())
         {
-            if (vid!="")
+            /*if (vid!="")
             {
                 cap.set(CAP_PROP_POS_FRAMES, 0);
                 continue;
             }
             else
+            */
             {
                 break;
             }
@@ -51,7 +52,7 @@ int main_loop(String vid)
         Mat r, g;
         cvtColor(f,g,COLOR_BGR2GRAY);
         resize(g,r,Size(W,H));
-        imshow("ocv",f);
+        //imshow("ocv",f);
         imshow("gr",r);
         int k = waitKey(20);
         if (k==27) break;

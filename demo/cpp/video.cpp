@@ -6,14 +6,23 @@ using namespace std;
 
 int main()
 {
-	VideoCapture cap("http://www.youtube.com/get_video?&video_id=pSijg_QCgYk");
-	while(cap.isOpened())
+	VideoCapture cap("C:/p/ocv/opencv_smallfry/mace/cv/tracking/faceocc2/data/faceocc2.webm");
+	if (! cap.isOpened())
 	{
-		Mat f;
-		cap >> f;
-		imshow("ocv",f);
+		cout << "could not open the VideoCapture !" << endl;
+		return -1;
+	}
+	while(true)
+	{
+		Mat frame;
+		cap >> frame;
+		if (frame.empty()) // movie is over
+		{
+			break;
+		}
+		imshow("ocv",frame);
 		int k = waitKey(10);
-		if (k==27) break;
+		if (k==27) break;  // esc. pressed
 	}
 	return 0;
 }

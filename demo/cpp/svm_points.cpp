@@ -67,6 +67,7 @@ void exampleClassificationApp::draw(int w, int h) {
         std::cout << "Support Vectors are " << supports << std::endl;
         supports = mSVM->getUncompressedSupportVectors();
         std::cout << "uncompressed Support Vectors are " << supports << std::endl;
+        mSVM->save("svm_points.xml");
     }
 
 }

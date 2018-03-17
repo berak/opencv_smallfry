@@ -1,97 +1,122 @@
 #include <opencv2/opencv.hpp>
-//#include <opencv2/plot.hpp>
+#include <opencv2/plot.hpp>
 #include <iostream>
+#include <cmath>
 using namespace cv;
 using namespace std;
 
 
-Vec2d spline(double u, const vector<double> &x, const vector<double> &y, bool m)
-{
-    double B[4];
-    int np = x.size();
-    int ns = np / 4;
-    int s  = np - 4;
-    if ( u < 1.0f )
-        s = (int)( u * (np-1) );
+// this is more a stress-test of the underlying plot library.
 
-    if ( m ) {
-        // bspline
-        double u1  = ( u - (double)s / (np-1) ) * ns;
-        double u2  = 1.0f - u1;
-        double u11 = u1*u1;
-        double u22 = u2*u2;
-        B[0] = u22  * u2;
-        B[1] = 3.0f * u1  * u22;
-        B[2] = 3.0f * u11 * u2;
-        B[3] = u11  * u1;
-    } else {
-        // catmullRom
-        double t1 = (1-u)*(1-u);
-        double t2 = u*u;
-        double t3 = u*u*u;
-        B[0] = (-u*t1)*0.5f;
-        B[1] = ((2-5*t2+3*t3))*0.5f;
-        B[2] = (u*(1+4*u-3*t2))*0.5f;
-        B[3] = (t2*(1-u))*0.5f;
-        s -= 1;
+void plot_test() {
+    Mat draw;
+    vector<double> x, y;
+    for (int i=0; i<100; i++) {
+        x.push_back(i*0.1);
+        y.push_back(sin(i*0.1));
     }
+    Ptr<plot::Plot2d> plot = plot::createPlot2d(x, y);
+    plot->render(draw);
 
-    Vec2d res(0,0);
-    for ( int a=0; a<4; a++ ) {
-        res[0] += x[s] * B[a];
-        res[1] += y[s] * B[a];
-        s++;
+    x.clear(); y.clear();
+    for (int i=0; i<100; i++) {
+        x.push_back(i*0.1);
+        y.push_back(cos(i*0.1));
     }
-    return res;
+    plot = plot::createPlot2d(x, y);
+    plot->setPlotLineColor(Scalar(0,200,0));
+    plot->render(draw);
+
+    imshow("curve", draw);
+    waitKey();
 }
 
+double gauss(double x, double mu, double sig2) {
+    return exp(-(x-mu)*(x-mu)/(2*sig2)) / sqrt(2*CV_PI*sig2);
+}
+void plot_gauss() {
+    Mat draw;
+    Ptr<plot::Plot2d> plot;
+    vector<double> x, y;
+    float B = 5;
+    float mu = -2;
+    float sig2 = 0.1;
+    for (double i=-B; i<B; i+=0.1) {
+        x.push_back(i);
+        y.push_back(gauss(i,mu,sig2));
+    }
+    plot = plot::createPlot2d(x, y);
+    plot->setMaxY(1.5);
+    plot->render(draw);
+
+    sig2 = 5;
+    mu = -4;
+    x.clear(); y.clear();
+    for (double i=-B; i<B; i+=0.1) {
+        x.push_back(i);
+        y.push_back(gauss(i,mu,sig2));
+    }
+    plot = plot::createPlot2d(x, y);
+    plot->setPlotLineColor(Scalar(0,200,0));
+    plot->setMaxY(1.5);
+    plot->render(draw);
+
+    imshow("curve", draw);
+    waitKey();
+}
 
 int main(int argc, char **argv)
 {
-    int m = argc>1&&argv[1][0]=='c' ? 0 : 1;
-    cerr << "mode " << m ;
-    // generate data
-    vector<double> x{0.03,0.1,0.4,0.7,0.7,0.7,1,1};
-    vector<double> y{.0,.62,.5,1.,1,1,1,1};
-    Mat plotMat(400,400,CV_8UC3,Scalar::all(0));
-    int N=100;
-    Point po = Point(0,400);
-    for (int i=0; i<x.size(); i++) {
-        Point p(x[i]*200, y[i]*200);
-        p.y = 400 - p.y;
-        line(plotMat,po,p,Scalar(0,200,0),1);
-        po = p;
-    }
-    Point off(5,5);
-    po = Point(0,400);
-    for (int i=0; i<N; i++) {
-        double u = double(i)/N;
-        Vec2d p = spline(u, x, y, m);
-        Point pt(p*200);
-        pt += off;
-        pt.y = 400 - pt.y;
-        pt.x;
-        line(plotMat,po,pt,Scalar(200,0,0),1);
-        po = pt;
-        cerr << p <<  " " << u << endl;
-    }
+    plot_gauss();
+    return 0;
 
+    CommandLineParser parser(argc,argv,
+        "{im || image path }"
+        "{W  || width }"
+        "{H  || height }"
+        "{xm || min X }"
+        "{xM || max X }"
+        "{ym || min Y }"
+        "{yM || max Y }"
+        "{sx |1| x scale }"
+        "{sy |1| y scale }"
+        "{ph |-1| initial phase }"
+        "{of |0| y offset }"
+        "{dx |0.003| speed }"
+        "{help h usage ? || show this message }"
+    );
+    if (parser.has("help")) {
+        parser.printMessage();
+        return 0;
+    }
+    vector<double> x, y;
+    float sx = parser.get<float>("sx");
+    float sy = parser.get<float>("sy");
+    float dx = parser.get<float>("dx");
+    float off = parser.get<float>("of");
+    float phase = parser.get<float>("ph");
+    for (int i=0; i<1235; i++) {
+        x.push_back(phase*sx);
+        y.push_back(off+cos(7*phase)*sin(3*phase)*sy);
+        //y.push_back(off+log(phase)*sy);
+        phase += dx;
+    }
+    Ptr<plot::Plot2d> plot = plot::createPlot2d(x, y);
 
-    imshow("MTF", plotMat);
-    waitKey();
-/*
-    // plot
-    Mat plotMat;
-    Ptr<plot::Plot2d> plot;
-    plot = plot::createPlot2d(x, y);
-    plot->setMaxX(2);
-    plot->setMinX(-1);
-    plot->setMaxY(2.);
-    plot->setMinY(-2.);
+    Mat plotMat = imread(parser.get<String>("im"));// if we have a valid image, use that.
+    if (plotMat.empty() || (parser.has("W") && parser.has("H"))) {
+        plotMat.create(parser.get<float>("H"), parser.get<float>("W"), CV_8UC3);
+        plotMat.setTo(0);
+    }
+    if (parser.has("xm")) plot->setMinX(parser.get<float>("xm"));
+    if (parser.has("xM")) plot->setMaxX(parser.get<float>("xM"));
+    if (parser.has("ym")) plot->setMinY(parser.get<float>("ym"));
+    if (parser.has("yM")) plot->setMaxY(parser.get<float>("yM"));
+
     plot->render(plotMat);
     imshow("MTF", plotMat);
     imwrite("./plot.jpg", plotMat);
     waitKey();
-*/
     return 0;
 }
+

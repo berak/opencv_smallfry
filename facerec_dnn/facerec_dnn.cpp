@@ -95,8 +95,8 @@ int main(int argc, const char *argv[])
         "{h help    || show this help screen}"
         "{v video   |0| video path (a filename, 0 or 1 to use webcam)}"
         "{d dir     |persons| path to the image folder}"
-        "{m model   |openface.nn4.small2.v1.t7| path to the trained network model}"
-        "{c cascade |haarcascade_frontalface_alt.xml| path to the haarcascade for face detection}"
+        "{m model   |c:/data/mdl/openface.nn4.small2.v1.t7| path to the trained network model}"
+        "{c cascade |c:/data/mdl/haarcascade_frontalface_alt.xml| path to the haarcascade for face detection}"
     );
     String cp = parser.get<String>("video");
     String imgpath = parser.get<String>("dir");

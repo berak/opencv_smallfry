@@ -232,7 +232,7 @@ cv::Mat SWT(const cv::Mat& image, bool darkOnLight, float precision)
 
 int main(int argc, char **argv)
 {
-    Mat img = imread("oude-man.jpg", 1);
+    Mat img = imread("../img/oude-man.jpg", 1);
     Mat result = SWT(img, false, .3);
     imshow("man",result);
     waitKey();
