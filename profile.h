@@ -2,9 +2,7 @@
 #define __profile_onboard__
 
 #include "opencv2/core/utility.hpp"
-using namespace cv;
-#include <iostream>
-using namespace std;
+#include <cstdio>
 
 #define get_ticks cv::getTickCount
 #define get_freq  cv::getTickFrequency

@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
     for (int n=0; n<nparts; n++)
     {
-        // Slice heatmap of corresponging body's part.
+        // Slice heatmap of corresponding body's part.
         Mat hm(H, W, CV_32F, result.ptr(0,n));
         Mat heatMap = hm.clone();
         hconcat(stripp,hm,stripp);

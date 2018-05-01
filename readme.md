@@ -35,3 +35,4 @@
 * mace: Minimum Average Correlation Energy Filter, useful for authentification with (cancellable) biometrical features from small datasets.
 * ica: An Introduction to Independent Component Analysis: InfoMax and FastICA algorithms
 * facerec_dnn: using opencv's dnn module and a pretrained (torch) facenet for transfer learning. also a realtime webcam demo.
+* openpose_multi.cpp: an attempt to use opencv's dnn with multiple persons, exploiting the PAF's in the original openpose model (WIP)
