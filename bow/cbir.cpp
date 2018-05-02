@@ -25,13 +25,49 @@ static void trainFloat(Ptr<DescriptorMatcher> &matcher, Ptr<BOWTrainer> &bow_tra
 static void trainFeatures(const String &fname, Ptr<Feature2D> &det, Ptr<Feature2D> &ext, Ptr<DescriptorMatcher> &matcher, Ptr<BOWTrainer> &bow_train, int nclusters) {
    if (fname=="surf")    { det = ext = xfeatures2d::SURF::create(); trainFloat(matcher, bow_train, nclusters); }
    if (fname=="sift")    { det = ext = xfeatures2d::SIFT::create(); trainFloat(matcher, bow_train, nclusters); }
+   if (fname=="vlad")    { det = ext = xfeatures2d::SURF::create(); trainFloat(matcher, bow_train, nclusters); }
    if (fname=="latch")   { det = ORB::create(); ext = xfeatures2d::LATCH::create(); trainBinary(matcher, bow_train, nclusters); }
-   if (fname=="lucid")   { det = ORB::create(); ext = xfeatures2d::LUCID::create(); trainBinary(matcher, bow_train, nclusters); }
+   if (fname=="lucid")   { det = ORB::create(); ext = xfeatures2d::LUCID::create(3); trainBinary(matcher, bow_train, nclusters); }
    if (fname=="vgg")     { det = xfeatures2d::SURF::create(); ext = xfeatures2d::VGG::create(); trainFloat(matcher, bow_train, nclusters); }
    if (fname=="boost")   { det = xfeatures2d::SURF::create(); ext = xfeatures2d::BoostDesc::create(); trainBinary(matcher, bow_train, nclusters); }
    if (fname=="orb")     { det = ext = ORB::create(); trainBinary(matcher, bow_train, nclusters); }
    if (fname=="brisk")   { det = ORB::create(); ext = BRISK::create(); trainBinary(matcher, bow_train, nclusters); }
    if (fname=="brief")   { det = ORB::create(); ext = xfeatures2d::BriefDescriptorExtractor::create(); trainBinary(matcher, bow_train, nclusters); }
+}
+
+static Mat getImg(String fn, String fname) {
+    Mat img = imread(fn, fname!="lucid"?0:1);
+    if (! img.empty()) {
+        if (img.rows>512) {
+            resize(img,img,Size(), .25, .25);
+        }
+    }
+    return img;
+}
+
+static Mat vlad_feature(Ptr<Feature2D> f2d, const Mat &vocab, const Mat &img) {
+    PROFILE
+    std::vector<KeyPoint> kp;
+    Mat feat, desc;
+    {
+        PROFILEX("vlad:detect")
+        f2d->detectAndCompute(img, Mat(), kp, desc);
+    }
+    if (kp.size()) {
+        PROFILEX("vlad:compute")
+        feat = Mat(vocab.size(), CV_32F, 0.0f);
+        for (int j=0; j<desc.rows; j++) {
+            Mat dr = desc.row(j);
+            for (int i=0; i<vocab.rows; i++) {
+                Mat f = vocab.row(i) - dr;
+                normalize(f,f);
+                feat.row(i) += f;
+            }
+        }
+        normalize(feat,feat);
+        return feat.reshape(1,1);
+    }
+    return Mat();
 }
 
 static Mat bow_feature(Ptr<Feature2D> f2d, Ptr<BOWImgDescriptorExtractor> extract, const Mat &img) {
@@ -81,19 +117,26 @@ int main( int argc, char ** argv ) {
         for (int i=0; i<ncimages; i++) {
             int id = theRNG().uniform(0,fn.size());
             std::vector<KeyPoint> kp;
-            Mat img = imread(fn[id], fname!="lucid"?0:1);
+            Mat img = getImg(fn[id], fname);
             Mat feat;
-            det->detect(img, kp);
-            ext->compute(img, kp, feat);
+            if (det == ext) {
+                det->detectAndCompute(img, Mat(), kp, feat);
+            } else {
+                det->detect(img, kp);
+                ext->compute(img, kp, feat);
+            }
             if (feat.rows>0)
                 bow_train->add(feat);
             fsize += feat.rows;
+            cout << i << "\r";
             if (i%200==199)
                 cout << "cluster " << fname + " " << i << " " << id << " " << feat.size() << " " << fsize << endl;
         }
         cout << bow_train->descriptorsCount() << " features." << endl;
-        vocab = bow_train->cluster();
-
+        {
+            PROFILEX("bow:cluster")
+            vocab = bow_train->cluster();
+        }
         FileStorage fs2(fname+".cbir.yml", 1+FileStorage::BASE64);
         fs2 << "cbir" << vocab;
         fs2.release();
@@ -109,14 +152,15 @@ int main( int argc, char ** argv ) {
     for (int i=0; i<ncimages; i++) {
         PROFILEX("train data")
         int id = theRNG().uniform(0,fn.size());
-        Mat img = imread(fn[id],fname!="lucid"?0:1);
+        Mat img = getImg(fn[id],fname);
         if (img.empty()) continue;
-        Mat feat = bow_feature(det, bow_extract, img);
+        Mat feat = fname =="vlad" ? vlad_feature(det, vocab, img) : bow_feature(det, bow_extract, img);
         if (feat.rows) {
             trainData.push_back(feat);
             indices.push_back(id);
         }
         fsize += feat.rows;
+        cout << i << "\r";
         if (i%100==99)
             cout << "train " << i << " " << id << " " << feat.size() << " " << fsize << endl;
     }
@@ -134,11 +178,11 @@ int main( int argc, char ** argv ) {
     for (int i=0; i<20; i++) {
         int idx = theRNG().uniform(0,indices.rows);
         int id = indices.at<int>(idx);
-        Mat org = imread(fn[id],fname!="lucid"?0:1);
+        Mat org = getImg(fn[id],fname);
         if (org.empty()) continue;
         cout << "test ";
 
-        Mat feat = bow_feature(det, bow_extract, org);
+        Mat feat = fname =="vlad" ? vlad_feature(det, vocab, org) : bow_feature(det, bow_extract, org);
         if (feat.empty()) continue;
         cv::Mat dists;
         cv::Mat found;
@@ -154,7 +198,7 @@ int main( int argc, char ** argv ) {
         }
         cout << " " << found << endl;
         imshow("I",res);
-        waitKey(2000);
+        waitKey();
     }
     return 0;
 }
