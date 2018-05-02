@@ -45,6 +45,12 @@ static Mat getImg(String fn, String fname) {
     return img;
 }
 
+static Mat sign(const Mat &m) {
+    Mat s(m.size(),m.type(),1.0f);
+    s.setTo(-1, m<0);
+    return s;
+}
+
 static Mat vlad_feature(Ptr<Feature2D> f2d, const Mat &vocab, const Mat &img) {
     PROFILE
     std::vector<KeyPoint> kp;
@@ -61,9 +67,12 @@ static Mat vlad_feature(Ptr<Feature2D> f2d, const Mat &vocab, const Mat &img) {
             for (int i=0; i<vocab.rows; i++) {
                 Mat f = vocab.row(i) - dr;
                 normalize(f,f);
-                feat.row(i) += f;
+                feat.row(i) += f/vocab.rows;
             }
         }
+        Mat f2;
+        sqrt(abs(feat), f2);
+        feat = sign(feat).mul(f2);
         normalize(feat,feat);
         return feat.reshape(1,1);
     }
@@ -93,7 +102,7 @@ static cv::Ptr<cv::flann::Index> train_index(const Mat &trainData) {
 }
 
 int main( int argc, char ** argv ) {
-    const char *datapath = "c:/data/img/cache";
+    const char *datapath = "c:/data/faces/att";
     String fname  = argc>1 ? argv[1] : "orb";
     int nclusters = argc>2 ? atoi(argv[2]) : 512;
     int ncimages  = argc>3 ? atoi(argv[3]) : 512;
@@ -118,6 +127,7 @@ int main( int argc, char ** argv ) {
             int id = theRNG().uniform(0,fn.size());
             std::vector<KeyPoint> kp;
             Mat img = getImg(fn[id], fname);
+            if (img.empty()) continue;
             Mat feat;
             if (det == ext) {
                 det->detectAndCompute(img, Mat(), kp, feat);
@@ -175,7 +185,7 @@ int main( int argc, char ** argv ) {
 
     int K=5;
     cv::flann::SearchParams params;
-    for (int i=0; i<20; i++) {
+    for (int i=0; i<30; i++) {
         int idx = theRNG().uniform(0,indices.rows);
         int id = indices.at<int>(idx);
         Mat org = getImg(fn[id],fname);
