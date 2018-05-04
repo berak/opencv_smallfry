@@ -51,7 +51,7 @@ static Mat sign(const Mat &m) {
     return s;
 }
 
-static Mat vlad_feature(Ptr<Feature2D> f2d, const Mat &vocab, const Mat &img) {
+static Mat vlad_feature(Ptr<Feature2D> f2d,  Ptr<DescriptorMatcher> matcher, const Mat &vocab, const Mat &img) {
     PROFILE
     std::vector<KeyPoint> kp;
     Mat feat, desc;
@@ -61,18 +61,21 @@ static Mat vlad_feature(Ptr<Feature2D> f2d, const Mat &vocab, const Mat &img) {
     }
     if (kp.size()) {
         PROFILEX("vlad:compute")
+        vector<DMatch> matches;
+        matcher->match(desc, vocab, matches);
         feat = Mat(vocab.size(), CV_32F, 0.0f);
-        for (int j=0; j<desc.rows; j++) {
-            Mat dr = desc.row(j);
-            for (int i=0; i<vocab.rows; i++) {
-                Mat f = vocab.row(i) - dr;
-                normalize(f,f);
-                feat.row(i) += f/vocab.rows;
-            }
+        for (size_t j=0; j<matches.size(); j++) {
+            Mat dr = desc.row(matches[j].queryIdx);
+            Mat vr = vocab.row(matches[j].trainIdx);
+            Mat re = vr - dr;
+            normalize(re,re);
+            feat.row(matches[j].trainIdx) += re / vocab.rows;
         }
+        // power normalization
         Mat f2;
         sqrt(abs(feat), f2);
         feat = sign(feat).mul(f2);
+        // L2 normalization
         normalize(feat,feat);
         return feat.reshape(1,1);
     }
@@ -102,10 +105,11 @@ static cv::Ptr<cv::flann::Index> train_index(const Mat &trainData) {
 }
 
 int main( int argc, char ** argv ) {
-    const char *datapath = "c:/data/faces/att";
-    String fname  = argc>1 ? argv[1] : "orb";
-    int nclusters = argc>2 ? atoi(argv[2]) : 512;
-    int ncimages  = argc>3 ? atoi(argv[3]) : 512;
+    const char *datapath = "c:/data/caltech/101_ObjectCategories";
+    //const char *datapath = "c:/data/faces/att";
+    String fname  = argc>1 ? argv[1] : "vlad";
+    int nclusters = argc>2 ? atoi(argv[2]) : 64;
+    int ncimages  = argc>3 ? atoi(argv[3]) : 1000;
 
     Ptr<Feature2D> det,ext;
     Ptr<DescriptorMatcher> matcher;
@@ -120,7 +124,7 @@ int main( int argc, char ** argv ) {
 
     Mat vocab;
 
-    FileStorage fs(fname+".cbir.yml", 0);
+    FileStorage fs(fname+".voc.yml", 0);
     if (!fs.isOpened()) {
         int fsize=0;
         for (int i=0; i<ncimages; i++) {
@@ -147,11 +151,11 @@ int main( int argc, char ** argv ) {
             PROFILEX("bow:cluster")
             vocab = bow_train->cluster();
         }
-        FileStorage fs2(fname+".cbir.yml", 1+FileStorage::BASE64);
-        fs2 << "cbir" << vocab;
+        FileStorage fs2(fname+".voc.yml", 1+FileStorage::BASE64);
+        fs2 << "voc" << vocab;
         fs2.release();
     } else {
-        fs["cbir"]>> vocab;
+        fs["voc"]>> vocab;
         fs.release();
     }
     cerr << "bow vocab: " << vocab.size() << endl;
@@ -159,20 +163,32 @@ int main( int argc, char ** argv ) {
 
     int fsize=0;
     Mat trainData, indices;;
-    for (int i=0; i<ncimages; i++) {
-        PROFILEX("train data")
-        int id = theRNG().uniform(0,fn.size());
-        Mat img = getImg(fn[id],fname);
-        if (img.empty()) continue;
-        Mat feat = fname =="vlad" ? vlad_feature(det, vocab, img) : bow_feature(det, bow_extract, img);
-        if (feat.rows) {
-            trainData.push_back(feat);
-            indices.push_back(id);
+
+    FileStorage fs1(fname+".dat.yml", 0);
+    if (!fs1.isOpened()) {
+        for (int i=0; i<ncimages; i++) {
+            PROFILEX("train data")
+            int id = theRNG().uniform(0,fn.size());
+            Mat img = getImg(fn[id],fname);
+            if (img.empty()) continue;
+            Mat feat = fname =="vlad" ? vlad_feature(det, matcher, vocab, img) : bow_feature(det, bow_extract, img);
+            if (feat.rows) {
+                trainData.push_back(feat);
+                indices.push_back(id);
+            }
+            fsize += feat.rows;
+            cout << i << "\r";
+            if (i%100==99)
+                cout << "train " << i << " " << id << " " << feat.size() << " " << fsize << endl;
         }
-        fsize += feat.rows;
-        cout << i << "\r";
-        if (i%100==99)
-            cout << "train " << i << " " << id << " " << feat.size() << " " << fsize << endl;
+        FileStorage fs2(fname+".dat.yml", 1+FileStorage::BASE64);
+        fs2 << "dat" << trainData;
+        fs2 << "ind" << indices;
+        fs2.release();
+    } else {
+        fs1["dat"]>> trainData;
+        fs1["ind"]>> indices;
+        fs1.release();
     }
     cout << "train " << fname << " " << trainData.size() << " " << trainData.type() << endl;
 
@@ -192,7 +208,7 @@ int main( int argc, char ** argv ) {
         if (org.empty()) continue;
         cout << "test ";
 
-        Mat feat = fname =="vlad" ? vlad_feature(det, vocab, org) : bow_feature(det, bow_extract, org);
+        Mat feat = fname =="vlad" ? vlad_feature(det, matcher, vocab, org) : bow_feature(det, bow_extract, org);
         if (feat.empty()) continue;
         cv::Mat dists;
         cv::Mat found;
