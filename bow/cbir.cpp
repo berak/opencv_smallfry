@@ -146,8 +146,9 @@ int main( int argc, char ** argv ) {
     String fname  = argc>1 ? argv[1] : "vlad";
     int nclusters = argc>2 ? atoi(argv[2]) : 64;
     int ncimages  = argc>3 ? atoi(argv[3]) : 30;
-    theRNG().state = getTickCount();
+    //theRNG().state = getTickCount();
     ocl::setUseOpenCL(false);
+
     Ptr<Feature2D> det,ext;
     Ptr<DescriptorMatcher> matcher;
     Ptr<BOWTrainer> bow_train;
@@ -158,9 +159,10 @@ int main( int argc, char ** argv ) {
     vector<String> fn;
     glob(datapath, fn, true);
     cout << fn.size() << " filenames." << endl;
+    random_shuffle(fn.begin(), fn.end());
 
+    // 1. build dictionary
     Mat vocab;
-
     FileStorage fs(fname+".voc.yml", 0);
     if (!fs.isOpened()) {
         int fsize=0;
@@ -208,15 +210,14 @@ int main( int argc, char ** argv ) {
     bow_extract->setVocabulary(vocab);
 
     int fsize=0;
-    Mat trainData, indices, tests;;
+    Mat trainData, indices;
 
     //vector<String> vec_cls;
     //utils::fs::glob(datapath, "",vec_cls,false,true);
-
-    int TST = fn.size() / ncimages;
+    // 2. build train data for index
     FileStorage fs1(fname+".dat.yml", 0);
     if (!fs1.isOpened()) {
-        for (int i=0; i<fn.size(); i++) {
+        for (int i=ncimages; i<fn.size(); i++) {
             PROFILEX("train data")
 
             int id = i; //theRNG().uniform(0,fn.size());
@@ -228,12 +229,8 @@ int main( int argc, char ** argv ) {
 
             Mat feat = (fname =="vlad"||fname=="vladsift") ? vlad_feature(det, matcher, vocab, img) : bow_feature(det, bow_extract, img);
             if (feat.rows) {
-                if (i%TST == 0) {
-                    tests.push_back(id);
-                } else {
-                    trainData.push_back(feat);
-                    indices.push_back(id);
-                }
+                trainData.push_back(feat);
+                indices.push_back(id);
             }
             fsize += feat.rows;
             cout << i << "\r";
@@ -243,16 +240,15 @@ int main( int argc, char ** argv ) {
         FileStorage fs2(fname+".dat.yml", 1+FileStorage::BASE64);
         fs2 << "dat" << trainData;
         fs2 << "ind" << indices;
-        fs2 << "tst" << tests;
         fs2.release();
     } else {
         fs1["dat"] >> trainData;
         fs1["ind"] >> indices;
-        fs1["tst"] >> tests;
         fs1.release();
     }
     cout << "train " << fname << " " << trainData.size() << " " << trainData.type() << endl;
 
+    // 3. build the index
     Ptr<cv::flann::Index> index;
     {
         PROFILEX("flann")
@@ -260,16 +256,15 @@ int main( int argc, char ** argv ) {
         cout << "index " << trainData.size() << " " << trainData.type() << endl;
     }
 
+    // 4. run tests
     int K=5;
     float correct=0; int ntests=0;
     cv::flann::SearchParams params;
-    for (int i=0; i<tests.rows; i++) {
-        int id = tests.at<int>(i);//theRNG().uniform(0,indices.rows);
-        //int id = indices.at<int>(idx);
+    for (int i=0; i<ncimages; i++) {
+        int id = i;
         String cat = category(fn[id], datapath.size() + 1) ;
-            if (cat == "BACKGROUND_Google") continue;
+        if (cat == "BACKGROUND_Google") continue;
         if (cat == "faces_easy") cat = "faces";
-        cout << "test " << cat;
 
         Mat org = getImg(fn[id],fname);
         if (org.empty()) continue;
@@ -279,7 +274,7 @@ int main( int argc, char ** argv ) {
         cv::Mat dists;
         cv::Mat found;
         index->knnSearch(feat, found, dists, K, params);
-        cout << " " << found << endl;
+        cout << "test " << cat << " " << found << endl;
 
         Mat res;
         resize(org,res,Size(240,160));
@@ -299,9 +294,10 @@ int main( int argc, char ** argv ) {
         }
         imshow("I",res);
         waitKey(3000);
-
-        float acc = correct / ntests;
-        cout << "final " << correct << " " << ntests << " " << acc << endl;
     }
+
+    float acc = correct / ntests;
+    cout << "final " << correct << " / " << ntests << " : " << acc << endl;
+
     return 0;
 }
