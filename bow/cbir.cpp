@@ -13,6 +13,8 @@
 using namespace std;
 using namespace cv;
 
+int missedImg=0;
+int missedFeat=0;
 
 static void trainBinary(Ptr<DescriptorMatcher> &matcher, Ptr<BOWTrainer> &bow_train, int nclusters) {
     matcher = makePtr<BFMatcher>(NORM_HAMMING);
@@ -40,27 +42,22 @@ static void trainFeatures(const String &fname, Ptr<Feature2D> &det, Ptr<Feature2
 
 static Mat rootsift(Mat &feat) {
     PROFILE
-    {
-        PROFILEX("root:norm")
-        norm(feat,feat,NORM_L1);
-    }
-    {
-        PROFILEX("root:sqrt")
-        sqrt(feat,feat);
-    }
-    { // for SURF (has neg numbers)
-        PROFILEX("root:patch")
-        patchNaNs(feat, 0);
-    }
+    normalize(feat,feat,NORM_L1);
+    sqrt(feat,feat);
+    patchNaNs(feat, 0); // for SURF(which has neg. numbers)
     return feat;
 }
 
 static Mat getImg(String fn, String fname) {
+    PROFILE
     Mat img = imread(fn, fname!="lucid"?0:1);
     if (! img.empty()) {
         if (img.rows>512) {
             resize(img,img,Size(), .25, .25);
         }
+    } else {
+        missedImg += 1;
+        cout << "noimg " << fn << endl;
     }
     return img;
 }
@@ -107,6 +104,7 @@ static Mat vlad_feature(Ptr<Feature2D> f2d,  Ptr<DescriptorMatcher> matcher, con
         }
         return feat.reshape(1,1);
     }
+    missedFeat ++;
     return Mat();
 }
 
@@ -126,6 +124,7 @@ static Mat bow_feature(Ptr<Feature2D> f2d, Ptr<BOWImgDescriptorExtractor> extrac
 }
 
 static cv::Ptr<cv::flann::Index> train_index(const Mat &trainData) {
+    PROFILE
     if (trainData.type() == CV_8U) {
         return makePtr<cv::flann::Index>(trainData, cv::flann::LinearIndexParams(), cvflann::FLANN_DIST_HAMMING);
     }
@@ -145,7 +144,8 @@ int main( int argc, char ** argv ) {
     //const char *datapath = "c:/data/faces/att";
     String fname  = argc>1 ? argv[1] : "vlad";
     int nclusters = argc>2 ? atoi(argv[2]) : 64;
-    int ncimages  = argc>3 ? atoi(argv[3]) : 30;
+    int ncimages  = argc>3 ? atoi(argv[3]) : 6000;
+    int ntimages  = argc>4 ? atoi(argv[4]) : 100;
     //theRNG().state = getTickCount();
     ocl::setUseOpenCL(false);
 
@@ -157,7 +157,7 @@ int main( int argc, char ** argv ) {
     Ptr<BOWImgDescriptorExtractor> bow_extract = makePtr<BOWImgDescriptorExtractor>(ext,matcher);
 
     vector<String> fn;
-    glob(datapath, fn, true);
+    glob(datapath + "/*.jpg", fn, true);
     cout << fn.size() << " filenames." << endl;
     random_shuffle(fn.begin(), fn.end());
 
@@ -197,8 +197,8 @@ int main( int argc, char ** argv ) {
         {
             PROFILEX("bow:cluster")
             vocab = bow_train->cluster();
+            bow_train->clear();
         }
-
         FileStorage fs2(fname+".voc.yml", 1+FileStorage::BASE64);
         fs2 << "voc" << vocab;
         fs2.release();
@@ -212,12 +212,10 @@ int main( int argc, char ** argv ) {
     int fsize=0;
     Mat trainData, indices;
 
-    //vector<String> vec_cls;
-    //utils::fs::glob(datapath, "",vec_cls,false,true);
     // 2. build train data for index
     FileStorage fs1(fname+".dat.yml", 0);
     if (!fs1.isOpened()) {
-        for (int i=ncimages; i<fn.size(); i++) {
+        for (int i=ntimages; i<fn.size(); i++) {
             PROFILEX("train data")
 
             int id = i; //theRNG().uniform(0,fn.size());
@@ -250,17 +248,14 @@ int main( int argc, char ** argv ) {
 
     // 3. build the index
     Ptr<cv::flann::Index> index;
-    {
-        PROFILEX("flann")
-        index = train_index(trainData);
-        cout << "index " << trainData.size() << " " << trainData.type() << endl;
-    }
+    index = train_index(trainData);
+    cout << "index " << trainData.size() << " " << trainData.type() << endl;
 
     // 4. run tests
     int K=5;
     float correct=0; int ntests=0;
     cv::flann::SearchParams params;
-    for (int i=0; i<ncimages; i++) {
+    for (int i=0; i<ntimages; i++) {
         int id = i;
         String cat = category(fn[id], datapath.size() + 1) ;
         if (cat == "BACKGROUND_Google") continue;
@@ -298,6 +293,7 @@ int main( int argc, char ** argv ) {
 
     float acc = correct / ntests;
     cout << "final " << correct << " / " << ntests << " : " << acc << endl;
+    cout << "missed " << missedImg << " images and " << missedFeat << " features." << endl;
 
     return 0;
 }
