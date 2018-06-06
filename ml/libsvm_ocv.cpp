@@ -31,8 +31,8 @@ public:
 	Model(const Mat &A, const Mat &L) {
 		svm_set_print_string_function(silent); // comment to see the debug output
 		svm_parameter param = {0};
-		param.svm_type = C_SVC;
-		param.kernel_type = LINEAR;
+		param.svm_type = EPSILON_SVR;
+		param.kernel_type = RBF;
 		param.cache_size = 100;
 		param.C = 1;
 		param.eps = 1e-3;

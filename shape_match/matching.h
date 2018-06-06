@@ -46,4 +46,9 @@ namespace sampson {
 	cv::Ptr<matching::Matcher> createMatcher(int nResample=128);
 }
 
+namespace snakes {
+	//double distance(const std::vector<cv::Point> &a, const std::vector<cv::Point> &b);
+	cv::Ptr<matching::Matcher> createMatcher(int nResample=128);
+}
+
 #endif // __matching_onboard__

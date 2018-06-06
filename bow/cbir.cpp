@@ -42,8 +42,11 @@ static void trainFeatures(const String &fname, Ptr<Feature2D> &det, Ptr<Feature2
 
 static Mat rootsift(Mat &feat) {
     PROFILE
-    normalize(feat,feat,NORM_L1);
-    sqrt(feat,feat);
+    for (int i=0; i<feat.rows; i++) {
+        Mat f = feat.row(i);
+        normalize(f,f,NORM_L1);
+        sqrt(f,f);
+    }
     patchNaNs(feat, 0); // for SURF(which has neg. numbers)
     return feat;
 }
@@ -82,7 +85,11 @@ static Mat vlad_feature(Ptr<Feature2D> f2d,  Ptr<DescriptorMatcher> matcher, con
         rootsift(desc);
 
         vector<DMatch> matches;
-        matcher->match(desc, vocab, matches);
+        {
+            PROFILEX("vlad:match")
+            matcher->match(desc, vocab, matches);
+        }
+
         feat = Mat(vocab.size(), CV_32F, 0.0f);
         {
             PROFILEX("vlad:vlad")
@@ -94,7 +101,8 @@ static Mat vlad_feature(Ptr<Feature2D> f2d,  Ptr<DescriptorMatcher> matcher, con
                 feat.row(matches[j].trainIdx) += re / vocab.rows;
             }
         }
-        { PROFILEX("vlad:post")
+        {
+            PROFILEX("vlad:post")
             // power normalization
             Mat f2;
             sqrt(abs(feat), f2);
@@ -141,13 +149,14 @@ string category(string s, int off) {
 
 int main( int argc, char ** argv ) {
     const String datapath = "c:/data/caltech/101_ObjectCategories";
-    //const char *datapath = "c:/data/faces/att";
+    //const String datapath = "c:/data/img/cache";
     String fname  = argc>1 ? argv[1] : "vlad";
     int nclusters = argc>2 ? atoi(argv[2]) : 64;
-    int ncimages  = argc>3 ? atoi(argv[3]) : 6000;
+    int ncimages  = argc>3 ? atoi(argv[3]) : 0;
     int ntimages  = argc>4 ? atoi(argv[4]) : 100;
     //theRNG().state = getTickCount();
     ocl::setUseOpenCL(false);
+    cout << fname << " " << nclusters << " " << ncimages << " " << ntimages << endl;
 
     Ptr<Feature2D> det,ext;
     Ptr<DescriptorMatcher> matcher;
@@ -158,7 +167,17 @@ int main( int argc, char ** argv ) {
 
     vector<String> fn;
     glob(datapath + "/*.jpg", fn, true);
-    cout << fn.size() << " filenames." << endl;
+    cout << fn.size() << " (";
+    if (ncimages == 0) {
+        for (auto a=fn.begin(); a!= fn.end();) {
+            if(category(*a,datapath.size()+1) == "BACKGROUND_Google") {
+                a = fn.erase(a);
+            } else {
+                a ++;
+            }
+        }
+    }
+    cout << fn.size() << ") filenames." << endl;
     random_shuffle(fn.begin(), fn.end());
 
     // 1. build dictionary
@@ -168,7 +187,7 @@ int main( int argc, char ** argv ) {
         int fsize=0;
         for (int i=0; i<ncimages; i++) {
             PROFILEX("add:cluster")
-            int id = theRNG().uniform(0,fn.size());
+            int id = theRNG().uniform(ntimages, fn.size()-ntimages);
             Mat img = getImg(fn[id], fname);
             if (img.empty()) continue;
 
@@ -202,6 +221,7 @@ int main( int argc, char ** argv ) {
         FileStorage fs2(fname+".voc.yml", 1+FileStorage::BASE64);
         fs2 << "voc" << vocab;
         fs2.release();
+        return 0;
     } else {
         fs["voc"] >> vocab;
         fs.release();
@@ -219,8 +239,6 @@ int main( int argc, char ** argv ) {
             PROFILEX("train data")
 
             int id = i; //theRNG().uniform(0,fn.size());
-            String cat = category(fn[id],datapath.size()+1);
-            if (cat == "BACKGROUND_Google") continue;
 
             Mat img = getImg(fn[id],fname);
             if (img.empty()) continue;
@@ -228,7 +246,6 @@ int main( int argc, char ** argv ) {
             Mat feat = (fname =="vlad"||fname=="vladsift") ? vlad_feature(det, matcher, vocab, img) : bow_feature(det, bow_extract, img);
             if (feat.rows) {
                 trainData.push_back(feat);
-                indices.push_back(id);
             }
             fsize += feat.rows;
             cout << i << "\r";
@@ -237,11 +254,9 @@ int main( int argc, char ** argv ) {
         }
         FileStorage fs2(fname+".dat.yml", 1+FileStorage::BASE64);
         fs2 << "dat" << trainData;
-        fs2 << "ind" << indices;
         fs2.release();
     } else {
         fs1["dat"] >> trainData;
-        fs1["ind"] >> indices;
         fs1.release();
     }
     cout << "train " << fname << " " << trainData.size() << " " << trainData.type() << endl;
@@ -258,7 +273,6 @@ int main( int argc, char ** argv ) {
     for (int i=0; i<ntimages; i++) {
         int id = i;
         String cat = category(fn[id], datapath.size() + 1) ;
-        if (cat == "BACKGROUND_Google") continue;
         if (cat == "faces_easy") cat = "faces";
 
         Mat org = getImg(fn[id],fname);
@@ -273,9 +287,8 @@ int main( int argc, char ** argv ) {
 
         Mat res;
         resize(org,res,Size(240,160));
-        for (int j=1; j<K; j++) {
-            int f = found.at<int>(0,j);
-            int id = indices.at<int>(f);
+        for (int j=0; j<K; j++) {
+            int id = found.at<int>(0,j);
             Mat img = imread(fn[id],fname!="lucid"?0:1);
             if (img.empty()) continue;
             String cat2 = category(fn[id], datapath.size() + 1) ;

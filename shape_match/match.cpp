@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
 	if (match == "onedollar") { matcher = onedollar::createMatcher(); distance = &onedollar::distance; }
 	if (match == "fourier")   { matcher = fourier::createMatcher();   distance = &fourier::distance;   }
 	if (match == "sampson")   { matcher = sampson::createMatcher();   distance = &sampson::distance;   }
+	if (match == "snakes")    { matcher = snakes::createMatcher(128);    }
 
 	// img processing
 	Mat m1, m2, m = imread(scene, IMREAD_GRAYSCALE);

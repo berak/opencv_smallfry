@@ -6,21 +6,29 @@ using namespace std;
 
 int main()
 {
-	VideoCapture cap("C:/p/ocv/opencv_smallfry/mace/cv/tracking/faceocc2/data/faceocc2.webm");
+	VideoCapture cap("my.avi");
 	if (! cap.isOpened())
 	{
 		cout << "could not open the VideoCapture !" << endl;
 		return -1;
 	}
+	int f = 0;
 	while(true)
 	{
+		cout << f << endl;
 		Mat frame;
-		cap >> frame;
-		if (frame.empty()) // movie is over
+		bool ok = cap.read(frame);
+		if (ok && !frame.empty()) // movie is over
 		{
-			break;
+			imshow("ocv",frame);
+			f++;
+		} else
+		{
+			//cap.release();
+			cap.open("my.avi");
+			bool ok = cap.set(CAP_PROP_POS_FRAMES, f);
+			cout << ok << " " << f << " " << cap.get(CAP_PROP_POS_FRAMES) << endl;
 		}
-		imshow("ocv",frame);
 		int k = waitKey(10);
 		if (k==27) break;  // esc. pressed
 	}

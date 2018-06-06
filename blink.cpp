@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     Mat data   = tdata->getTrainSamples();
     Mat labels = tdata->getTrainResponses();
     labels.convertTo(labels, CV_32S); // hrrm!
-
+    //Ptr<ml::SVMSGD> svm = ml::SVMSGD::create();
     Ptr<ml::SVM> svm = ml::SVM::create();
     svm->train(data,0,labels);
 
@@ -185,10 +185,9 @@ int main(int argc, char **argv)
     Mat truth = tdata->getTestResponses();
     Mat predict;
     svm->predict(vdata, predict);
-
     float correct = countNonZero(predict == truth);
     float accuracy = correct / predict.total();
-    cerr << "accuracy: " << accuracy << endl;
+    cerr << "accuracy: " << accuracy << " (" << correct << " of " << predict.total() << ")" << endl;
 
     // accuracy alone is not enough here, since it might
     //   simply have missed all positives !
