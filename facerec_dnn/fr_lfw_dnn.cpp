@@ -1,43 +1,3 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
-//
-//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
-//
-//  By downloading, copying, installing or using the software you agree to this license.
-//  If you do not agree to this license, do not download, install,
-//  copy or use the software.
-//
-//
-//                           License Agreement
-//                For Open Source Computer Vision Library
-//
-// Copyright (C) 2014, Itseez Inc, all rights reserved.
-// Third party copyrights are property of their respective owners.
-//
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-//
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
-//
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
-//
-//   * The name of the copyright holders may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Itseez Inc or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
 
 #include "opencv2/core.hpp"
 #include "opencv2/dnn.hpp"
@@ -55,6 +15,54 @@ using namespace std;
 using namespace cv;
 using namespace cv::datasets;
 
+struct one_shot {
+    Mat iSw, m;
+    float twist;
+    one_shot(float t=0.05f) : twist(t) {}
+
+    // https://blogs.sas.com/content/iml/2012/05/09/the-power-method.html
+    double power(const Mat &A) {
+        double lambda = 0;
+        Mat v(1,A.cols,CV_64F);
+        randu(v,0,1);
+        normalize(v,v);
+        for (int i=0; i<100; i++) {
+            Mat z = v*A;
+            normalize(z,v);
+            double l = v.dot(z);
+            if (abs(l - lambda) / l < 1.e-6) {
+                //cout << "converged ! " << i << "  " << l << endl;
+                return l;
+            }
+            lambda = l;
+        }
+        return -666;
+    }
+
+    bool train(const Mat &data) {
+        Mat Sw;
+        calcCovarMatrix(data, Sw, m, COVAR_NORMAL | COVAR_ROWS);
+        Sw /= data.cols;
+        double maxeval = power(Sw);
+        Mat x = Mat::eye(Sw.size(), Sw.type()) * (twist * maxeval);
+        Sw += x;
+        iSw = Sw.inv(DECOMP_LU);
+        return true;
+    }
+
+    double score(const Mat &a, const Mat &b) {
+        Mat x = a - m;
+        Mat v = x * iSw;
+        normalize(v, v);
+        double v0 = v.dot(a + m) / 2;
+        return v.dot(b) - v0;
+    }
+
+    double similarity(const Mat &a, const Mat &b) {
+        return 0.5 * (score(a,b) + score(b,a));
+    }
+};
+
 
 class FaceNet
 {
@@ -64,6 +72,7 @@ class FaceNet
     Mat svm_labels;
     double _threshold;
     map<String,Mat> cache;
+    one_shot oss;
 public:
     const int FIXED_FACE = 96;
 
@@ -138,6 +147,52 @@ public:
         //cout << endl << "svm_train " << svm_data.size() << svm_data.type() << endl << endl;
         return svm->train(svm_data,0,svm_labels);
     }
+    void oss_add(const String &img1, const String &img2, bool same)
+    {
+        Mat a = process(img1);
+        Mat b = process(img2);
+        svm_data.push_back(a);
+        svm_data.push_back(b);
+        svm_labels.push_back(same?1:0);
+    }
+    bool oss_train()
+    {
+        normalize(svm_data, svm_data,1,0,NORM_L2, CV_64F);
+
+        bool ok = oss.train(svm_data);
+        cout << "train " << ok << " " << svm_data.size() << "\r";
+        if (_threshold==0) {
+            double tp = 0, tn = 0;
+            int p = 0, n = 0;
+            for (int i=0; i<svm_labels.rows; i++) {
+                double s = oss.similarity(svm_data.row(i*2), svm_data.row(i*2+1));
+                if (svm_labels.at<int>(i)) {
+                    tp += s;
+                    p ++;
+                } else {
+                    tn += s;
+                    n ++;
+                }
+            }
+            tp /= p;
+            tn /= n;
+            _threshold = 0.5 * (tp + tn);
+            cout << "new threshold: " << tp << " " << tn << " : " << _threshold << endl;
+        }
+        svm_data.release();
+        return ok;
+    }
+    bool oss_predict(const String &img1, const String &img2)
+    {
+        Mat a = process(img1);
+        Mat b = process(img2);
+
+        normalize(a, a,1,0,NORM_L2, CV_64F);
+        normalize(b, b,1,0,NORM_L2, CV_64F);
+        double s = oss.similarity(a, b);
+        return _threshold < s;
+    }
+
 
     void write(FileStorage& sav) const
     {
@@ -167,6 +222,7 @@ int main(int argc, const char *argv[])
             "{ skip k         |1| skip value from dataset }"
             "{ scale s        |1.15| scale threshold }"
             "{ svm S          |false| use svm classifier }"
+            "{ oss o          |true| use one_shot classifier }"
             "{ facenet f      || (required) path to facenet model }"
             "{ path p         || (required) path to dataset (lfw2 folder) }"
             "{ thresh T       |0| test only with fixed threshold }"
@@ -175,6 +231,7 @@ int main(int argc, const char *argv[])
     CommandLineParser parser(argc, argv, keys);
     const string path(parser.get<string>("path"));
     const bool useSVM(parser.get<bool>("svm"));
+    const bool useOSS(parser.get<bool>("oss"));
     double threshold = 0;
     const double fac= parser.get<double>("scale");
     const double testThreshold=parser.get<double>("thresh");
@@ -210,9 +267,12 @@ int main(int argc, const char *argv[])
         int count = 0;
         for (unsigned int i=0; i<dataset->getTrain().size(); i+=steps)
         {
+            cout << i << "\r";
             FR_lfwObj *example = static_cast<FR_lfwObj *>(dataset->getTrain()[i].get());
             if (useSVM) {
                 facenet.svm_add(path+example->image1, path+example->image2, example->same);
+            } else  if (useOSS) {
+                facenet.oss_add(path+example->image1, path+example->image2, example->same);
             } else {
                 if (example->same)
                 {
@@ -226,6 +286,8 @@ int main(int argc, const char *argv[])
 
         if (useSVM) {
             facenet.svm_train();
+        } else if (useOSS) {
+            facenet.oss_train();
         } else {
             threshold = fac * avg / count;
         }
@@ -277,6 +339,8 @@ int main(int argc, const char *argv[])
             bool same;
             if (useSVM) {
                 same = facenet.svm_predict(path+example->image1, path+example->image2);
+            } else if (useOSS){
+                same = facenet.oss_predict(path+example->image1, path+example->image2);
             } else {
                 double dist = facenet.distance(path+example->image1, path+example->image2);
                 same = (dist < threshold);
@@ -288,7 +352,7 @@ int main(int argc, const char *argv[])
                 incorrect++;
             count += 1;
             cout << (example->same ? "+++" : "---");
-            cout << format("  %5d %5d %5d %d %3.4f %3.5f \r", i, facenet.size(), correct, incorrect, (double(md)/count), 1.0-(double(incorrect)/(correct+1)));
+            cout << format("  %5d %5d %d %3.5f \r", i, correct, incorrect, (double(correct)/(i+1)));
             confusion(example->same, same) ++;
         }
         p.push_back(1.0*correct/(correct+incorrect));
