@@ -11,6 +11,7 @@
 * facerec_online.cpp: same in c++
 * gas.cpp: Neural Gas (clustering) experimentBRUTE FORCE!!!!
 * gldemo.cpp : opengl inside opencv (+ minimal .obj reader)
+* java_dnn: java examples for dnn models
 * java_face3.0: testcase for ocv3 facerec bindings in java
 * headpose: small head pose estimation (using dlib & pico)
 * hep.cpp: playing with http://dismac.dii.unipg.it/hep/index.html

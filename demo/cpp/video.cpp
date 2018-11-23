@@ -6,7 +6,9 @@ using namespace std;
 
 int main()
 {
-	VideoCapture cap("my.avi");
+	VideoCapture cap;
+	cap.open(0);
+	//cap.open("my.avi");
 	if (! cap.isOpened())
 	{
 		cout << "could not open the VideoCapture !" << endl;

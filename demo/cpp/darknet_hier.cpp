@@ -35,9 +35,9 @@ int main(int argc, char** argv)
 		tr1 >> p;
 		hier[p].push_back(ids[k]);
 	}
-	cout << hier.size() << endl;
-	cout << ids.size() << endl;
-	cout << names.size() << endl;
+	cout << "//" << hier.size() << endl;
+	cout << "//" <<ids.size() << endl;
+	cout << "//" << names.size() << endl;
 	int N=1000;
 	/*auto rec = [&](int id, int indent){
 
@@ -45,14 +45,21 @@ int main(int argc, char** argv)
 			while(indent--) cout << " ";
 		}
 	};*/
+	cout << "digraph imagenet {";
  	for (Hier::iterator it=hier.begin(); it!= hier.end(); it++) {
  		//cout << it->first << " " << (it->first>=0 ? names[it->first] : "_") << ": ";
- 		cout << (it->first>=0 ? names[it->first] : "_") << endl;
+ 		/*cout << (it->first>=0 ? names[it->first] : "_") << endl;
  		for (size_t i=0; i<it->second.size(); i++) {
  			cout << "  " << names[it->second[i]];
  		}
  		cout << endl;
  		if (N--<0) break;
+ 		*/
+ 		for (size_t i=0; i<it->second.size(); i++) {
+ 			cout << "\"" << (it->first>=0 ? names[it->first] : "imagenet") << "\"";
+ 			cout << " -> \"" << names[it->second[i]] << "\"" << endl;
+ 		}
  	}
+ 	cout << "}" << endl;
     return 0;
 }
