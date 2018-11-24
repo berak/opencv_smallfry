@@ -1,5 +1,6 @@
-
+import java.Math.*
 import java.util.*;
+import org.opencv.aruco.*;
 import org.opencv.calib3d.*;
 import org.opencv.core.*;
 import org.opencv.face.*;
@@ -11,6 +12,8 @@ import org.opencv.photo.*;
 import org.opencv.utils.*;
 import org.opencv.video.*;
 import org.opencv.videoio.*;
+import org.opencv.xfeatures2d.*;
+import org.opencv.ximgproc.*;
 
 
 class SimpleSample {

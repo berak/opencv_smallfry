@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body,iframe,textarea,table,input,button,select,option,scrollbar,div{
+      font-family: Arial, "MS Trebuchet", sans-serif;  font-size: 12;
+      background-color: #333;   color:#aaa;
+      border-color:#777;  border-style:solid;  border-width:2;
+      margin: 5 5 5 5;
+    }
+    a{ text-decoration: none;  color:#888; }
+    a:hover{  color:#ddd; }
+    body{  margin: 15 15 15 15;  border: 0; }
+    textarea,pre{  font-family: Lucida Console; }
+</style>
+</head><body><table border=0 width="100%"><tr><td>
+<form action="/run" method=post name="f0">
+<textarea rows=1 cols=90 id="url" name="url" title="you can load an image (from an url) into the predefined Mat ocv here"></textarea>
+<textarea rows=35 cols=90 id="txt" name="txt">
+              let src = cv.imread('canvasInput');
+            let dst = new cv.Mat();
+            cv.cvtColor(src, dst, cv.COLOR_RGB2HSV);
+            //cv.bitwise_not(src, dst);
+            cv.imshow('canvasOutput', dst);
+            src.delete();
+            dst.delete();
+</textarea><br>
+<input type=button value="run code" id="run" onClick="runit();">
+</form></td><td>
+<b><a href='/faq' style='color: #666; font-size: 16;' title='what is this ?'>?</a></b><br><br>
+    <script src="/js/utils.js" type="text/javascript"></script>
+    <canvas id="canvasInput"></canvas>
+    <canvas id="canvasOutput"></canvas>
+    <br><div id="error"></div>
+    <script type="text/javascript">
+        var ute = new Utils("error");
+        ute.printError("...loading opencv.js");
+        ute.loadOpenCv(function(){
+          ute.printError("opencv ready.");
+        });
+        function runit() {
+          var url = document.getElementById('url').value;
+          ute.loadImageAndRun(url, "canvasInput", "txt");
+        }
+    </script>
+
+</td></tr></table>
+</body>
+</html>
