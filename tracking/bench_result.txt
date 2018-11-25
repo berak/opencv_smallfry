@@ -1,0 +1,256 @@
+benchmark --gt=david.gt.txt --video=david.webm --start=300 --plot CSRT,MOSSE,MEDIAN_FLOW,BACF,CMT,MIL,BOOSTING,TLD
+==========
+CSRT
+       Overlap > 0                   100%                 469
+       Overlap > 0.5              80.597%                 378
+           Precision              80.597%
+           Recall                 80.597%
+           f-measure              80.597%
+                 AUC            0.438657
+         Performance             103.987 ms/frame             9.61663 fps
+
+==========
+MOSSE
+       Overlap > 0                   100%                 469
+       Overlap > 0.5               56.29%                 264
+           Precision               56.29%
+           Recall                  56.29%
+           f-measure               56.29%
+                 AUC            0.511173
+         Performance             1.68276 ms/frame             594.261 fps
+
+==========
+MEDIAN_FLOW
+       Overlap > 0                   100%                 469
+       Overlap > 0.5             47.1215%                 221
+           Precision             47.1215%
+           Recall                47.1215%
+           f-measure             47.1215%
+                 AUC            0.519467
+         Performance             3.57408 ms/frame             279.792 fps
+
+==========
+BACF
+       Overlap > 0               50.1066%                 235
+       Overlap > 0.5             18.1237%                  85
+           Precision             33.2031%
+           Recall                18.1237%
+           f-measure             23.4483%
+                 AUC            0.791855
+         Performance             2.39648 ms/frame             417.279 fps
+
+==========
+CMT
+       Overlap > 0                   100%                 469
+       Overlap > 0.5             23.6674%                 111
+           Precision             23.6674%
+           Recall                23.6674%
+           f-measure             23.6674%
+                 AUC            0.727846
+         Performance             43.2691 ms/frame             23.1112 fps
+
+==========
+MIL
+       Overlap > 0                   100%                 469
+       Overlap > 0.5             42.0043%                 197
+           Precision             42.0043%
+           Recall                42.0043%
+           f-measure             42.0043%
+                 AUC            0.567292
+         Performance             281.542 ms/frame             3.55186 fps
+
+==========
+BOOSTING
+       Overlap > 0               76.3326%                 358
+       Overlap > 0.5             21.1087%                  99
+           Precision             21.1087%
+           Recall                21.1087%
+           f-measure             21.1087%
+                 AUC            0.813987
+         Performance             95.6655 ms/frame             10.4531 fps
+
+==========
+TLD
+       Overlap > 0               53.9446%                 253
+       Overlap > 0.5             10.0213%                  47
+           Precision             10.0213%
+           Recall                10.0213%
+           f-measure             10.0213%
+                 AUC             0.84162
+         Performance             114.399 ms/frame             8.74133 fps
+
+
+
+benchmark --gt=faceocc.gt.txt --video=faceocc2.webm --plot CSRT,MOSSE,MEDIAN_FLOW,BACF,CMT,MIL,BOOSTING,TLD
+==========
+CSRT
+       Overlap > 0                   100%                 811
+       Overlap > 0.5             86.1899%                 699
+           Precision             86.1899%
+           Recall                86.1899%
+           f-measure             86.1899%
+                 AUC            0.328607
+         Performance              170.98 ms/frame             5.84862 fps
+
+==========
+MOSSE
+       Overlap > 0               90.3822%                 733
+       Overlap > 0.5             86.0666%                 698
+           Precision             95.0954%
+           Recall                86.0666%
+           f-measure              90.356%
+                 AUC            0.402972
+         Performance             3.08465 ms/frame             324.186 fps
+
+==========
+MEDIAN_FLOW
+       Overlap > 0               99.8767%                 810
+       Overlap > 0.5             97.6572%                 792
+           Precision             97.7778%
+           Recall                97.6572%
+           f-measure             97.7175%
+                 AUC            0.282084
+         Performance             4.36183 ms/frame             229.262 fps
+
+==========
+BACF
+       Overlap > 0               66.0912%                 536
+       Overlap > 0.5              45.746%                 371
+           Precision             64.6341%
+           Recall                 45.746%
+           f-measure              53.574%
+                 AUC            0.650912
+         Performance             3.53314 ms/frame             283.034 fps
+
+==========
+CMT
+       Overlap > 0                   100%                 811
+       Overlap > 0.5              89.889%                 729
+           Precision              89.889%
+           Recall                 89.889%
+           f-measure              89.889%
+                 AUC            0.292343
+         Performance             195.289 ms/frame             5.12061 fps
+
+==========
+MIL
+       Overlap > 0                   100%                 811
+       Overlap > 0.5             93.2182%                 756
+           Precision             93.2182%
+           Recall                93.2182%
+           f-measure             93.2182%
+                 AUC            0.320678
+         Performance             316.147 ms/frame             3.16309 fps
+
+==========
+BOOSTING
+       Overlap > 0                   100%                 811
+       Overlap > 0.5             59.3095%                 481
+           Precision             59.3095%
+           Recall                59.3095%
+           f-measure             59.3095%
+                 AUC            0.422478
+         Performance             163.776 ms/frame             6.10591 fps
+
+==========
+TLD
+       Overlap > 0               66.2145%                 537
+       Overlap > 0.5             26.3872%                 214
+           Precision             26.4198%
+           Recall                26.3872%
+           f-measure             26.4035%
+                 AUC            0.737139
+         Performance             153.094 ms/frame             6.53194 fps
+
+
+
+benchmark --gt=dudek\gt.txt --video=dudek\data\dudek.webm --plot CSRT,MOSSE,MEDIAN_FLOW,BACF,CMT,MIL,KCF,BOOSTING,TLD
+==========
+CSRT
+       Overlap > 0                   100%                1144
+       Overlap > 0.5             99.2133%                1135
+           Precision             99.2133%
+           Recall                99.2133%
+           f-measure             99.2133%
+                 AUC            0.235979
+         Performance             224.423 ms/frame             4.45586 fps
+
+==========
+MOSSE
+       Overlap > 0               23.8636%                 273
+       Overlap > 0.5             18.2692%                 209
+           Precision             18.2692%
+           Recall                18.2692%
+           f-measure             18.2692%
+                 AUC            0.869773
+         Performance             9.53824 ms/frame             104.841 fps
+
+==========
+MEDIAN_FLOW
+       Overlap > 0                   100%                1144
+       Overlap > 0.5             66.0839%                 756
+           Precision             66.0839%
+           Recall                66.0839%
+           f-measure             66.0839%
+                 AUC             0.45104
+         Performance              12.203 ms/frame             81.9469 fps
+
+==========
+BACF
+       Overlap > 0               59.7028%                 683
+       Overlap > 0.5             57.0804%                 653
+           Precision             57.0804%
+           Recall                57.0804%
+           f-measure             57.0804%
+                 AUC            0.571757
+         Performance             4.99521 ms/frame             200.192 fps
+
+==========
+CMT
+       Overlap > 0                   100%                1144
+       Overlap > 0.5                 100%                1144
+           Precision                 100%
+           Recall                    100%
+           f-measure                 100%
+                 AUC            0.214117
+         Performance             572.534 ms/frame             1.74662 fps
+
+==========
+MIL
+       Overlap > 0                   100%                1144
+       Overlap > 0.5             94.7552%                1084
+           Precision             94.7552%
+           Recall                94.7552%
+           f-measure             94.7552%
+                 AUC            0.312386
+         Performance             314.772 ms/frame              3.1769 fps
+
+==========
+KCF
+       Overlap > 0               99.8252%                1142
+       Overlap > 0.5             97.1154%                1111
+           Precision             97.2855%
+           Recall                97.1154%
+           f-measure             97.2003%
+                 AUC            0.286617
+         Performance             64.5863 ms/frame             15.4832 fps
+
+==========
+BOOSTING
+       Overlap > 0                   100%                1144
+       Overlap > 0.5             79.1958%                 906
+           Precision             79.1958%
+           Recall                79.1958%
+           f-measure             79.1958%
+                 AUC            0.328899
+         Performance              243.31 ms/frame             4.10998 fps
+
+==========
+TLD
+       Overlap > 0               78.5839%                 899
+       Overlap > 0.5             66.7832%                 764
+           Precision             66.7832%
+           Recall                66.7832%
+           f-measure             66.7832%
+                 AUC             0.52458
+         Performance             306.751 ms/frame             3.25997 fps
