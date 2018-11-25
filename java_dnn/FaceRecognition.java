@@ -7,7 +7,7 @@ public class FaceRecognition {
 	public static Mat process(Net net, Mat img) {
         Mat inputBlob = Dnn.blobFromImage(img, 1./255, new Size(96,96), new Scalar(0,0,0), true, false);
         net.setInput(inputBlob);
-        return net.forward();
+        return net.forward().clone();
 	}
     public static void main(String[] args) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);

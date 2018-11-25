@@ -35,6 +35,7 @@
 * toy/echo: echo chamber
 * toy/zoom: zooming in/out of highgui window
 * toy/kaleidoscope: .. kids ..
+* tracking: BACF and CMT tracker
 * ui : onscreen ui (sliders & buttons & selectboxes)
 * vibe.cpp: ViBe background separation
 * violentFlow.cpp : http://www.openu.ac.il/home/hassner/data/violentflows/violent_flows.pdf
