@@ -364,6 +364,7 @@ void Consensus::findConsensus(const vector<Point2f> & points, const vector<int> 
     }
 
     size_t N = points.size();
+    CV_Assert(N>1); // see issue #41
 
     float * D = new float[N*(N-1)/2]; //This is a lot of memory, so we put it on the heap
     cluster_result Z(N-1);
@@ -646,7 +647,7 @@ void Tracker::track(const Mat im_prev, const Mat im_gray, const vector<Point2f> 
 } /* namespace CMT */
 
 
-#if 1 // standalone
+#ifndef NO_MAIN // standalone
 int main(int argc, char** argv) {
     cv::VideoCapture cap(0);
     Mat frame;
