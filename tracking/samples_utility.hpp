@@ -3,6 +3,7 @@
 
 #include <opencv2/tracking.hpp>
 
+extern cv::Ptr<cv::Tracker> createTrackerCT();
 extern cv::Ptr<cv::Tracker> createTrackerCMT();
 extern cv::Ptr<cv::Tracker> createTrackerBACF();
 
@@ -30,6 +31,8 @@ inline cv::Ptr<cv::Tracker> createTrackerByName(cv::String name)
         tracker = cv::TrackerCSRT::create();
     else if (name == "CMT")
         tracker = createTrackerCMT();
+    else if (name == "CT")
+        tracker = createTrackerCT();
     else if (name == "BACF")
         tracker = createTrackerBACF();
     else
