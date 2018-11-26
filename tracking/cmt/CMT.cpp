@@ -148,7 +148,7 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
     for (size_t i = 0; i < keypoints_fg.size(); i++)
     {
         points_active.push_back(keypoints_fg[i].pt);
-        classes_active = classes_fg;
+        classes_active.push_back(classes_fg[i]); // #42
     }
 }
 
@@ -297,9 +297,9 @@ void Consensus::estimateScaleRotation(const vector<Point2f> & points, const vect
     vector<float> changes_angles;
     if (estimate_rotation) changes_angles.reserve(points.size()*points.size());
 
-    for (size_t i = 0; i < points.size(); i++)
+    for (size_t i = 0; i < std::min(points.size(),classes.size()); i++) // #46
     {
-        for (size_t j = 0; j < points.size(); j++)
+        for (size_t j = 0; j < std::min(points.size(),classes.size()); j++) // #46
         {
             if (classes[i] != classes[j])
             {
@@ -358,7 +358,7 @@ void Consensus::findConsensus(const vector<Point2f> & points, const vector<int> 
 
     //Compute votes
     vector<Point2f> votes(points.size());
-    for (size_t i = 0; i < points.size(); i++)
+    for (size_t i = 0; i < std::min(points.size(),classes.size()); i++) // #46
     {
         votes[i] = points[i] - scale * rotate(points_normalized[classes[i]], rotation);
     }
@@ -370,9 +370,9 @@ void Consensus::findConsensus(const vector<Point2f> & points, const vector<int> 
 
     //Compute pairwise distances between votes
     int index = 0;
-    for (size_t i = 0; i < points.size(); i++)
+    for (size_t i = 0; i < std::min(points.size(),votes.size()); i++) // #46
     {
-        for (size_t j = i+1; j < points.size(); j++)
+        for (size_t j = i+1; j < std::min(points.size(),votes.size()); j++) // #46
         {
             //TODO: This index calculation is correct, but is it a good thing?
             //int index = i * (points.size() - 1) - (i*i + i) / 2 + j - 1;
@@ -429,7 +429,7 @@ void Consensus::findConsensus(const vector<Point2f> & points, const vector<int> 
     classes_inlier.reserve(S[S_max]);
     center.x = center.y = 0;
 
-    for (size_t i = 0; i < points.size(); i++)
+    for (size_t i = 0; i < std::min(points.size(),classes.size()); i++) // #46
     {
         //If point is in consensus cluster
         if (T[i] == S_max)
