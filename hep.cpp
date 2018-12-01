@@ -20,16 +20,16 @@ struct Profile
     int64 t; // accumulated time
     int64 c; // accumulated function calls
 
-    Profile(const string & name) 
+    Profile(const string & name)
         : name(name)
-        , t(0) 
+        , t(0)
         , c(0)
-    {}   
+    {}
 
-    ~Profile() 
+    ~Profile()
     {
         cerr << format("%-24s %8u ",name.c_str(),c);
-        cerr << format("%13.6f ",dt(t/c)); 
+        cerr << format("%13.6f ",dt(t/c));
         cerr << format("%13.6f ",dt(t));
         cerr << format("%14u",t);
         cerr << endl;
@@ -40,14 +40,14 @@ struct Profile
 	    Profile & p;
         int64 t;
 
-	    Scope(Profile & p) 
-		    : p(p) 
-            //, t(get_ticks()) 
-            , t(getTickCount()) 
+	    Scope(Profile & p)
+		    : p(p)
+            //, t(get_ticks())
+            , t(getTickCount())
         {}
 
-	    ~Scope() 
-	    { 
+	    ~Scope()
+	    {
             int64 t1 = getTickCount();
             //int64 t1 = get_ticks();
             if ( t1 > t )
@@ -56,7 +56,7 @@ struct Profile
                 p.c ++;
             }
 	    }
-    }; 
+    };
 };
 
 #define PROFILEX(s) static Profile _a_rose(s); Profile::Scope _is_a_rose_is(_a_rose);
@@ -87,7 +87,7 @@ void hist(const Mat & feature, Mat & hist, int histSize=256, int gridX=1, int gr
     for ( int i=0; i<gridX; i++ )
     {
         for ( int j=0; j<gridY; j++ )
-        {  
+        {
             Rect patch(i*sw,j*sh,sw,sh);
             Mat fi( feature, patch );
             Mat_<float> h(1,histSize,0.0f);
@@ -127,7 +127,7 @@ struct lbp_pix
                 v |= (img(r-1,c-1) > cen) << 7;
                 fI(r,c) = v;
             }
-        }      
+        }
         hist(fI,h,256,GRID,GRID);
     }
 };
@@ -136,7 +136,7 @@ struct lbp_pix
 // here be matlab dragons.
 //
 //  trying to adapt Antonio Fernandez's hep.m, some caveats and pitfalls:
-//  * since a Matop in opencv like A>B results in a Mat filled with [0xff or 0], (not [0 or 1]), 
+//  * since a Matop in opencv like A>B results in a Mat filled with [0xff or 0], (not [0 or 1]),
 //    we have to use & and | instead of * and +
 //
 //
@@ -169,7 +169,7 @@ struct LBP_3x3
              ((I3>Ic)&8)   |
              ((I2>Ic)&4)   |
              ((I1>Ic)&2)   |
-             ((I0>Ic)&1);  
+             ((I0>Ic)&1);
 
         hist(fI,h,256,GRID,GRID);
     }
@@ -248,7 +248,7 @@ struct LTP_3x3
 
 
 
-struct  LQP_3x3 
+struct  LQP_3x3
 {
     int kerP1;
     int kerP2;
@@ -313,8 +313,8 @@ struct  LQP_3x3
 
 
 template<class HEP_3x3>
-void bench(const Mat &m, const HEP_3x3 &krn, const string &fn) 
-{  
+void bench(const Mat &m, const HEP_3x3 &krn, const string &fn)
+{
     uint64 t0 = getTickCount();
     Mat h;
     for ( int i=0; i<NTESTS; i++ )
@@ -326,9 +326,9 @@ void bench(const Mat &m, const HEP_3x3 &krn, const string &fn)
     cerr << format("%-10s %5.4f %7d", fn.c_str(), (t1-t0)/getTickFrequency(), h.cols) << endl;
 }
 
-int main() 
+int main()
 {   PROFILE;
-    Mat m=imread("../demo/lena.jpg",0);
+    Mat m=imread("../demo/img/lena1.png",0);
     resize(m,m,Size(120,120));
     cerr << GRID << " " << m.size() << endl;
 

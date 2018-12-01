@@ -79,6 +79,16 @@ TLD
                  AUC             0.84162
          Performance             114.399 ms/frame             8.74133 fps
 
+==========
+STAPLE
+       Overlap > 0                   100%                 469
+       Overlap > 0.5             86.7804%                 407
+           Precision             86.7804%
+           Recall                86.7804%
+           f-measure             86.7804%
+                 AUC            0.396226
+         Performance             38.1363 ms/frame             26.2218 fps
+
 
 
 benchmark --gt=faceocc.gt.txt --video=faceocc2.webm --plot CSRT,MOSSE,MEDIAN_FLOW,BACF,CMT,MIL,BOOSTING,TLD
@@ -162,6 +172,15 @@ TLD
                  AUC            0.737139
          Performance             153.094 ms/frame             6.53194 fps
 
+==========
+STAPLE
+       Overlap > 0                   100%                 811
+       Overlap > 0.5             99.6301%                 808
+           Precision             99.6301%
+           Recall                99.6301%
+           f-measure             99.6301%
+                 AUC            0.249531
+         Performance             49.1766 ms/frame             20.3349 fps
 
 
 benchmark --gt=dudek\gt.txt --video=dudek\data\dudek.webm --plot CSRT,MOSSE,MEDIAN_FLOW,BACF,CMT,MIL,KCF,BOOSTING,TLD
@@ -254,3 +273,14 @@ TLD
            f-measure             66.7832%
                  AUC             0.52458
          Performance             306.751 ms/frame             3.25997 fps
+
+==========
+STAPLE
+       Overlap > 0                   100%                1144
+       Overlap > 0.5             71.8531%                 822
+           Precision             71.8531%
+           Recall                71.8531%
+           f-measure             71.8531%
+                 AUC            0.331224
+         Performance             89.9431 ms/frame             11.1181 fps
+

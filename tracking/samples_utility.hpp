@@ -6,6 +6,7 @@
 extern cv::Ptr<cv::Tracker> createTrackerCT();
 extern cv::Ptr<cv::Tracker> createTrackerCMT();
 extern cv::Ptr<cv::Tracker> createTrackerBACF();
+extern cv::Ptr<cv::Tracker> createTrackerSTAPLE();
 
 inline cv::Ptr<cv::Tracker> createTrackerByName(cv::String name)
 {
@@ -35,6 +36,8 @@ inline cv::Ptr<cv::Tracker> createTrackerByName(cv::String name)
         tracker = createTrackerCT();
     else if (name == "BACF")
         tracker = createTrackerBACF();
+    else if (name == "STAPLE")
+        tracker = createTrackerSTAPLE();
     else
         CV_Error(cv::Error::StsBadArg, "Invalid tracking algorithm name\n");
 

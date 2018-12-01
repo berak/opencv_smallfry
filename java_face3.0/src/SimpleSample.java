@@ -14,7 +14,7 @@ import lowgui.*;
 
 
 class FaceRec {
-    FaceRecognizer fr = Face.createLBPHFaceRecognizer();
+    FaceRecognizer fr = LBPHFaceRecognizer.create();
 
     //
     // unlike the c++ demo, let's not mess with csv files, but use a folder on disk.

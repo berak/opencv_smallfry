@@ -1,1 +1,1 @@
-ant -DocvJarDir=E:\code\opencv\build\bin -DocvLibDir=E:\code\opencv\build\bin\Release %*
+ant -DocvJarDir=c:/p/opencv/build/install/java -DocvLibDir=c:/p/opencv/build/install/java %*
