@@ -28,45 +28,18 @@ void drawAxis(cv::InputOutputArray _image, cv::InputArray _cameraMatrix, cv::Inp
     cv::line(_image, imagePoints[0], imagePoints[3], cv::Scalar(255, 0, 0), 3);
 }
 
-/*
-//
-// e.g. to smooth landmarks
-//
-template<class T>
-struct Ipol
-{
-    size_t N;
-    std::deque<T> q;
 
-    Ipol(size_t n=10) : N(n) {}
-
-    T operator ()(T t)
-    {
-        q.push_back(t);
-        if (q.size() > N)
-            q.pop_front();
-
-        T acc(0,0);// = 0;
-        for (size_t i=0; i<q.size(); ++i)
-            acc += q[i];
-        return acc / double(q.size());
-    }
-};
-*/
-struct Head
-{
-    cv::Ptr<cv::face::FacemarkKazemi> facemark;
+struct Head {
+    cv::Ptr<cv::face::Facemark> facemark;
     std::vector<cv::Point3d> pts3d;
     cv::Mat rvec,tvec;
     cv::Mat camMatrix;
 
-    Head(const cv::String & landmarksModel)
-    {
-        cv::face::FacemarkKazemi::Params params;
-        facemark = cv::face::FacemarkKazemi::create(params);
+    Head(const cv::String & landmarksModel) {
+        facemark = cv::face::createFacemarkLBF();
         facemark->loadModel(landmarksModel);
 
-        if (1) {
+        if (0) { // actually, we wouldn't need a 3d model, if we'd serialize the corresponding 3d points ..
             cv::FileStorage fs2("points3d.yml",0);
             fs2["points"] >> pts3d;
             fs2.release();
@@ -103,8 +76,7 @@ struct Head
     }
 
 
-    void getkp2d(const cv::Mat &I, std::vector<cv::Point2d> &pts2d, const cv::Rect &r)
-    {
+    void getkp2d(const cv::Mat &I, std::vector<cv::Point2d> &pts2d, const cv::Rect &r) {
         std::vector<cv::Rect> faces(1,r);
         std::vector< std::vector<cv::Point2f> > shapes;
         if (! facemark->fit(I,faces,shapes))
@@ -117,8 +89,7 @@ struct Head
         }
     }
 
-    cv::Mat pnp(const cv::Size &s, std::vector<cv::Point2d> &pts2d)
-    {
+    cv::Mat pnp(const cv::Size &s, std::vector<cv::Point2d> &pts2d) {
         // camMatrix based on img size
         int max_d = std::max(s.width,s.height);
         camMatrix = (cv::Mat_<double>(3,3) <<
@@ -128,8 +99,6 @@ struct Head
 
         // 2d -> 3d correspondence
         cv::solvePnP(pts3d, pts2d, camMatrix, cv::Mat(1,4,CV_64F,0.0), rvec, tvec, false, cv::SOLVEPNP_EPNP);
-        //cerr << "rot " << rvec.t() *180/CV_PI << endl;
-        //cerr << "tra " << tvec.t() << endl;
 
         // get 3d rot mat
         cv::Mat rotM(3, 3, CV_64F);
@@ -142,6 +111,7 @@ struct Head
         // transpose back, and multiply
         return camMatrix * rotMT.t();
     }
+
     void draw(cv::Mat &I, const std::vector<cv::Point2d> &pts, const cv::Rect &r)
     {
         for (size_t i=0; i<pts.size()-1; i++)
@@ -153,18 +123,16 @@ struct Head
     }
 };
 
-int main()
-{
-    cv::String landmarksModel = "c:/data/mdl/face_landmark_model.dat";
-    cv::String cascade_name = "c:/data/mdl/haarcascade_frontalface_alt.xml";
+int main() {
+    cv::String landmarksModel = "c:/data/mdl/lbfmodel.yaml";
+    cv::String cascade_name   = "c:/data/mdl/haarcascade_frontalface_alt.xml";
     cv::VideoCapture cap(0);
     cv::Ptr<cv::Tracker> mosse;
     cv::CascadeClassifier face_cascade;
     face_cascade.load(cascade_name);
     Head head(landmarksModel);
     int fno=0;
-    while(cap.isOpened())
-    {
+    while(cap.isOpened()) {
         cv::Mat frame;
         if (! cap.read(frame))
             break;
@@ -173,7 +141,7 @@ int main()
         equalizeHist(gray, gray);
         std::vector<cv::Point2d> pts2d; // 2d model from landmarks
         cv::Rect box;
-        if (fno %10 == 0) {
+        if (fno %100 == 0) { // cascade detection is very noisy, tracking makes it more stable
             std::vector<cv::Rect> faces;
             face_cascade.detectMultiScale(gray, faces, 1.4, 2, cv::CASCADE_SCALE_IMAGE, cv::Size(30, 30));
             if (faces.size()) {
@@ -190,15 +158,13 @@ int main()
                 box = _box;
             }
         }
-        if (! box.empty())
-        {
+        if (! box.empty()) {
             head.getkp2d(gray, pts2d, box);
             if (pts2d.size()) {
                 cv::Mat p = head.pnp(frame.size(), pts2d);
                 head.draw(frame, pts2d, box);
             }
         }
-
         cv::imshow("box",frame);
         int k = cv::waitKey(10);
         if (k == 27)   break;
