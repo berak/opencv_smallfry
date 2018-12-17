@@ -116,7 +116,6 @@ struct Head {
     {
         for (size_t i=0; i<pts.size()-1; i++)
         {
-            //cv::line(I,pts[i],pts[i+1],cv::Scalar(200));
             cv::circle(I,pts[i],3,cv::Scalar(0,200));
         }
         drawAxis(I, camMatrix, cv::Mat(1,4,CV_64F,0.0), rvec, tvec, 80);
