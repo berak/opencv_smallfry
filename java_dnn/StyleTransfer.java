@@ -13,8 +13,9 @@ public class StyleTransfer  {
     public static void main(String[] args) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
+        // model taken from:
+        // https://github.com/jcjohnson/fast-neural-style/blob/master/models/download_style_transfer_models.sh
         String modelWeights = "c:/data/mdl/udnie.t7";
-
         Net net = Dnn.readNet(modelWeights);
 
         Mat image = Imgcodecs.imread("dog.jpg");
