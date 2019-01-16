@@ -647,7 +647,7 @@ void Tracker::track(const Mat im_prev, const Mat im_gray, const vector<Point2f> 
 } /* namespace CMT */
 
 
-#ifndef NO_MAIN // standalone
+#ifdef NO_MAIN // standalone
 int main(int argc, char** argv) {
     cv::VideoCapture cap(0);
     Mat frame;

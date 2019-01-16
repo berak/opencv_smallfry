@@ -320,7 +320,7 @@ void CompressiveTracker::processFrame(const Mat& _frame, Rect2d& _objectBox)
 
 
 
-#ifndef NO_MAIN // standalone
+#ifdef NO_MAIN // standalone
 #include "opencv2/videoio.hpp"
 #include "opencv2/highgui.hpp"
 int main(int argc, char** argv) {
