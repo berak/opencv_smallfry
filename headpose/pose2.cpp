@@ -66,7 +66,7 @@ struct Head {
             for(size_t k=0; k<pts2d.size(); k++)
             {
                 cv::Vec3d pm = mdl.at<cv::Vec3d>(int(pts2d[k].y), int(pts2d[k].x));
-                // swizzle coords from right hand (matlab) to left hand system
+                // swizzle coords from right hand (matlab) to left hand system:
                 cv::Point3d p(pm[0], pm[2], -pm[1]);
                 pts3d.push_back(p);
             }
