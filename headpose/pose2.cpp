@@ -39,7 +39,7 @@ struct Head {
         facemark = cv::face::createFacemarkLBF();
         facemark->loadModel(landmarksModel);
 
-        if (0) { // actually, we wouldn't need a 3d model, if we'd serialize the corresponding 3d points ..
+        if (1) { // actually, we wouldn't need a 3d model, if we'd serialize the corresponding 3d points ..
             cv::FileStorage fs2("points3d.yml",0);
             fs2["points"] >> pts3d;
             fs2.release();
@@ -66,6 +66,7 @@ struct Head {
             for(size_t k=0; k<pts2d.size(); k++)
             {
                 cv::Vec3d pm = mdl.at<cv::Vec3d>(int(pts2d[k].y), int(pts2d[k].x));
+                // swizzle coords from right hand (matlab) to left hand system
                 cv::Point3d p(pm[0], pm[2], -pm[1]);
                 pts3d.push_back(p);
             }
