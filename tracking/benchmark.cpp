@@ -25,7 +25,7 @@ static Scalar getNextColor()
     return colors[id < num ? id++ : num - 1];
 }
 
-inline vector<Rect2d> readGT(const string &filename, const string &omitname)
+inline vector<Rect2d> readGT(const string &filename, const string &omitname, int typeGT)
 {
     vector<Rect2d> res;
     {
@@ -35,16 +35,41 @@ inline vector<Rect2d> readGT(const string &filename, const string &omitname)
         while (input)
         {
             Rect2d one;
-            input >> one.x;
-            input.ignore(numeric_limits<std::streamsize>::max(), ',');
-            input >> one.y;
-            input.ignore(numeric_limits<std::streamsize>::max(), ',');
-            input >> one.width;
-            input.ignore(numeric_limits<std::streamsize>::max(), ',');
-            input >> one.height;
-            input.ignore(numeric_limits<std::streamsize>::max(), '\n');
-            if (input.good())
+            if(typeGT<1)
+            {
+                input >> one.x;
+                input.ignore(numeric_limits<std::streamsize>::max(), ',');
+                input >> one.y;
+                input.ignore(numeric_limits<std::streamsize>::max(), ',');
+                input >> one.width;
+                input.ignore(numeric_limits<std::streamsize>::max(), ',');
+                input >> one.height;
+                input.ignore(numeric_limits<std::streamsize>::max(), '\n');
+                if (input.good())
+                    res.push_back(one);
+            }
+            else
+            {
+                vector<Point2f> pts;
+                Point2f pt;
+
+                //Get Ground Truth data
+                double	x1 = 0, y1 = 0,
+                    x2 = 0, y2 = 0,
+                    x3 = 0, y3 = 0,
+                    x4 = 0, y4 = 0;
+                string tmp;
+                getline(input, tmp);
+                sscanf(tmp.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", &x1, &y1, &x2, &y2, &x3, &y3, &x4, &y4);
+                pts.push_back(Point2f(x1, y1));
+                pts.push_back(Point2f(x2, y2));
+                pts.push_back(Point2f(x3, y3));
+                pts.push_back(Point2f(x4, y4));
+                one = boundingRect(pts);
+                pts.clear();
                 res.push_back(one);
+            }
+
         }
     }
     if (!omitname.empty())
@@ -238,6 +263,7 @@ int main(int argc, char **argv)
         "{omit||file with omit ranges (each line describes occluded frames: '<start> <end>')}"
         "{plot|false|plot LTR curves at the end}"
         "{v|false|print each frame info}"
+        "{t|0|ground truth file type}"
         "{@algos||comma-separated algorithm names}";
     CommandLineParser p(argc, argv, keys);
     int startFrame = p.get<int>("start");
@@ -248,6 +274,8 @@ int main(int argc, char **argv)
     string algList = p.get<string>("@algos");
     bool doPlot = p.get<bool>("plot");
     bool isVerbose = p.get<bool>("v");
+    int typeGT = p.get<int>("t");
+    
     if (p.has("help") || gtFile.empty())
     {
         p.printMessage();
@@ -260,7 +288,7 @@ int main(int argc, char **argv)
     }
 
     cout << "Reading GT from " << gtFile << " ... ";
-    vector<Rect2d> gt = readGT(gtFile, omitFile);
+    vector<Rect2d> gt = readGT(gtFile, omitFile, typeGT);
     if (gt.empty())
         CV_Error(Error::StsError, "Failed to read GT file");
     cout << gt.size() << " boxes" << endl;
