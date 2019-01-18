@@ -21,4 +21,4 @@ the idea is quite simple:
   + solvePnP with the landmarks, and the base 3d points, to get rvec and tvec.
 
 
-(v 2.0 is using the lbf landmarks model instead of dlib, and a mosse tracker for more stable face position)
+(v 2.0 is using the [lbf landmarks model](https://raw.githubusercontent.com/kurnianggoro/GSOC2017/master/data/lbfmodel.yaml) instead of dlib, and a mosse tracker for more stable face position)

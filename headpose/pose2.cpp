@@ -124,6 +124,7 @@ struct Head {
 };
 
 int main() {
+    // model from: https://raw.githubusercontent.com/kurnianggoro/GSOC2017/master/data/lbfmodel.yaml
     cv::String landmarksModel = "c:/data/mdl/lbfmodel.yaml";
     cv::String cascade_name   = "c:/data/mdl/haarcascade_frontalface_alt.xml";
     cv::VideoCapture cap(0);
