@@ -2,6 +2,7 @@
 #define _SAMPLES_UTILITY_HPP_
 
 #include <opencv2/tracking.hpp>
+#include <dat/dat_tracker.hpp>
 
 extern cv::Ptr<cv::Tracker> createTrackerCT();
 extern cv::Ptr<cv::Tracker> createTrackerCMT();
@@ -38,6 +39,8 @@ inline cv::Ptr<cv::Tracker> createTrackerByName(cv::String name)
         tracker = createTrackerBACF();
     else if (name == "STAPLE")
         tracker = createTrackerSTAPLE();
+    else if (name == "DAT")
+        tracker = createTrackerDAT();
     else
         CV_Error(cv::Error::StsBadArg, "Invalid tracking algorithm name\n");
 

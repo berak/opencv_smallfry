@@ -2,3 +2,4 @@
 * CMT: https://github.com/gnebehay/CppMT
 * CT: Real-Time Compressive Tracking," Kaihua Zhang, Lei Zhang, Ming-Hsuan Yang, ECCV 2012. : https://github.com/gnebehay/VOTR/tree/master/CT
 * STAPLE: " Complementary Learners for Real-Time Tracking" https://github.com/xuduo35/STAPLE
+* DAT: "In Defense of Color-based Model-free Tracking."  https://lrs.icg.tugraz.at/members/possegger https://github.com/foolwood/DAT

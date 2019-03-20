@@ -1,6 +1,9 @@
 all:
-	g++ -fno-diagnostics-color -DNO_MAIN benchmark.cpp \
-		 ct/CompressiveTracker.cpp cmt/CMT.cpp cmt/fastcluster/fastcluster.cpp \
-		 bacf/bacf.cpp staple\src\staple_tracker.cpp staple\src\fhog.cpp \
+	g++ -fno-diagnostics-color  benchmark.cpp \
+		 ct/CompressiveTracker.cpp \
+		 cmt/CMT.cpp cmt/fastcluster/fastcluster.cpp \
+		 bacf/bacf.cpp \
+		 staple\staple_tracker.cpp staple\fhog.cpp \
+		 dat/dat_tracker.cpp \
 		 -I. -Ic:\p\opencv\build\install\include -Lc:\p\opencv\build\install\x64\mingw\lib \
-		 -lopencv_tracking400 -lopencv_plot400 -lopencv_datasets400 -lopencv_dnn400 -lopencv_features2d400 -lopencv_flann400 -lopencv_video400 -lopencv_videoio400 -lopencv_highgui400 -lopencv_imgcodecs400 -lopencv_imgproc400 -lopencv_core400 -DNDEBUG -O3 -o benchmark
+		 -lopencv_tracking410 -lopencv_plot410 -lopencv_datasets410 -lopencv_dnn410 -lopencv_features2d410 -lopencv_flann410 -lopencv_video410 -lopencv_videoio410 -lopencv_highgui410 -lopencv_imgcodecs410 -lopencv_imgproc410 -lopencv_core410 -DNDEBUG -O3 -o benchmark
