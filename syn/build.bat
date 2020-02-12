@@ -1,0 +1,1 @@
+g++ -D__WINDOWS_DS__ -I. syn.cpp  RtAudio.cpp AudioFile.cpp -ldsound -lwinmm -lole32 -o syn
