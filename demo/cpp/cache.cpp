@@ -8,9 +8,9 @@ using namespace std;
 
 int main( int argc, char** argv )
 {
-    int k=0;
-    String c_in("c:\\Users\\ppp\\AppData\\Local\\Mozilla\\Firefox\\Profiles\\xzjglr0t.default-1535787918443\\cache2\\entries");
-    String c_out("c:\\data\\img\\cache\\");
+   int k=0;
+    String c_in("c:\\Users\\ppp\\AppData\\Local\\Mozilla\\Firefox\\Profiles\\p49ig5is.default-release\\cache2\\entries");
+    String c_out("c:\\data\\cache\\");
     if (argc>1)
     {
         c_out += String(argv[1]);

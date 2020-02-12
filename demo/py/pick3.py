@@ -10,8 +10,8 @@ def pick_color(event,x,y,flags,param):
         pixel = image_hsv[y,x]
 
         #you might want to adjust the ranges(+-10, etc):
-        upper = (pixel[0] + 10, pixel[1] + 10, pixel[2] + 40)
-        lower = (pixel[0] - 10, pixel[1] - 10, pixel[2] - 40)
+        upper = np.array([pixel[0] + 10, pixel[1] + 10, pixel[2] + 40])
+        lower = np.array([pixel[0] - 10, pixel[1] - 10, pixel[2] - 40])
         print (pixel, upper, lower)
 
         image_mask = cv2.inRange(image_hsv, lower,upper)
@@ -20,21 +20,25 @@ def pick_color(event,x,y,flags,param):
 def main():
     global image_hsv, pixel # so we can use it in mouse callback
 
-    image_src = cv2.imread('09.png')
-    if image_src is None:
-        print ("the image read is None............")
-        return
-    cv2.imshow("bgr", image_src)
+    cap = cv2.VideoCapture(0)
 
-    ## NEW ##
-    cv2.namedWindow('hsv')
-    cv2.setMouseCallback('hsv', pick_color)
+    while(1):
+        ret, image_src = cap.read()
+        if image_src is None:
+            print ("the image read is None............")
+            return
+        cv2.imshow("bgr", image_src)
 
-    # now click into the hsv img , and look at values:
-    image_hsv = cv2.cvtColor(image_src,cv2.COLOR_BGR2HSV)
-    cv2.imshow("hsv",image_hsv)
+        ## NEW ##
+        cv2.namedWindow('hsv')
+        cv2.setMouseCallback('hsv', pick_color)
 
-    cv2.waitKey(0)
+        # now click into the hsv img , and look at values:
+        image_hsv = cv2.cvtColor(image_src,cv2.COLOR_BGR2HSV)
+        cv2.imshow("hsv",image_hsv)
+
+        if cv2.waitKey(10)== 27:
+            break
     cv2.destroyAllWindows()
 
 if __name__=='__main__':

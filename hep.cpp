@@ -328,7 +328,7 @@ void bench(const Mat &m, const HEP_3x3 &krn, const string &fn)
 
 int main()
 {   PROFILE;
-    Mat m=imread("../demo/img/lena1.png",0);
+    Mat m=imread("img/h1.png",0);
     resize(m,m,Size(120,120));
     cerr << GRID << " " << m.size() << endl;
 

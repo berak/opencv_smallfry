@@ -4,35 +4,23 @@ using namespace cv;
 #include <iostream>
 using namespace std;
 
-int main()
+int main(int argc, char**argv)
 {
-	VideoCapture cap;
-	cap.open(0);
-	//cap.open("my.avi");
+	int id = argc>1 ? atoi(argv[1]) : 0;
+	VideoCapture cap(id);
+	namedWindow("ocv", 0);
 	if (! cap.isOpened())
 	{
 		cout << "could not open the VideoCapture !" << endl;
 		return -1;
 	}
-	int f = 0;
-	while(true)
+	Mat frame;
+	while(cap.read(frame))
 	{
-		cout << f << endl;
-		Mat frame;
-		bool ok = cap.read(frame);
-		if (ok && !frame.empty()) // movie is over
-		{
-			imshow("ocv",frame);
-			f++;
-		} else
-		{
-			//cap.release();
-			cap.open("my.avi");
-			bool ok = cap.set(CAP_PROP_POS_FRAMES, f);
-			cout << ok << " " << f << " " << cap.get(CAP_PROP_POS_FRAMES) << endl;
-		}
+		imshow("ocv",frame);
 		int k = waitKey(10);
 		if (k==27) break;  // esc. pressed
+		if (k=='i') cap.set(CAP_PROP_SETTINGS,1);
 	}
 	return 0;
 }
