@@ -10,22 +10,21 @@ struct msg {
 	int e;
 	float v;
 	msg(int c, int e, float v) : c(c),e(e),v(v) { /*cerr << str() << endl;*/}
-
-	std::string s;
-	string str() {return format("%d %d %2.4f",c,e,v);}
+	string str() { return format("%d %d %2.4f",c,e,v); }
 };
 
 int main()
 {
 	VideoCapture cap(0);
 	int ticks=0;
-	Mat frame, motion,mask,hsv;
+	Mat frame,mask,hsv;
 	while(1) {
 		cap >> frame;
 		if (frame.empty())
 			break;
 		cvtColor(frame,hsv,COLOR_BGR2HSV);
-		Scalar up(80,70,200), lo(60,30,150);
+		//Scalar up(80,70,200), lo(60,30,150);
+		Scalar up(98,90,180), lo(78,80,150);
 		inRange(hsv,lo,up,mask);
 		imshow("M",mask);
 
@@ -39,7 +38,7 @@ int main()
 	        vector<Point> &c = contours[i];
 	        double a = contourArea(c);
 	        if (a>A) {
-	        	A=a;
+	        	A = a;
 	            id = i;
 	        	r = boundingRect(c);
 	        }
@@ -77,6 +76,6 @@ int main()
 		imshow("F",frame);
 		if (waitKey(10)>0) break;
 	}
-	cout << "999" << endl;
+	cout << "9 9 9" << endl;
 	return 0;
 }

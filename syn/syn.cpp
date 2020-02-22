@@ -18,6 +18,7 @@ struct msg {
 	float v;
 	std::string s;
 };
+
 enum Events {
 	M_TIM, // time, 0=Note_on, -1=Note_off
 	M_VOL, // vol
@@ -38,24 +39,24 @@ struct samp {
 		au.load(path+file);
 	}
 	float tick() {
-		if (t>=0) {
+		if (t >= 0) {
 			t += dx;
-			if (t>=au.getNumSamplesPerChannel()) {
+			if (t >= au.getNumSamplesPerChannel()) {
 				t = loop ? 0 : -1;
 			}
 		}
 		return t;
 	}
 	float l() {
-		if (t<0) return 0; // OFF
+		if (t < 0) return 0; // OFF
 		return v * au.samples[0][(int)t];
 	}
 	float r() {
-		if (t<0) return 0; // OFF
+		if (t < 0) return 0; // OFF
 		return v * au.samples[1][(int)t];
 	}
 	void parse(const msg &m) {
-		if (!loop && (t<0 || t>=au.getNumSamplesPerChannel())) {
+		if (!loop && (t < 0 || t >= au.getNumSamplesPerChannel())) {
 			t = 0;
 		}
 		switch(m.e) {

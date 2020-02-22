@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -7,6 +8,7 @@ public class Form1 : System.Windows.Forms.Form
     private System.Windows.Forms.TrackBar trackBar1;
     private System.Windows.Forms.TextBox textBox1;
     private System.Windows.Forms.TextBox textBox2;
+    private  System.Threading.Thread listen = null;
 
     [STAThread]
     static void Main()
@@ -38,6 +40,16 @@ public class Form1 : System.Windows.Forms.Form
         this.ClientSize = new System.Drawing.Size(360, 62);
         this.Controls.AddRange(new System.Windows.Forms.Control[] {this.textBox1,this.textBox2,this.trackBar1});
         this.Text = "TrackBar Example";
+
+        listen = new Thread(new ThreadStart(delegate()
+        {
+            while (true)
+            {
+                string cin = Console.ReadLine();
+                Console.WriteLine(cin);
+            }
+        }));
+        listen.Start();
     }
 
     private void trackBar1_Scroll(object sender, System.EventArgs e)
