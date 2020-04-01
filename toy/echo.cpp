@@ -1,12 +1,13 @@
-#include "opencv/cv.h"
-#include "opencv/highgui.h"
+#include "opencv2/core.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/videoio.hpp"
 using namespace cv;
 
-#include <vector>
+#include <deque>
 
 struct EchoChamber
 {
-	struct Tap 
+	struct Tap
 	{
 		int pos;
 		float weight;
@@ -70,10 +71,10 @@ int main()
 	int a=0, b=0;
 	createTrackbar( "t 0", "echo", &a, 100, t0 );
 	createTrackbar( "t 1", "echo", &b, 100, t1 );
-    
+
 	VideoCapture cap;
 	cap.open(0);
-	Mat frame; 
+	Mat frame;
 	Mat processed;
 	for(;;) {
 		cap >> frame;
@@ -83,7 +84,7 @@ int main()
 
 		imshow("echo", processed);
 		if(waitKey(30) >= 0) break;
-	}	
+	}
 	return 0;
 }
 
