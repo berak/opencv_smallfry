@@ -1,1 +1,0 @@
-@buildocv gabor xui.cpp

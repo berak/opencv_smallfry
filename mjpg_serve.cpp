@@ -14,7 +14,7 @@
 //
 // socket related abstractions:
 //
-#ifdef _WIN32  
+#ifdef _WIN32
     #include <winsock.h>
     #include <windows.h>
     #include <time.h>
@@ -61,24 +61,24 @@ class MJPGWriter
     int timeout; // master sock timeout, shutdown after timeout millis.
     int quality; // jpeg compression [1..100]
 
-    int _write( int sock, char *s, int len ) 
-    { 
+    int _write( int sock, char *s, int len )
+    {
         if ( len < 1 ) { len = strlen(s); }
         return ::send( sock, s, len, 0 );
     }
 
 public:
 
-    MJPGWriter() 
-        : sock(INVALID_SOCKET) 
+    MJPGWriter()
+        : sock(INVALID_SOCKET)
         , timeout(200000)
         , quality(30)
     {
 		FD_ZERO( &master );
     }
 
-    MJPGWriter(int port) 
-        : sock(INVALID_SOCKET) 
+    MJPGWriter(int port)
+        : sock(INVALID_SOCKET)
         , timeout(200000)
         , quality(30)
     {
@@ -86,7 +86,7 @@ public:
         open(port);
     }
 
-    ~MJPGWriter() 
+    ~MJPGWriter()
     {
         release();
     }
@@ -103,7 +103,7 @@ public:
     {
         sock = ::socket (AF_INET, SOCK_STREAM, IPPROTO_TCP) ;
 
-        SOCKADDR_IN address;	   
+        SOCKADDR_IN address;
         address.sin_addr.s_addr = INADDR_ANY;
         address.sin_family      = AF_INET;
         address.sin_port        = ::htons(port);
@@ -117,13 +117,13 @@ public:
             cerr << "error : couldn't listen on sock "<<sock<<" on port "<<port<<" !" << endl;
             return release();
         }
-		FD_SET( sock, &master );	
+		FD_SET( sock, &master );
         return true;
     }
 
-    bool isOpened() 
+    bool isOpened()
     {
-        return sock != INVALID_SOCKET; 
+        return sock != INVALID_SOCKET;
     }
 
     bool write(const Mat & frame)
@@ -142,20 +142,20 @@ public:
         cv::imencode(".jpg", frame, outbuf, params);
         int outlen = outbuf.size();
 
-        #ifdef _WIN32 
+        #ifdef _WIN32
 		for ( unsigned i=0; i<rread.fd_count; i++ )
         {
             SOCKET s = rread.fd_array[i];    // fd_set on win is an array, while ...
-        #else         
+        #else
         for ( int s=0; s<maxfd; s++ )
         {
             if ( ! FD_ISSET(s,&rread) )      // ... on linux it's a bitmask ;)
                 continue;
-        #endif                   
+        #endif
             if ( s == sock ) // request on master socket, accept and send main header.
             {
                 int         addrlen = sizeof(SOCKADDR);
-                SOCKADDR_IN address = {0};	   
+                SOCKADDR_IN address = {0};
                 SOCKET      client  = ::accept( sock,  (SOCKADDR*)&address, &addrlen );
                 if ( client == SOCKET_ERROR )
                 {
@@ -176,7 +176,7 @@ public:
 	                "Content-Type: multipart/x-mixed-replace; boundary=mjpegstream\r\n"
 	                "\r\n",0);
                 cerr << "new client " << client << endl;
-            } 
+            }
             else // existing client, just stream pix
             {
                 char head[400];
@@ -202,7 +202,7 @@ int main()
 {
     VideoCapture cap;
     bool ok = cap.open(0);
-	if ( ! ok ) 
+	if ( ! ok )
 	{
 		printf("no cam found ;(.\n");
 		return 1;
@@ -218,7 +218,7 @@ int main()
         wri.write(frame);
 
         imshow("lalala",frame);
-        int k = waitKey(10); 
+        int k = waitKey(10);
         if ( k==27 )
             break;
     }

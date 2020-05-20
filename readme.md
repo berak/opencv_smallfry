@@ -3,6 +3,7 @@
 * chili: opencv c++ remote playground running on [heroku](http://sugarcoatedchili.herokuapp.com/)
 * cluster: clustering att faces with kmeans,flann,random and BRUTEFORCE!!
 * curl.cpp: download a car from the internet ;)
+* colab: some jupyter notebooks, mostly tf/pytorch -> dnn conversions
 * condens2.cpp: 2.x adaption of the old legacy condensation code
 * db: serialize cv::Mat to some popular databases.
 * dbrief: c++, opencv2.x port of http://cvlab.epfl.ch/research/detect/dbrief

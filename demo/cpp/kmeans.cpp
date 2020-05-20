@@ -1,48 +1,45 @@
 #include "opencv2/opencv.hpp"
-#include "opencv2/core/ocl.hpp"
-#include <iostream>
-
 using namespace cv;
+
+#include <iostream>
 using namespace std;
 
+Mat showCenters(const Mat &centers , int siz=64) {
+    Mat cent = centers.reshape(3, centers.rows);
+cout << cent.channels() << " " << cent.type() << " " << cent.size() << " " << cent << endl;
+    // make  a horizontal bar of K color patches:
+    Mat draw(siz , siz * cent.rows, cent.type(), Scalar::all(0));
+    for (int i=0; i<cent.rows; i++) {
+         // set the resp. ROI to that value (just fill it):
+         draw( Rect(i * siz, 0, siz, siz)) = cent.at<Vec3f>(i,0);
+    }
+    draw.convertTo(draw, CV_8U);
 
+    // optional visualization:
+    imshow("CENTERS", draw);
+    waitKey();
 
-int main(int argc, const char* argv[]) {
-Mat ocv = imread("../img/exampleleft_s.jpg");
-resize(ocv,ocv,Size(640,480));
+    //imwrite("centers.png", draw);
+
+    return draw;
+}
+
+int main()
+{
+	Mat img = imread("km.jpg");
+	//Mat ocv; cvtColor(img,ocv,COLOR_BGR2HSV);
+	//imshow("I",ocv);
+
+    // convert to float & reshape to a [3 x W*H] Mat
+    //  (so every pixel is on a row of it's own)
 Mat data;
-ocv.convertTo(data,CV_32F);
-data = data.reshape(1,data.total());
-cerr << data.type() << " " << data.size() << endl;
+img.convertTo(data, CV_32F);
+data = data.reshape(1, data.total());
 
+// do kmeans
 Mat labels, centers;
-cv::kmeans(data, 8, labels, cv::TermCriteria(CV_TERMCRIT_ITER, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
-
-cerr << labels.type() << " " << labels.size() << endl;
-cerr << centers.type() << " " << centers.size() << endl;
-
-cerr << centers << endl;
-
-centers = centers.reshape(3,centers.rows);
-data = data.reshape(3,data.rows);
-
-Vec3f *p = data.ptr<Vec3f>();
-
-for (size_t i=0; i<data.rows; i++) {
-   int center_id = labels.at<int>(i);
-   p[i] = centers.at<Vec3f>(center_id);
+kmeans(data, 3, labels, TermCriteria(TermCriteria::COUNT, 10, 1.0), 3,
+    KMEANS_PP_CENTERS, centers);
+showCenters(centers);
+return 0;
 }
-
-ocv = data.reshape(3, ocv.rows);
-ocv.convertTo(ocv, CV_8U);
-imshow("chili", ocv);
-
-Mat cenviz(20,8*20,CV_8UC3);
-for (int i=0; i<8; i++) {
-	cenviz(Rect(i*20,0,20,20)).setTo(centers.at<Vec3f>(i));
-}
-imshow("centers", cenviz);
-waitKey();
-  	return 0;
-}
-
