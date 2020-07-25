@@ -16,11 +16,21 @@ Original file is located at
 
 # patch data.c
 !rm src/data.c
+!rm src/yolo_layer.c
+!rm src/detector.c
+!rm Makefile
 !cp "/content/drive/My Drive/darknet/data.c" src/data.c
+!cp "/content/drive/My Drive/darknet/yolo_layer.c" src/yolo_layer.c
+!cp "/content/drive/My Drive/darknet/detector.c" src/detector.c
+!cp "/content/drive/My Drive/darknet/Makefile" Makefile
+
+!mv Makefile Makefile.txt
 
 !mv Makefile.txt Makefile
 
 !make
+
+!ld
 
 !ls -l
 !./darknet
@@ -33,9 +43,13 @@ Original file is located at
 #!wget https://github.com/spmallick/learnopencv/raw/master/YOLOv3-Training-Snowman-Detector/darknet.data
 #!wget https://github.com/spmallick/learnopencv/raw/master/YOLOv3-Training-Snowman-Detector/getDataFromOpenImages_snowman.py
 #!wget https://github.com/spmallick/learnopencv/raw/master/YOLOv3-Training-Snowman-Detector/darksplitTrainAndTest.py
+###
+#!wget https://pjreddie.com/media/files/yolov3.weights
+#!cp yolov3.weights "/content/drive/My Drive/darknet/"
 
-!cp "/content/drive/My Drive/darknet/darknet53.conv.74" .
-#!cp "/content/drive/My Drive/darknet/darknet-yolov3_r.cfg" .
+#!cp "/content/drive/My Drive/darknet/darknet53.conv.74" .
+!cp "/content/drive/My Drive/darknet/yolov3.weights" .
+!cp "/content/drive/My Drive/darknet/darknet-yolov3_r.cfg" .
 
 !git clone https://github.com/pratikkayal/PlantDoc-Object-Detection-Dataset
 
@@ -161,7 +175,7 @@ f.write("classes=" + str(len(classes)) + "\n")
 f.write("train=/content/darknet/data/plants_train.txt\n")
 f.write("valid=/content/darknet/data/plants_test.txt\n")
 f.write("names=/content/darknet/data/plants.classes\n")
-f.write("backup='/content/darknet/backup'\n")
+f.write("backup=/content/darknet/backup\n")
 
 !cat data/plants.classes
 
@@ -182,16 +196,19 @@ for x in s:
 
 """#step 4: train darknet"""
 
-! ./darknet detector train data/plants.data darknet-yolov3_r.cfg darknet53.conv.74
+! ./darknet detector train data/plants.data yolov3.cfg backup/yolov3.backup
+#! ./darknet detector train data/plants.data yolov3.cfg yolov3_3700.weights
+#! ./darknet detector train data/plants.data darknet-yolov3_r.cfg darknet53.conv.74
 
 !mkdir "/content/drive/My Drive/darknet"
 !mkdir "/content/drive/My Drive/darknet/backup"
 
-!cp backup/* "/content/drive/My Drive/darknet/backup"
+!cp backup/yolov3.backup "/content/drive/My Drive/darknet/backup/yolov3_6000.weights"
 
 """#step 5: try with opencv dnn"""
 
-!cp  "/content/drive/My Drive/darknet/backup/darknet-yolov3_r_200.weights" .
+!ls -l  "/content/drive/My Drive/darknet/backup/"
+!cp  "/content/drive/My Drive/darknet/backup/yolov3_6000.weights" .
 
 import cv2, numpy as np
 import csv
@@ -226,12 +243,17 @@ for c in s:
   id += 1
 
 
-#net = cv2.dnn.readNet("darknet-yolov3_r_200.weights", "darknet-yolov3_r.cfg")
-net = cv2.dnn.readNet("darknet53.conv.74", "darknet-yolov3_r.cfg")
+#net = cv2.dnn.readNet("backup/yolov3.backup", "yolov3.cfg")
+net = cv2.dnn.readNet("yolov3_6000.weights", "yolov3.cfg")
 outNames = net.getUnconnectedOutLayersNames()
 print(outNames)
-
+mAP = 0
+mIOU = 0
+missed=0
+hits = 0 
+fail = 0
 lines=0
+confusion = np.zeros((30,30),np.float32)
 reader = csv.reader(open("images/test_labels.csv", newline='', encoding='utf-8'), quotechar='"')
 for s in reader:
   lines += 1
@@ -253,11 +275,13 @@ for s in reader:
   box = [x,y,X,Y]
   
   im = cv2.imread("images/test/" + s[0])
+  FW = im.shape[1]
+  FH = im.shape[0]
   #print(im.shape)
   blob = cv2.dnn.blobFromImage(im, 0.00392, size=(416,416), swapRB=True)
   net.setInput(blob)
   outs = net.forward(outNames)
-  confThreshold = 0.000001
+  confThreshold = 0.1
   nmsThreshold = 0.1
   classIds = []
   confidences = []
@@ -267,12 +291,12 @@ for s in reader:
           scores = detection[5:]
           classId = np.argmax(scores)
           confidence = scores[classId]
-          print(detection)
+          #print(detection)
           if confidence > confThreshold:
-              center_x = int(detection[0] * frameWidth)
-              center_y = int(detection[1] * frameHeight)
-              width = int(detection[2] * frameWidth)
-              height = int(detection[3] * frameHeight)
+              center_x = int(detection[0] * FW)
+              center_y = int(detection[1] * FH)
+              width = int(detection[2] * FW)
+              height = int(detection[3] * FH)
               left = int(center_x - width / 2)
               top = int(center_y - height / 2)
               classIds.append(classId)
@@ -280,7 +304,7 @@ for s in reader:
               boxes.append([left, top, width, height])
 
   indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
-  print(len(boxes), len(indices))
+  #print()
   mi,miou = -1,-1
   for i in indices:
     i = i[0]
@@ -289,6 +313,18 @@ for s in reader:
       miou = iou
       mi = i
   if len(indices):
-    print(classIds[mi],c,miou,s[0])
+    confusion[c,classIds[mi]] += 1
+    print(classIds[mi],c,miou,confidences[mi],s[0],len(boxes), len(indices), box, boxes[mi])
+    if classIds[mi] == c: 
+      mAP += 1
+      mIOU += miou
+      hits += 1
+    else:
+      missed += 1
   else:
-    print('-',c,'-',s[0])
+    fail += 1
+    print('-',c,'-',s[0], 0, 0)
+    confusion[c,29] += 1
+ 
+print("fail",fail,"missed",missed,"hits",hits,"mAP",(hits / (mAP + missed)),"mIOU",(mIOU/hits))
+print(confusion)
