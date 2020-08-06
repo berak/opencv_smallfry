@@ -1,0 +1,1 @@
+g++ -fdiagnostics-color=never samples/main.cpp src\pushbroom_stereo.cpp -I./include -I C:/p/opencv/build/install/include -L C:/p/opencv/build/install/x86/mingw/lib -O3 -lopencv_imgcodecs440 -lopencv_calib3d440 -lopencv_videoio440 -lopencv_imgproc440 -lopencv_core440 -lopencv_highgui440 -o main
