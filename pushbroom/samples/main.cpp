@@ -4,10 +4,9 @@
  *
  */
 
-//#include "pushbroom-stereo.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
-#include <opencv2/calib3d.hpp>
+#include "opencv2/calib3d.hpp"
 #include "pushbroom_stereo.hpp"
 #include <iostream>
 #include <fstream>
@@ -34,11 +33,9 @@ int main() {
     state.disparity = -33;
     state.zero_dist_disparity = -21;
     state.sobelLimit = 860;
-    state.horizontalInvarianceMultiplier = 0.5;
     state.blockSize = 5;
     state.sadThreshold = 54;
-
-
+    //state.horizontalInvarianceMultiplier = 0.5;
     if (state.blockSize > 10 || state.blockSize < 1)
     {
         fprintf(stderr, "Warning: block size is very large "
@@ -102,6 +99,7 @@ int main() {
         double T1 = (t1-t0) / getTickFrequency();
         double T2 = (t3-t2) / getTickFrequency();
         cout << "T " << T1 << " / " << T2 << endl;
+
         disparity_bm.convertTo(disp8, CV_8U);
         cvtColor(disp8,disp8,COLOR_GRAY2BGR);
         for (int i=0; i<(int)pointVector2d.size(); i++) {
@@ -114,12 +112,11 @@ int main() {
 
         Mat image_3d;
         reprojectImageTo3D(disparity_bm, image_3d, state.Q, true);
-        //cout << "Q " << image_3d.size() << " " << image_3d.type() << endl;
         imshow("Q", image_3d);
 
-        int i=0, off=state.blockSize/2;
+        int i=0;
         for (auto p:pointVector2d) {
-            Point3f a = image_3d.at<Point3f>(p.y+off,p.x+off);
+            Point3f a = image_3d.at<Point3f>(p.y,p.x);
             Point3f b = pointVector3d[i];
             Point3i c = pointVector2d[i++];
             cout << a << " " << b << " " << norm(a-b) << "\t" << c << endl;

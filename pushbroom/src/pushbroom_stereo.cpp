@@ -3,7 +3,7 @@
  * Copyright 2013-2015, Andrew Barry <abarry@csail.mit.edu>
  *
  */
-
+#include "profile.h"
 #include "pushbroom_stereo.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -37,7 +37,7 @@ const int  NUMERIC_CONST=333; // just a constant that we multiply the score by t
  *      the value is the sum/numberOfPixels
  */
 static int GetSAD(Mat leftImage, Mat rightImage, Mat laplacianL, Mat laplacianR, int pxX, int pxY, const StereoState &state)
-{
+{ PROFILE;
     // init parameters
     int blockSize = state.blockSize;
     int disparity = state.disparity;
@@ -286,7 +286,7 @@ static void RunStereo(
     std::vector<Point3f> &pointVector3d, std::vector<Point3i> &pointVector2d, std::vector<uchar> &pointColors,
     const StereoState &state
      )
-{
+{ PROFILE;
     // we will do this by looping through every block in the left image
     // (defined by blockSize) and checking for a matching value on
     // the right image
@@ -318,8 +318,8 @@ static void RunStereo(
             // if the SAD is below the threshold, we got a hit
             if (sad < sadThreshold && sad >= 0)
             {
-                if (! CheckHorizontalInvariance(leftImage, rightImage, laplacian_left, laplacian_right, j, i, state))
-                    continue;
+                //if (CheckHorizontalInvariance(leftImage, rightImage, laplacian_left, laplacian_right, j, i, state))
+                //    continue;
 
                 // centered version
                 Point c(j+blockSize/2.0, i+blockSize/2.0);
@@ -355,27 +355,27 @@ static void RunStereo(
  * @param state state structure that includes a number of parameters
 */
 void Stereo(InputArray _leftImage, InputArray _rightImage, std::vector<Point3f> &pointVector3d, std::vector<uchar> &pointColors, std::vector<Point3i> &pointVector2d, const StereoState &state) {
-
+PROFILE;
     Mat leftImage = _leftImage.getMat();
     Mat rightImage = _rightImage.getMat();
 
     // make sure that the inputs are of the right type
     CV_Assert(leftImage.type() == CV_8UC1 && rightImage.type() == CV_8UC1);
 
-    // remap (undistort)
     Mat remapped_left(state.mapxL.rows, state.mapxL.cols, leftImage.depth());
     Mat remapped_right(state.mapxR.rows, state.mapxR.cols, rightImage.depth());
-
+{PROFILEX("Remap")
+    // remap (undistort)
     remap(leftImage, remapped_left, state.mapxL, Mat(), INTER_NEAREST);
     remap(rightImage, remapped_right, state.mapxR, Mat(), INTER_NEAREST);
-
+}
     // apply interest operator
     Mat laplacian_left(remapped_left.rows, remapped_left.cols, remapped_left.depth());
     Mat laplacian_right(remapped_right.rows, remapped_right.cols, remapped_right.depth());
-
+{PROFILEX("Laplacian")
     Laplacian(remapped_left, laplacian_left, -1, 3, 1, 0, BORDER_DEFAULT);
     Laplacian(remapped_right, laplacian_right, -1, 3, 1, 0, BORDER_DEFAULT);
-
+}
     detail::RunStereo(
         remapped_left,remapped_right, laplacian_left,laplacian_right,
         pointVector3d, pointVector2d, pointColors,
@@ -384,4 +384,3 @@ void Stereo(InputArray _leftImage, InputArray _rightImage, std::vector<Point3f> 
 } // Stereo
 
 }; // namespace pushbroom
-

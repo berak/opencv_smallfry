@@ -23,7 +23,6 @@ struct StereoState
 
 /**
  * Sum-of-absolute-differences (SAD) algorithm on a single disparity
- * This is the public interface
  *
  * @param leftImage left image
  * @param rightImage right image
@@ -33,6 +32,6 @@ struct StereoState
 */
 void Stereo(cv::InputArray _leftImage, cv::InputArray _rightImage, std::vector<cv::Point3f> &pointVector3d, std::vector<uchar> &pointColors, std::vector<cv::Point3i> &pointVector2d, const StereoState &state);
 
-}
+} // namespace pushbroom
 
 #endif // __push_broom_stereo_onboard__
