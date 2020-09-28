@@ -26,13 +26,18 @@ f.close()
 
 !tar -xzvf data_model.tar.gz
 
+# Commented out IPython magic to ensure Python compatibility.
+# %cd /content/YouTube3D
+import sys
+sys.path.append("/content/YouTube3D/src")
+print(sys.path)
+
 #from RelativeLoss import RelativeLoss
 #from RelativeDepthDataset import RelativeDepthDataset, relative_depth_collate_fn
 #from DIWDataset import DIWDatasetVal
 #from YoutubeDataset import YoutubeDatasetVal
 #from ReDWebNet import ReDWebNet_resnet50
-from src.inception import inception
-from src.HourglassNetwork import HourglassNetwork
+from HourglassNetwork import HourglassNetwork
 import cv2
 import torch, torch.nn as nn
 
@@ -41,6 +46,9 @@ model = HourglassNetwork().cpu()
 _dict = torch.load(model_file,map_location=torch.device('cpu'))
 model.load_state_dict(_dict)	
 model.eval()
+
+# Commented out IPython magic to ensure Python compatibility.
+# %cd /content/YouTube3D
 
 import torch
 import numpy as np
@@ -85,3 +93,27 @@ print(output_var.size(),output_var.type())
 
 target_res=[240,320]
 vis_depth(output_var.data.cpu().numpy(), inputs.numpy(), 0, target_res)
+
+# Commented out IPython magic to ensure Python compatibility.
+# %cd /content/YouTube3D
+
+def convert_to_onnx(net, output_name):
+    input = torch.randn(1,3,240,320)
+    input_names = ['data']
+    output_names = ['output']
+    net.eval()
+    torch.onnx.export(net, input, output_name, verbose=True, input_names=input_names, output_names=output_names, opset_version=11)
+convert_to_onnx(model, "YouTube3D.onnx")
+
+# Commented out IPython magic to ensure Python compatibility.
+# %cd /content/YouTube3D
+
+import torch
+import cv2
+print(cv2.__version__)
+
+net = cv2.dnn.readNet("YouTube3D.onnx")
+
+!cp /content/YouTube3D/YouTube3D.onnx "/content/drive/My Drive/YouTube3D.onnx"
+
+!cp "/content/drive/My Drive/cv2_cuda/cv2.cpython-36m-x86_64-linux-gnu.so" .

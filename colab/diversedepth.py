@@ -9,12 +9,13 @@ Original file is located at
 
 # Commented out IPython magic to ensure Python compatibility.
 # broken code !!!!
-!git clone https://github.com/YvanYin/DiverseDepth
+!git clone https://github.com/berak/DiverseDepth
 # %cd DiverseDepth
 
 #%cd /content/DiverseDepth
 !cp "/content/drive/My Drive/cv2_cuda/cv2.cpython-36m-x86_64-linux-gnu.so" .
 
+#!mkdir
 !wget https://cloudstor.aarnet.edu.au/plus/s/ixWf3nTJFZ0YE4q/download -O resnext50_32x4d.pth
 
 # Commented out IPython magic to ensure Python compatibility.
@@ -36,17 +37,56 @@ else:
 """
 #                                lateral_resnext50_32x4d_body_stride16():
 
+import torch
+
+#crop = (385, 385)
+crop = (256, 256)
+fn = "DiverseDepth.onnx"
+def convert_to_onnx(net, output_name):
+    input = {"A":torch.randn(1,3,crop[0], crop[1])}
+    input_names = ['data']
+    output_names = ['output']
+    net.eval()
+    torch.onnx.export(net, input, output_name, verbose=False, input_names=input_names, output_names=output_names, opset_version=11)
+model.cuda()
+convert_to_onnx(model, fn)
+
+import cv2
+print(cv2.__version__)
+
+net = cv2.dnn.readNet(fn)
+
+import numpy as np
+im = cv2.imread("girl.png")
+blob = cv2.dnn.blobFromImage(im, 1/255, crop, (127,127,127), False, True)
+net.setInput(blob)
+res = net.forward("output")
+print(res.shape)
+out = np.sum(res,1)
+out = out[0,:,:]
+print(out.shape)
+out = out + 1
+out = out / 2
+out = 10 ** out
+#out = cv2.normalize(out,0,1,cv2.NORM_MINMAX)
+print(np.min(out), np.max(out))
+
+from google.colab.patches import cv2_imshow
+cv2_imshow(out*32)
+im = cv2.resize(im,crop)
+cv2_imshow(im)
+
+net.dumpToFile("monodepth.dot")
+
+!dot monodepth.dot -Tpng -omono.png
+import cv2
+im = cv2.imread("mono.png")
+from google.colab.patches import cv2_imshow
+cv2_imshow(im)
+
 2240/7
 
-# Commented out IPython magic to ensure Python compatibility.
-# %cd /content/DiverseDepth
-!ls  -f /content/DiverseDepth/lib/models/__pycache__/*
-!rm  -f /content/DiverseDepth/lib/models/__pycache__/*
-!ls  -f /content/DiverseDepth/lib/core/__pycache__/*
-!rm  -f /content/DiverseDepth/lib/core/__pycache__/*
-!ls  -f /content/DiverseDepth/lib/configs/__pycache__/*
-!rm  -f /content/DiverseDepth/lib/configs/__pycache__/*
-
+#@title
 import torch.nn as nn
 import torch
 
