@@ -4,4 +4,4 @@ an opencv (c++) adaption of
 
 https://github.com/eeskimez/noise_resilient_3dtface
 
-feed it 16bit 8khz mono speech samples
+feed it 8khz mono speech samples

@@ -10,7 +10,7 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {
-	int sr = 8000;
+	int sr = 8000; // assumes: 8khz mono
 	int num_frames = 7;
 	int increment  = sr * 0.04; // 25 fps
 	int sample_len = num_frames * increment;

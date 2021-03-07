@@ -1,3 +1,4 @@
+* audio_landmarks3d: 3d face landmarks fitted to speech audio
 * blink.cpp: eye-blink classification based on facial landmarks
 * bow: BOWKmajority example(for binary descriptors) also, bow with python in opencv 3.x
 * chili: opencv c++ remote playground running on [heroku](http://sugarcoatedchili.herokuapp.com/)
