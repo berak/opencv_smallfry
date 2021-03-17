@@ -41,7 +41,6 @@ int main(int argc, char const *argv[])
 	    nn.setInput(in);
 	    Mat res = nn.forward();
 	    res = res.t();
-
 	    Mat_<float> pts = mean_shape.clone();
 	    for (int i=0; i<eigen_vectors.cols; i++) {
 	    	pts(i) += res.dot(eigen_vectors.col(i));
