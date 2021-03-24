@@ -46,7 +46,7 @@ def animate(wfile):
 			pts[0,i] += res.dot(eigen_vectors[i,:])
 		pts = pts.reshape(68,3) # 204==68*3
 		img = np.ones((H,W,3),np.uint8)
-		img[:,:] = 127
+		img[:,:] = (127,127,127)
 		for i in range(pts.shape[0]):
 			x = int(pts[i,0] * W*2 + W/2)
 			y = int(pts[i,1] * H*2 + H/2)
@@ -64,7 +64,7 @@ def animate(wfile):
 	vid.release()
 	#cv2.waitKey();
 
-	cmd = 'ffmpeg -y -i my.avi -i '+wfile+' -c:v copy -c:a aac -strict experimental res_.webm'
+	cmd = 'ffmpeg -y -i my.avi -i '+wfile+' -c:v h264 -c:a aac -strict experimental res_.mp4'
 	subprocess.call(cmd, shell=True)
 
 animate("S2.wav")
