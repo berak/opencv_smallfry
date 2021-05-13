@@ -27,7 +27,6 @@ protector = Fawkes("low_extract", False, 1)
 import os
 os.path.expanduser('~')
 
-!whoami"
 
 import keras
 import keras.backend as K
@@ -73,7 +72,7 @@ def freeze_session(session, keep_var_names=None, output_names=None, clear_device
 K.set_learning_phase(0)
 print(model.inputs)
 print(model.outputs)
-    
+
 frozen_graph = freeze_session(K.get_session(),
                               output_names=[out.op.name for out in model.outputs])
 tf.train.write_graph(frozen_graph, ".", "tf_test.pb", as_text=False)
