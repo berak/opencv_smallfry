@@ -13,7 +13,7 @@ Original file is located at
 # %cd DiverseDepth
 
 #%cd /content/DiverseDepth
-!cp "/content/drive/My Drive/cv2_cuda/cv2.cpython-36m-x86_64-linux-gnu.so" .
+!cp "/content/drive/My Drive/cv2_cuda/cv2.cpython-37m-x86_64-linux-gnu.so" .
 
 #!mkdir
 !wget https://cloudstor.aarnet.edu.au/plus/s/ixWf3nTJFZ0YE4q/download -O resnext50_32x4d.pth
